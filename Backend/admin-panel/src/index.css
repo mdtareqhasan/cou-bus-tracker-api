@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  .page-enter {
+    animation: pageEnter 0.2s ease-out;
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: all 0.15s ease;
+    background: white;
+  }
+  .input-field:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+  }
+
+  .select-field {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: all 0.15s ease;
+    background: white;
+    appearance: none;
+    cursor: pointer;
+  }
+  .select-field:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-green { background: #dcfce7; color: #15803d; }
+  .badge-yellow { background: #fef9c3; color: #a16207; }
+  .badge-red { background: #fee2e2; color: #dc2626; }
+  .badge-purple { background: #f3e8ff; color: #9333ea; }
+  .badge-orange { background: #ffedd5; color: #ea580c; }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    background: #059669;
+    color: white;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-primary:hover {
+    background: #047857;
+    box-shadow: 0 4px 12px rgba(5,150,105,0.3);
+  }
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    background: white;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+  .btn-secondary:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+  }
+
+  .btn-success {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    background: #0d9488;
+    color: white;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-success:hover {
+    background: #0f766e;
+    box-shadow: 0 4px 12px rgba(13,148,136,0.3);
+  }
+
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    transition: all 0.15s ease;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 1rem;
+    animation: fadeIn 0.15s ease-out;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    width: 100%;
+    animation: modalSlide 0.2s ease-out;
+  }
+
+  .schedule-page {
+    position: relative;
+  }
+
+  .schedule-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 1.8rem 2rem;
+    border-radius: 1.25rem;
+    color: white;
+    background: linear-gradient(120deg, #0284c7 0%, #06b6d4 55%, #10b981 100%);
+    box-shadow: 0 18px 36px -20px rgba(20,184,166,0.7);
+  }
+  .schedule-hero::after {
+    content: '';
+    position: absolute;
+    width: 15rem;
+    height: 15rem;
+    right: -4rem;
+    top: -9rem;
+    border-radius: 9999px;
+    border: 2rem solid rgba(255, 255, 255, 0.1);
+  }
+  .schedule-hero > * { position: relative; z-index: 1; }
+  .schedule-hero h1 { color: white; letter-spacing: -0.025em; }
+  .schedule-hero p { color: rgba(236, 253, 245, 0.92); }
+  .schedule-add-button {
+    background: white;
+    color: #0f766e;
+    box-shadow: 0 8px 20px rgba(4, 120, 87, 0.25);
+  }
+  .schedule-add-button:hover { background: #f0fdfa; }
+
+  .schedule-search .input-field {
+    border-color: #a7f3d0;
+    box-shadow: 0 8px 18px -14px rgba(5, 150, 105, 0.5);
+  }
+  .schedule-table {
+    border-color: #d1fae5;
+    box-shadow: 0 20px 36px -30px rgba(5, 150, 105, 0.4);
+  }
+  .schedule-table thead {
+    background: linear-gradient(90deg, #ecfdf5, #f8fdfb);
+  }
+  .schedule-table .table-row { transition: background-color 0.16s ease, transform 0.16s ease; }
+  .schedule-table .table-row:hover { background: #f0fdfa; }
+
+  .filter-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+  }
+  .filter-btn-active {
+    background: #059669;
+    color: white;
+    border-color: #059669;
+    box-shadow: 0 2px 8px rgba(5,150,105,0.25);
+  }
+  .filter-btn-inactive {
+    background: white;
+    color: #4b5563;
+  }
+  .filter-btn-inactive:hover { background: #f9fafb; border-color: #d1d5db; }
+
+  .stat-card {
+    background: white;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    padding: 1.25rem;
+    transition: all 0.2s ease;
+  }
+  .stat-card:hover {
+    box-shadow: 0 8px 24px -8px rgba(0,0,0,0.1);
+    border-color: #99f6e4;
+    transform: translateY(-2px);
+  }
+
+  .table-row {
+    transition: background-color 0.16s ease;
+  }
+  .table-row:hover {
+    background: #f0fdfa;
+  }
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlide {
+  from { opacity: 0; transform: scale(0.97) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}

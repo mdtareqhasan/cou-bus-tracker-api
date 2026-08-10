@@ -1,0 +1,32 @@
+package com.cou.bustracker.dto.request;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StudentRegisterRequest {
+
+    @NotBlank(message = "Name is required")
+    private String name;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Please provide a valid email")
+    private String email;
+
+    @NotBlank(message = "Password is required")
+    private String password;
+
+    @NotBlank(message = "Student ID is required")
+    private String studentId;
+
+    @NotBlank(message = "Department is required")
+    private String department;
+
+    @NotBlank(message = "Varsity batch is required")
+    private String varsityBatch;
+}
