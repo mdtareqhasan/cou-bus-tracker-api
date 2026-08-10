@@ -1,21 +1,38 @@
-# CoU Bus Tracker
+<div align="center">
 
-Real-time bus information and fleet-management platform for **Comilla University**. It consists of a Spring Boot REST API (backend), a React admin panel (frontend), and is designed to serve a separate Bengali Android application.
+# 🚌 CoU Bus Tracker
 
-| Component | Location | Technology | Default URL |
-|---|---|---|---|
-| REST API (backend) | `Backend/` | Java 21, Spring Boot 3.3, Spring Security + JWT, Spring Data JPA, **PostgreSQL**, Flyway, OpenAPI | `http://localhost:8080` |
-| Admin panel (frontend) | `Backend/admin-panel/` | React 19, Vite, Tailwind CSS 4, React Router 7, Axios | `http://localhost:5173` |
-| Android app spec | `Backend/CoUBusTracker_Project_Spec.md` | Android-ready API & UI specification | — |
+**Real-time bus information & fleet-management platform for Comilla University**
+
+[![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14%2B-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Vite](https://img.shields.io/badge/Vite-Fast-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![License](https://img.shields.io/badge/license-Unlicensed-lightgrey)]()
+
+*A Spring Boot REST API + React admin panel, built to power a Bengali Android application.*
+
+</div>
 
 ---
 
-## Table of contents
+## 🧩 System overview
 
-- [Features](#features)
-- [Project structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Backend (Spring Boot)](#backend-spring-boot)
+| Component | Location | Technology | Default URL |
+|---|---|---|---|
+| 🔧 **REST API** (backend) | `Backend/` | Java 21 · Spring Boot 3.3 · Spring Security + JWT · Spring Data JPA · **PostgreSQL** · Flyway · OpenAPI | `http://localhost:8080` |
+| 🎛️ **Admin panel** (frontend) | `Backend/admin-panel/` | React 19 · Vite · Tailwind CSS 4 · React Router 7 · Axios | `http://localhost:5173` |
+| 📱 **Android app spec** | `Backend/CoUBusTracker_Project_Spec.md` | Android-ready API & UI specification | — |
+
+---
+
+## 📖 Table of contents
+
+- [✨ Features](#-features)
+- [🗂️ Project structure](#️-project-structure)
+- [✅ Prerequisites](#-prerequisites)
+- [⚙️ Backend (Spring Boot)](#️-backend-spring-boot)
   - [Configuration](#configuration)
   - [Run locally](#run-locally)
   - [Docker deployment](#docker-deployment)
@@ -23,39 +40,41 @@ Real-time bus information and fleet-management platform for **Comilla University
   - [Data model](#data-model)
   - [API reference](#api-reference)
   - [Authentication & security](#authentication--security)
-- [Frontend (React admin panel)](#frontend-react-admin-panel)
-- [Android application](#android-application)
-- [Testing](#testing)
-- [Troubleshooting](#troubleshooting)
-- [Production checklist](#production-checklist)
+- [🖥️ Frontend (React admin panel)](#️-frontend-react-admin-panel)
+- [📱 Android application](#-android-application)
+- [🧪 Testing](#-testing)
+- [🛠️ Troubleshooting](#️-troubleshooting)
+- [🚀 Production checklist](#-production-checklist)
 
 ---
 
-## Features
+## ✨ Features
 
-### Backend (Spring Boot API)
-- **Public APIs** for buses, schedules, and active notices — no authentication required.
-- **Student & teacher accounts** with registration, login, ID-card image upload, and profile retrieval.
-- **JWT-protected admin APIs** to fully manage buses, live tracker links, schedules, notices, students, teachers, and other admin users.
-- **Admin dashboard** endpoints returning aggregated statistics.
-- **File uploads** (e.g., student ID cards) stored under a configurable directory.
-- **PostgreSQL schema versioning** through Flyway migrations (seeded with real Comilla University bus data).
-- **OpenAPI / Swagger UI** documentation generated automatically.
-- Optional **bus name** and **live tracker link** support.
+### ⚙️ Backend (Spring Boot API)
 
-### Frontend (React admin panel)
-- Secure login with JWT stored in `localStorage`, auto-redirect on 401/403.
-- Dashboard with live statistics.
-- Full CRUD screens for buses, schedules, and notices.
-- Student & teacher management (list, pending approval, verify, activate/deactivate, delete).
-- Admin user management and admin profile editing.
-- Responsive Tailwind CSS layout.
+- 🌐 **Public APIs** for buses, schedules, and active notices — no authentication required
+- 🎓 **Student & teacher accounts** with registration, login, ID-card image upload, and profile retrieval
+- 🔐 **JWT-protected admin APIs** to fully manage buses, live tracker links, schedules, notices, students, teachers, and other admin users
+- 📊 **Admin dashboard** endpoints returning aggregated statistics
+- 📁 **File uploads** (e.g., student ID cards) stored under a configurable directory
+- 🗃️ **PostgreSQL schema versioning** through Flyway migrations (seeded with real Comilla University bus data)
+- 📚 **OpenAPI / Swagger UI** documentation generated automatically
+- 🚏 Optional **bus name** and **live tracker link** support
+
+### 🖥️ Frontend (React admin panel)
+
+- 🔑 Secure login with JWT stored in `localStorage`, auto-redirect on 401/403
+- 📈 Dashboard with live statistics
+- 📝 Full CRUD screens for buses, schedules, and notices
+- 👥 Student & teacher management (list, pending approval, verify, activate/deactivate, delete)
+- 🛡️ Admin user management and admin profile editing
+- 📱 Responsive Tailwind CSS layout
 
 ---
 
-## Project structure
+## 🗂️ Project structure
 
-```
+```text
 Backend/
 ├── admin-panel/                     # Frontend (React + Vite)
 │   ├── public/                      # Static assets (favicon, icons)
@@ -64,7 +83,7 @@ Backend/
 │       ├── App.jsx                  # Routes + auth guards
 │       ├── context/AuthContext.jsx  # Global admin auth state
 │       └── pages/                   # Login, Dashboard, Buses, Schedules, Notices,
-│                                    # Students, Teachers, Admins, Profile, Layout
+│                                     # Students, Teachers, Admins, Profile, Layout
 ├── src/
 │   ├── main/
 │   │   ├── java/com/cou/bustracker/
@@ -91,28 +110,32 @@ Backend/
 
 ---
 
-## Prerequisites
+## ✅ Prerequisites
 
-- **Java 21 or newer**
-- **Maven 3.8 or newer**
-- **PostgreSQL 14+** (or Docker)
-- **Node.js 18 or newer** and **npm**
+| Requirement | Minimum version |
+|---|---|
+| ☕ Java | 21+ |
+| 🏗️ Maven | 3.8+ |
+| 🐘 PostgreSQL | 14+ (or Docker) |
+| 🟢 Node.js | 18+ (with npm) |
 
 ---
 
-# Backend (Spring Boot)
+# ⚙️ Backend (Spring Boot)
 
 The backend is a single-module Maven project (`com.cou:cou-bus-tracker:1.0.0`).
 
 ## Main technologies
 
-- Spring Boot 3.3.2 (Web, Data JPA, Security, Validation)
-- Springdoc OpenAPI 2.6.0 (`springdoc-openapi-starter-webmvc-ui`)
-- JJWT 0.12.6 (JWT auth)
-- PostgreSQL Driver
-- Flyway 10 (core + PostgreSQL)
-- Lombok 1.18.40
-- HikariCP connection pool
+| | |
+|---|---|
+| 🍃 | Spring Boot 3.3.2 (Web, Data JPA, Security, Validation) |
+| 📘 | Springdoc OpenAPI 2.6.0 (`springdoc-openapi-starter-webmvc-ui`) |
+| 🔏 | JJWT 0.12.6 (JWT auth) |
+| 🐘 | PostgreSQL Driver |
+| 🛫 | Flyway 10 (core + PostgreSQL) |
+| 🧊 | Lombok 1.18.40 |
+| ⚡ | HikariCP connection pool |
 
 ## Configuration
 
@@ -120,10 +143,10 @@ The backend reads its setup file(s) from `src/main/resources/`:
 
 | File | Purpose |
 |---|---|
-| `application.yaml` | Global defaults: `server.port=8080`, JWT secret + 24h expiration, Swagger paths, active profile = `dev`. |
-| `application-dev.yaml` | Dev PostgreSQL connection, extra SQL logging, multipart size limits (5 MB), upload folder `./uploads`. |
+| `application.yaml` | Global defaults: `server.port=8080`, JWT secret + 24h expiration, Swagger paths, active profile = `dev` |
+| `application-dev.yaml` | Dev PostgreSQL connection, extra SQL logging, multipart size limits (5 MB), upload folder `./uploads` |
 
-### Database connection (dev profile)
+### 🔌 Database connection (dev profile)
 
 By default it connects to:
 
@@ -133,7 +156,7 @@ jdbc:postgresql://localhost:5432/cou_bus_tracker
 
 with `username: postgres` / `password: root1234`. Change these values in `application-dev.yaml` or via environment variables.
 
-### Environment variables (for Docker)
+### 🌱 Environment variables (for Docker)
 
 When running with Docker Compose you can override settings from `.env` (copy `.env.example` to `.env`):
 
@@ -144,45 +167,48 @@ When running with Docker Compose you can override settings from `.env` (copy `.e
 | `DB_NAME` | `cou_bus_tracker` | Database name |
 | `DB_USERNAME` | `postgres` | Database user |
 | `DB_PASSWORD` | `root1234` | Database password |
-| `JWT_SECRET` | `YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnough2024!` | JWT signing key (>= 32 chars) |
+| `JWT_SECRET` | `YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnough2024!` | JWT signing key (≥ 32 chars) |
 | `UPLOAD_DIR` | `./uploads` | Local upload folder |
 
-> Do not reuse the default JWT secret in production; a leaked secret lets anyone forge admin tokens.
+> ⚠️ **Security warning:** Do not reuse the default JWT secret in production; a leaked secret lets anyone forge admin tokens.
 
-### JWT
+### 🔑 JWT & default admin
 
 The app also needs `admin` initialization data. The default admin (created by migration `V6__seed_initial_data.sql`) is:
 
-- **Email:** `admin@cou.ac.bd`
-- **Password:** `Admin@123`
+| Field | Value |
+|---|---|
+| Email | `admin@cou.ac.bd` |
+| Password | `Admin@123` |
 
-**Change this password before any public deployment.**
+> 🚨 **Change this password before any public deployment.**
 
 ## Run locally
 
-### 1. Backend only
+### 1️⃣ Backend only
 
-1. Make sure PostgreSQL is running and you have a `cou_bus_tracker` database.
+1. Make sure PostgreSQL is running and you have a `cou_bus_tracker` database:
    ```sql
    CREATE DATABASE cou_bus_tracker;
    ```
-2. (Optional) Adjust `application-dev.yaml`. Set your DB username/password.
+2. *(Optional)* Adjust `application-dev.yaml` — set your DB username/password.
 3. Start the API:
+   ```bash
+   cd Backend
+   mvn spring-boot:run
+   ```
 
-```bash
-cd Backend
-mvn spring-boot:run
-```
-
-Flyway will automatically apply all migrations (V1–V13) on first startup, creating tables and seeding data.
+Flyway will automatically apply all migrations (**V1–V13**) on first startup, creating tables and seeding data.
 
 The API is then available at:
 
-- Base URL: `http://localhost:8080`
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/api-docs`
+| Resource | URL |
+|---|---|
+| 🌐 Base URL | `http://localhost:8080` |
+| 📘 Swagger UI | `http://localhost:8080/swagger-ui.html` |
+| 📄 OpenAPI JSON | `http://localhost:8080/api-docs` |
 
-### 2. Build an artifact (e.g. jar)
+### 2️⃣ Build an artifact (e.g. jar)
 
 ```bash
 cd Backend
@@ -192,7 +218,7 @@ java -jar target/cou-bus-tracker-1.0.0.jar
 
 The Spring Boot fat jar output is `target/cou-bus-tracker-1.0.0.jar`.
 
-## Docker deployment
+## 🐳 Docker deployment
 
 From `Backend/`, first build the application JAR, then start the stack:
 
@@ -204,8 +230,8 @@ docker-compose up --build -d
 
 This starts two services:
 
-1. **cou-bus-tracker-postgres**: PostgreSQL 16 container, port `5432`, with a named volume `postgres_data` and a healthcheck.
-2. **cou-bus-tracker-app**: the backend container (from the `Dockerfile`, based on `eclipse-temurin:21-jre-alpine`) on port `8080`.
+1. 🐘 **cou-bus-tracker-postgres** — PostgreSQL 16 container, port `5432`, with a named volume `postgres_data` and a healthcheck
+2. ☕ **cou-bus-tracker-app** — the backend container (from the `Dockerfile`, based on `eclipse-temurin:21-jre-alpine`) on port `8080`
 
 The backend starts only after PostgreSQL is healthy. Flyway applies the schema migrations on first startup.
 
@@ -213,10 +239,10 @@ Stop / tear down:
 
 ```bash
 docker-compose down
-docker-compose down -v   # also deletes the PostgreSQL volume (drops data!)
+docker-compose down -v   # ⚠️ also deletes the PostgreSQL volume (drops data!)
 ```
 
-## Database migrations
+## 🗃️ Database migrations
 
 Flyway runs automatically whenever the backend starts. Migrations live at `src/main/resources/db/migration/`:
 
@@ -236,138 +262,168 @@ Flyway runs automatically whenever the backend starts. Migrations live at `src/m
 | `V12__reseed_data_postgresql.sql` | Seed/repair data + fix missing sequences (PostgreSQL) |
 | `V13__fix_boolean_columns.sql` | Convert INTEGER boolean columns to native BOOLEAN |
 
-> **PostgreSQL note:** All migrations use PostgreSQL-compatible syntax (`BIGSERIAL`, native `BOOLEAN`, no `ENGINE` clauses). When migrating from MySQL via DBeaver, boolean columns may be imported as `INTEGER` — V13 fixes this automatically.
+> 💡 **PostgreSQL note:** All migrations use PostgreSQL-compatible syntax (`BIGSERIAL`, native `BOOLEAN`, no `ENGINE` clauses). When migrating from MySQL via DBeaver, boolean columns may be imported as `INTEGER` — V13 fixes this automatically.
 
-> Never edit an applied migration—create a new `V{n+1}__…sql` file instead (Flyway validates checksums).
+> 🚫 Never edit an applied migration — create a new `V{n+1}__…sql` file instead (Flyway validates checksums).
 
-## Data model
+## 🧬 Data model
 
 | Entity | Fields | Relationships |
 |---|---|---|
-| **Bus** | id, busNumber, busName, category (BLUE/TEACHER/STAFF), route, driverName, driverPhone, busImageUrl, isActive, createdAt | 1→many schedules, one TrackerLink |
-| **Schedule** | id, departureTime, arrivalTime, direction, startPoint, endPoint, days (e.g. `SUN-THU`), isActive, createdAt | Many→1 Bus |
-| **TrackerLink** | id, url | 1→1 Bus |
-| **Notice** | id, title, body, expiryHours (default 24), isActive, expiresAt, createdAt | — |
-| **Student** | id, name, email, password, studentId, department, varsityBatch, idCardImageUrl, isEduMail, isVerified, isActive, createdAt | — |
-| **Teacher** | id, name, email, password, designation, department, phone, isEduMail, isVerified, isActive, createdAt | — |
-| **Admin** | id, email, password, name, createdAt | — |
+| 🚌 **Bus** | id, busNumber, busName, category (BLUE/TEACHER/STAFF), route, driverName, driverPhone, busImageUrl, isActive, createdAt | 1→many schedules, one TrackerLink |
+| 🕒 **Schedule** | id, departureTime, arrivalTime, direction, startPoint, endPoint, days (e.g. `SUN-THU`), isActive, createdAt | Many→1 Bus |
+| 📍 **TrackerLink** | id, url | 1→1 Bus |
+| 📢 **Notice** | id, title, body, expiryHours (default 24), isActive, expiresAt, createdAt | — |
+| 🎓 **Student** | id, name, email, password, studentId, department, varsityBatch, idCardImageUrl, isEduMail, isVerified, isActive, createdAt | — |
+| 🧑‍🏫 **Teacher** | id, name, email, password, designation, department, phone, isEduMail, isVerified, isActive, createdAt | — |
+| 🛡️ **Admin** | id, email, password, name, createdAt | — |
 
-## API reference
+## 🔌 API reference
 
-### Public endpoints (no auth)
-
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/buses` | List active buses |
-| GET | `/api/buses/{id}` | Bus detail (incl. tracker link) |
-| GET | `/api/schedules` | All schedules |
-| GET | `/api/schedules/bus/{busId}` | Schedules for one bus |
-| GET | `/api/notices/active` | Currently active notices |
-| POST | `/api/auth/student/register` | Student registration (`StudentRegisterRequest`) |
-| POST | `/api/auth/student/login` | Student login (`{ email, password }`) |
-| POST | `/api/auth/teacher/register` | Teacher registration |
-| POST | `/api/auth/teacher/login` | Teacher login |
-
-### Authenticated student endpoints
+### 🌐 Public endpoints (no auth)
 
 | Method | Path | Description |
 |---|---|---|
-| POST | `/api/auth/student/upload-id-card` | Upload image (multipart `file`); stored under `student-id-cards/` |
-| GET | `/api/auth/student/me` | Current student profile |
+| `GET` | `/api/buses` | List active buses |
+| `GET` | `/api/buses/{id}` | Bus detail (incl. tracker link) |
+| `GET` | `/api/schedules` | All schedules |
+| `GET` | `/api/schedules/bus/{busId}` | Schedules for one bus |
+| `GET` | `/api/notices/active` | Currently active notices |
+| `POST` | `/api/auth/student/register` | Student registration (`StudentRegisterRequest`) |
+| `POST` | `/api/auth/student/login` | Student login (`{ email, password }`) |
+| `POST` | `/api/auth/teacher/register` | Teacher registration |
+| `POST` | `/api/auth/teacher/login` | Teacher login |
 
-### Admin endpoints (JWT required, `Authorization: Bearer <token>`)
+### 🎓 Authenticated student endpoints
 
-#### Auth
 | Method | Path | Description |
 |---|---|---|
-| POST | `/api/auth/admin/login` | Admin login → returns JWT |
+| `POST` | `/api/auth/student/upload-id-card` | Upload image (multipart `file`); stored under `student-id-cards/` |
+| `GET` | `/api/auth/student/me` | Current student profile |
 
-#### Dashboard
+### 🔐 Admin endpoints (JWT required, `Authorization: Bearer <token>`)
+
+<details>
+<summary><b>🔑 Auth</b></summary>
+
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/admin/dashboard` | Aggregated statistics |
+| `POST` | `/api/auth/admin/login` | Admin login → returns JWT |
 
-#### Buses
+</details>
+
+<details>
+<summary><b>📊 Dashboard</b></summary>
+
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/admin/buses` | All buses (incl. inactive) |
-| POST | `/api/admin/buses` | Create bus |
-| PUT | `/api/admin/buses/{id}` | Update bus |
-| PUT | `/api/admin/buses/{id}/tracker-link` | Update / add live tracker link |
-| DELETE | `/api/admin/buses/{id}` | Delete bus |
+| `GET` | `/api/admin/dashboard` | Aggregated statistics |
 
-#### Schedules
+</details>
+
+<details>
+<summary><b>🚌 Buses</b></summary>
+
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/admin/schedules` | All schedules |
-| POST | `/api/admin/schedules` | Create schedule |
-| PUT | `/api/admin/schedules/{id}` | Update schedule |
-| DELETE | `/api/admin/schedules/{id}` | Delete schedule |
+| `GET` | `/api/admin/buses` | All buses (incl. inactive) |
+| `POST` | `/api/admin/buses` | Create bus |
+| `PUT` | `/api/admin/buses/{id}` | Update bus |
+| `PUT` | `/api/admin/buses/{id}/tracker-link` | Update / add live tracker link |
+| `DELETE` | `/api/admin/buses/{id}` | Delete bus |
 
-#### Notices
+</details>
+
+<details>
+<summary><b>🕒 Schedules</b></summary>
+
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/admin/notices` | All notices |
-| POST | `/api/admin/notices` | Create notice |
-| DELETE | `/api/admin/notices/{id}` | Delete notice |
+| `GET` | `/api/admin/schedules` | All schedules |
+| `POST` | `/api/admin/schedules` | Create schedule |
+| `PUT` | `/api/admin/schedules/{id}` | Update schedule |
+| `DELETE` | `/api/admin/schedules/{id}` | Delete schedule |
 
-#### Students
+</details>
+
+<details>
+<summary><b>📢 Notices</b></summary>
+
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/admin/students` | All students |
-| GET | `/api/admin/students/pending` | Unverified students |
-| PUT | `/api/admin/students/{id}/verify` | Verify student |
-| PUT | `/api/admin/students/{id}/toggle-active` | Activate / deactivate |
-| DELETE | `/api/admin/students/{id}` | Delete student |
+| `GET` | `/api/admin/notices` | All notices |
+| `POST` | `/api/admin/notices` | Create notice |
+| `DELETE` | `/api/admin/notices/{id}` | Delete notice |
 
-#### Teachers
+</details>
+
+<details>
+<summary><b>🎓 Students</b></summary>
+
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/admin/teachers` | All teachers |
-| GET | `/api/admin/teachers/pending` | Unverified teachers |
-| PUT | `/api/admin/teachers/{id}/verify` | Verify teacher |
-| PUT | `/api/admin/teachers/{id}/toggle-active` | Activate / deactivate |
-| DELETE | `/api/admin/teachers/{id}` | Delete teacher |
+| `GET` | `/api/admin/students` | All students |
+| `GET` | `/api/admin/students/pending` | Unverified students |
+| `PUT` | `/api/admin/students/{id}/verify` | Verify student |
+| `PUT` | `/api/admin/students/{id}/toggle-active` | Activate / deactivate |
+| `DELETE` | `/api/admin/students/{id}` | Delete student |
 
-#### Admin users
+</details>
+
+<details>
+<summary><b>🧑‍🏫 Teachers</b></summary>
+
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/admin/manage` | List admin users |
-| POST | `/api/admin/manage` | Create admin |
-| PUT | `/api/admin/manage/{id}` | Update admin |
-| DELETE | `/api/admin/manage/{id}` | Delete admin |
+| `GET` | `/api/admin/teachers` | All teachers |
+| `GET` | `/api/admin/teachers/pending` | Unverified teachers |
+| `PUT` | `/api/admin/teachers/{id}/verify` | Verify teacher |
+| `PUT` | `/api/admin/teachers/{id}/toggle-active` | Activate / deactivate |
+| `DELETE` | `/api/admin/teachers/{id}` | Delete teacher |
 
-#### Profile
+</details>
+
+<details>
+<summary><b>🛡️ Admin users</b></summary>
+
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/admin/profile` | Current admin's profile |
-| PUT | `/api/admin/profile` | Update profile |
+| `GET` | `/api/admin/manage` | List admin users |
+| `POST` | `/api/admin/manage` | Create admin |
+| `PUT` | `/api/admin/manage/{id}` | Update admin |
+| `DELETE` | `/api/admin/manage/{id}` | Delete admin |
 
-## Authentication & security
+</details>
 
-- **Passwords** are stored hashed (bcrypt - seeded admin uses a `$2b$10$` hash).
-- **JWT** is issued on login; default expiration from configuration is 24 hours (86400000 ms).
-- The `JwtAuthFilter` examines the `Authorization: Bearer ...` header, validates the token, and populates the security context.
-- `CustomUserDetailsService` loads user details from the admins (and student/users as needed).
-- Protected admin routes require the admin role; unauthorized requests return `401`, forbidden ones `403`.
+<details>
+<summary><b>👤 Profile</b></summary>
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/admin/profile` | Current admin's profile |
+| `PUT` | `/api/admin/profile` | Update profile |
+
+</details>
+
+## 🔒 Authentication & security
+
+- 🔑 **Passwords** are stored hashed (bcrypt — seeded admin uses a `$2b$10$` hash)
+- 🎫 **JWT** is issued on login; default expiration from configuration is 24 hours (86400000 ms)
+- 🛡️ The `JwtAuthFilter` examines the `Authorization: Bearer ...` header, validates the token, and populates the security context
+- 👤 `CustomUserDetailsService` loads user details from the admins (and student/users as needed)
+- 🚧 Protected admin routes require the admin role; unauthorized requests return `401`, forbidden ones `403`
 
 **Custom error handling:** `GlobalExceptionHandler` and custom exceptions (`ResourceNotFoundException`, `UnauthorizedException`) return structured JSON error bodies. See also tests in `Backend/src/test/java/com/cou/bustracker/service/AdminManagementServiceTest.java`.
 
 ---
 
-# Frontend (React admin panel)
+# 🖥️ Frontend (React admin panel)
 
 The panel lives in `Backend/admin-panel/`. It is a Vite + React SPA using Tailwind CSS v4 and React Router 7.
 
 ## Stack
 
-- React 19 + React DOM
-- Vite
-- Tailwind CSS 4 (`@tailwindcss/vite` plugin)
-- React Router DOM 7
-- Axios (HTTP)
-- lucide-react (icons)
-- oxlint (linter)
+`React 19` · `React DOM` · `Vite` · `Tailwind CSS 4` (`@tailwindcss/vite` plugin) · `React Router DOM 7` · `Axios` · `lucide-react` · `oxlint`
 
 ## Run locally
 
@@ -379,8 +435,10 @@ npm run dev
 
 Open `http://localhost:5173`. The Vite dev server proxies requests to the backend:
 
-- `/api -> http://localhost:8080`
-- `/uploads -> http://localhost:8080`
+| Path | Proxies to |
+|---|---|
+| `/api` | `http://localhost:8080` |
+| `/uploads` | `http://localhost:8080` |
 
 This means the panel works out of the box as long as the backend runs on port `8080`.
 
@@ -395,7 +453,7 @@ npm run preview  # serve the production build locally
 
 Deploy the contents of `admin-panel/dist/` behind a static file server (or serve it from the same origin as the API to keep the `/api` and `/uploads` relative URLs working).
 
-## Pages / features
+## 🧭 Pages / features
 
 | Route | Page | Description |
 |---|---|---|
@@ -409,75 +467,83 @@ Deploy the contents of `admin-panel/dist/` behind a static file server (or serve
 | `/admins` | `AdminUsersPage` | Manage admin accounts |
 | `/profile` | `AdminProfilePage` | Edit own profile |
 
-## How the panel talks to the API
+## 🔗 How the panel talks to the API
 
 All requests go through `src/api.js`, which:
 
-1. Creates an Axios instance with base URL `/api`.
-2. Automatically adds the `Authorization: Bearer <token>` header from `localStorage.getItem('admin_token')`.
-3. On any `401`/`403` response, clears the token and redirects to `/login`. Therefore session expiry is handled globally.
+1. Creates an Axios instance with base URL `/api`
+2. Automatically adds the `Authorization: Bearer <token>` header from `localStorage.getItem('admin_token')`
+3. On any `401`/`403` response, clears the token and redirects to `/login` — session expiry is handled globally
 
-Export groups: `authAPI`, `profileAPI`, `dashboardAPI`, `noticeAPI`, `scheduleAPI`, `studentAPI`, `busAPI`, `teacherAPI`, `adminAPI`.
-
----
-
-# Android application
-
-The Android team uses [CoUBusTracker_Project_Spec.md](Backend/CoUBusTracker_Project_Spec.md) as the single source of truth for the mobile app. That document contains:
-
-- Data contracts / request & response payloads
-- Authentication rules (JWT for students & teachers)
-- Screen flows & navigation
-- Recommended Android architecture
-- Bengali UI guidelines
-- Route options
-- Release checklist
-
-The app should use a **configurable base URL** and keep list of buses, schedules, notices, tracker links all server-driven.
+**Export groups:** `authAPI` · `profileAPI` · `dashboardAPI` · `noticeAPI` · `scheduleAPI` · `studentAPI` · `busAPI` · `teacherAPI` · `adminAPI`
 
 ---
 
-# Testing
+# 📱 Android application
 
-- Backend tests live in `Backend/src/test/java/`. Run them with:
+The Android team uses [`CoUBusTracker_Project_Spec.md`](Backend/CoUBusTracker_Project_Spec.md) as the single source of truth for the mobile app. That document contains:
 
-  ```bash
-  cd Backend
-  mvn test
-  ```
+- 📦 Data contracts / request & response payloads
+- 🔐 Authentication rules (JWT for students & teachers)
+- 🧭 Screen flows & navigation
+- 🏗️ Recommended Android architecture
+- 🇧🇩 Bengali UI guidelines
+- 🛣️ Route options
+- ✅ Release checklist
 
-  The tests use `spring-boot-starter-test` and `spring-security-test`.
-
-- Frontend lint (no unit test suite configured):
-
-  ```bash
-  cd Backend/admin-panel
-  npm run lint
-  ```
+> The app should use a **configurable base URL** and keep the list of buses, schedules, notices, and tracker links all server-driven.
 
 ---
 
-# Troubleshooting
+# 🧪 Testing
+
+**Backend** tests live in `Backend/src/test/java/`. Run them with:
+
+```bash
+cd Backend
+mvn test
+```
+
+The tests use `spring-boot-starter-test` and `spring-security-test`.
+
+**Frontend** lint (no unit test suite configured):
+
+```bash
+cd Backend/admin-panel
+npm run lint
+```
+
+---
+
+# 🛠️ Troubleshooting
 
 | Symptom | Likely cause / fix |
 |---|---|
-| `Connection refused` to PostgreSQL | Ensure PostgreSQL is running on port `5432` and the database `cou_bus_tracker` exists. |
-| `Access denied for user` | Update `username`/`password` in `application-dev.yaml` to match your PostgreSQL credentials. |
-| `Port 8080 already in use` | Change `server.port` in `application.yaml` or stop the process on 8080. |
-| Flyway validation error (`checksum mismatch`) | Never edit an applied migration file. Add a new `V{n+1}__...sql` migration. |
-| `column "is_active" is of type integer but expression is of type boolean` | DBeaver imported MySQL `BOOLEAN` (TINYINT) as PostgreSQL `INTEGER`. Run V13 migration or manually alter: `ALTER TABLE <table> ALTER COLUMN is_active TYPE BOOLEAN USING is_active::BOOLEAN;` |
-| Panel can't reach API | Make sure the backend is running on port `8080` (Vite proxies `/api` and `/uploads` to it). |
-| 401/403 in the panel | Session token expired or rebooted server; the panel auto-logs out. |
+| ❌ `Connection refused` to PostgreSQL | Ensure PostgreSQL is running on port `5432` and the database `cou_bus_tracker` exists |
+| ❌ `Access denied for user` | Update `username`/`password` in `application-dev.yaml` to match your PostgreSQL credentials |
+| ⚠️ `Port 8080 already in use` | Change `server.port` in `application.yaml` or stop the process on 8080 |
+| ⚠️ Flyway validation error (`checksum mismatch`) | Never edit an applied migration file — add a new `V{n+1}__...sql` migration |
+| ⚠️ `column "is_active" is of type integer but expression is of type boolean` | DBeaver imported MySQL `BOOLEAN` (TINYINT) as PostgreSQL `INTEGER`. Run the V13 migration or manually alter: `ALTER TABLE <table> ALTER COLUMN is_active TYPE BOOLEAN USING is_active::BOOLEAN;` |
+| ⚠️ Panel can't reach API | Make sure the backend is running on port `8080` (Vite proxies `/api` and `/uploads` to it) |
+| ℹ️ 401/403 in the panel | Session token expired or server rebooted; the panel auto-logs out |
 
 ---
 
-# Production checklist
+# 🚀 Production checklist
 
-- [ ] Override the **default JWT secret**.
-- [ ] Change the **default admin password** (`admin@cou.ac.bd` / `Admin@123`).
-- [ ] Use strong DB credentials (not `root1234`), ideally from secrets/Env.
-- [ ] Switch to a production profile (or harden `application-dev.yaml`).
-- [ ] Deploy `admin-panel/dist/` behind a static server / CDN and enable TLS.
-- [ ] Restrict file uploads (extensions, size) and protect the `uploads/` directory.
-- [ ] Run Flyway migrations before deploying the Android version that uses `bus_name`.
-- [ ] Set up backups for the PostgreSQL database and the `uploads/` folder.
+- [ ] 🔑 Override the **default JWT secret**
+- [ ] 🔐 Change the **default admin password** (`admin@cou.ac.bd` / `Admin@123`)
+- [ ] 🛡️ Use strong DB credentials (not `root1234`), ideally from secrets/Env
+- [ ] 🎛️ Switch to a production profile (or harden `application-dev.yaml`)
+- [ ] ☁️ Deploy `admin-panel/dist/` behind a static server / CDN and enable TLS
+- [ ] 📁 Restrict file uploads (extensions, size) and protect the `uploads/` directory
+- [ ] 🗃️ Run Flyway migrations before deploying the Android version that uses `bus_name`
+- [ ] 💾 Set up backups for the PostgreSQL database and the `uploads/` folder
+
+---
+
+<div align="center">
+
+Made for **Comilla University** 🎓
+
+</div>
