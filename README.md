@@ -98,10 +98,12 @@ Backend/
 │   │   │   └── CouBusTrackerApplication.java
 │   │   └── resources/
 │   │       ├── db/migration/        # Flyway SQL migrations (V1–V13, PostgreSQL)
-│   │       ├── application.yaml     # Base config (profile, JWT, server, swagger)
-│   │       └── application-dev.yaml # Dev profile PostgreSQL datasource + settings
+│   │       ├── application.yaml         # Base config (profile, JWT, server, swagger)
+│   │       ├── application-dev.yaml     # Dev profile — local PostgreSQL datasource
+│   │       └── application-docker.yaml  # Docker profile — container PostgreSQL datasource
 │   └── test/                        # Unit/integration tests
-├── Dockerfile                       # Builds backend image
+├── Dockerfile                       # Multi-stage build (Maven + JRE)
+├── .dockerignore                    # Excludes target/, node_modules/, .env from build context
 ├── docker-compose.yml               # PostgreSQL + backend services
 ├── pom.xml                          # Maven build (Spring Boot 3.3.2)
 ├── .env / .env.example              # Environment variables for Docker
@@ -144,7 +146,8 @@ The backend reads its setup file(s) from `src/main/resources/`:
 | File | Purpose |
 |---|---|
 | `application.yaml` | Global defaults: `server.port=8080`, JWT secret + 24h expiration, Swagger paths, active profile = `dev` |
-| `application-dev.yaml` | Dev PostgreSQL connection, extra SQL logging, multipart size limits (5 MB), upload folder `./uploads` |
+| `application-dev.yaml` | Local dev PostgreSQL connection (`localhost:5432`), SQL logging, multipart size limits (5 MB), upload folder `./uploads` |
+| `application-docker.yaml` | Docker profile — same as dev but points datasource at the `postgres` container hostname, quieter logging, upload folder `/app/uploads` |
 
 ### 🔌 Database connection (dev profile)
 
@@ -158,17 +161,16 @@ with `username: postgres` / `password: root1234`. Change these values in `applic
 
 ### 🌱 Environment variables (for Docker)
 
-When running with Docker Compose you can override settings from `.env` (copy `.env.example` to `.env`):
+When running with Docker Compose, settings are overridden via `.env` (copy `.env.example` to `.env`). Spring Boot automatically maps environment variables to properties using relaxed binding — for example, `SPRING_DATASOURCE_URL` overrides `spring.datasource.url`.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `DB_HOST` | `localhost` | PostgreSQL host |
-| `DB_PORT` | `5432` | PostgreSQL port |
-| `DB_NAME` | `cou_bus_tracker` | Database name |
-| `DB_USERNAME` | `postgres` | Database user |
-| `DB_PASSWORD` | `root1234` | Database password |
+| `DB_NAME` | `cou_bus_tracker` | PostgreSQL database name |
+| `DB_USERNAME` | `postgres` | PostgreSQL user |
+| `DB_PASSWORD` | `root1234` | PostgreSQL password |
 | `JWT_SECRET` | `YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnough2024!` | JWT signing key (≥ 32 chars) |
-| `UPLOAD_DIR` | `./uploads` | Local upload folder |
+
+> The `app` service also receives `SPRING_PROFILES_ACTIVE=docker`, `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, and `FILE_UPLOAD_DIR` — all set in `docker-compose.yml` and derived from the variables above.
 
 > ⚠️ **Security warning:** Do not reuse the default JWT secret in production; a leaked secret lets anyone forge admin tokens.
 
@@ -220,26 +222,56 @@ The Spring Boot fat jar output is `target/cou-bus-tracker-1.0.0.jar`.
 
 ## 🐳 Docker deployment
 
-From `Backend/`, first build the application JAR, then start the stack:
+### Quick start (pre-built image)
+
+From `Backend/`, copy the env file and start the stack:
 
 ```bash
 cd Backend
-mvn clean package
-docker-compose up --build -d
+cp .env.example .env          # edit if you need different credentials
+docker compose up -d
 ```
 
-This starts two services:
+This pulls the pre-built image `hasantareqoishi/cou-bus-tracker-backend:latest` and starts two services:
 
-1. 🐘 **cou-bus-tracker-postgres** — PostgreSQL 16 container, port `5432`, with a named volume `postgres_data` and a healthcheck
-2. ☕ **cou-bus-tracker-app** — the backend container (from the `Dockerfile`, based on `eclipse-temurin:21-jre-alpine`) on port `8080`
+| Service | Image / Build | Port | Description |
+|---|---|---|---|
+| **cou-bus-tracker-postgres** | `postgres:16-alpine` | `5432` | PostgreSQL with a named volume `postgres_data` and a healthcheck |
+| **cou-bus-tracker-app** | `hasantareqoishi/cou-bus-tracker-backend:latest` | `8080` | Spring Boot backend (profile `docker`) — starts only after Postgres is healthy |
 
-The backend starts only after PostgreSQL is healthy. Flyway applies the schema migrations on first startup.
+Flyway applies the schema migrations on first startup.
 
-Stop / tear down:
+### Build locally instead
+
+If you want to build the image from source, edit `docker-compose.yml` and swap the options under the `app` service:
+
+```yaml
+  app:
+    # Option A: Use pre-built image from Docker Hub (default)
+    # image: hasantareqoishi/cou-bus-tracker-backend:latest
+
+    # Option B: Build locally (uncomment these two lines)
+    build:
+      context: .
+      dockerfile: Dockerfile
+```
+
+Then run:
 
 ```bash
-docker-compose down
-docker-compose down -v   # ⚠️ also deletes the PostgreSQL volume (drops data!)
+docker compose up --build -d
+```
+
+The multi-stage `Dockerfile` builds the fat JAR with Maven (stage 1) and runs it on `eclipse-temurin:21-jre-alpine` (stage 2) as a non-root user.
+
+### Useful commands
+
+```bash
+docker compose logs -f app        # follow backend logs
+docker compose logs -f postgres   # follow database logs
+docker compose ps                 # check service status
+docker compose down               # stop services (data persists)
+docker compose down -v            # stop + delete PostgreSQL volume (drops data!)
 ```
 
 ## 🗃️ Database migrations
