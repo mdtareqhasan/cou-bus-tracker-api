@@ -1,0 +1,11 @@
+.git
+.gitignore
+target/
+node_modules/
+admin-panel/node_modules/
+admin-panel/dist/
+uploads/
+*.md
+.env
+.env.example
+.dockerignore
