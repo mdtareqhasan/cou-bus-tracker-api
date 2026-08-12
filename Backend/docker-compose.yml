@@ -2,10 +2,12 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: cou-bus-tracker-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:-cou_bus_tracker}
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-root1234}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
     volumes:
@@ -17,23 +19,28 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Option A: Use pre-built image from Docker Hub (recommended for production)
+    image: hasantareqoishi/cou-bus-tracker-backend:latest 
+    
+    # Option B: Build locally (uncomment for development)
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     container_name: cou-bus-tracker-app
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
-      # Override Spring Boot datasource to point at the postgres container
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-cou_bus_tracker}
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-root1234}
-      # JWT
       JWT_SECRET: ${JWT_SECRET:-YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnough2024!}
-      # File upload directory
       FILE_UPLOAD_DIR: /app/uploads
+      TZ: Asia/Dhaka
     volumes:
       - uploads_data:/app/uploads
     networks:
@@ -48,4 +55,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
   uploads_data:
+    driver: local
