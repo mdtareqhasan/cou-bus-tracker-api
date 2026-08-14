@@ -9,7 +9,8 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-root1234}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "5432:5432"
+      # Keep the local PostgreSQL server available on 5432.
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -22,17 +23,16 @@ services:
       start_period: 10s
 
   app:
-    # Option A: Use pre-built image from Docker Hub (recommended for production)
-    image: hasantareqoishi/cou-bus-tracker-backend:latest 
-    
-    # Option B: Build locally (uncomment for development)
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
+    # Build locally so the container uses this project's migrations.
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: cou-bus-tracker-app
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      # Host port 8080 is already in use on this machine.  Keep Spring Boot
+      # listening on 8080 in the container, but expose it as 8081 locally.
+      - "8081:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-cou_bus_tracker}

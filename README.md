@@ -21,7 +21,8 @@
 
 | Component | Location | Technology | Default URL |
 |---|---|---|---|
-| 🔧 **REST API** (backend) | `Backend/` | Java 21 · Spring Boot 3.3 · Spring Security + JWT · Spring Data JPA · **PostgreSQL** · Flyway · OpenAPI | `http://localhost:8080` |
+| 🔧 **REST API** (local backend) | `Backend/` | Java 21 · Spring Boot 3.3 · Spring Security + JWT · Spring Data JPA · **PostgreSQL** · Flyway · OpenAPI | `http://localhost:8080` |
+| 🐳 **REST API** (Docker backend) | `Backend/` | Spring Boot + containerized PostgreSQL | `http://localhost:8081` |
 | 🎛️ **Admin panel** (frontend) | `Backend/admin-panel/` | React 19 · Vite · Tailwind CSS 4 · React Router 7 · Axios | `http://localhost:5173` |
 | 📱 **Android app spec** | `Backend/CoUBusTracker_Project_Spec.md` | Android-ready API & UI specification | — |
 
@@ -159,6 +160,17 @@ jdbc:postgresql://localhost:5432/cou_bus_tracker
 
 with `username: postgres` / `password: root1234`. Change these values in `application-dev.yaml` or via environment variables.
 
+### 🔀 Local and Docker ports
+
+Local and Docker services can run at the same time because they use separate host ports and separate PostgreSQL data stores:
+
+| Mode | Backend API | PostgreSQL | Database |
+|---|---|---|---|
+| Local development | `http://localhost:8080` | `localhost:5432` | `cou_bus_tracker` |
+| Docker Compose | `http://localhost:8081` | `localhost:5433` | `cou_bus_tracker` |
+
+> The two databases are independent. Data created in local PostgreSQL is not automatically available in Docker PostgreSQL, and vice versa.
+
 ### 🌱 Environment variables (for Docker)
 
 When running with Docker Compose, settings are overridden via `.env` (copy `.env.example` to `.env`). Spring Boot automatically maps environment variables to properties using relaxed binding — for example, `SPRING_DATASOURCE_URL` overrides `spring.datasource.url`.
@@ -222,7 +234,7 @@ The Spring Boot fat jar output is `target/cou-bus-tracker-1.0.0.jar`.
 
 ## 🐳 Docker deployment
 
-### Quick start (pre-built image)
+### Quick start
 
 From `Backend/`, copy the env file and start the stack:
 
@@ -232,31 +244,16 @@ cp .env.example .env          # edit if you need different credentials
 docker compose up -d
 ```
 
-This pulls the pre-built image `hasantareqoishi/cou-bus-tracker-backend:latest` and starts two services:
+Docker Compose builds the backend from the current local source and starts two services:
 
 | Service | Image / Build | Port | Description |
 |---|---|---|---|
-| **cou-bus-tracker-postgres** | `postgres:16-alpine` | `5432` | PostgreSQL with a named volume `postgres_data` and a healthcheck |
-| **cou-bus-tracker-app** | `hasantareqoishi/cou-bus-tracker-backend:latest` | `8080` | Spring Boot backend (profile `docker`) — starts only after Postgres is healthy |
+| **cou-bus-tracker-postgres** | `postgres:16-alpine` | `5433` (host) → `5432` (container) | PostgreSQL with a named volume `postgres_data` and a healthcheck |
+| **cou-bus-tracker-app** | local `Dockerfile` build | `8081` (host) → `8080` (container) | Spring Boot backend (profile `docker`) — starts only after Postgres is healthy |
 
 Flyway applies the schema migrations on first startup.
 
-### Build locally instead
-
-If you want to build the image from source, edit `docker-compose.yml` and swap the options under the `app` service:
-
-```yaml
-  app:
-    # Option A: Use pre-built image from Docker Hub (default)
-    # image: hasantareqoishi/cou-bus-tracker-backend:latest
-
-    # Option B: Build locally (uncomment these two lines)
-    build:
-      context: .
-      dockerfile: Dockerfile
-```
-
-Then run:
+### Rebuild after backend changes
 
 ```bash
 docker compose up --build -d
@@ -272,6 +269,31 @@ docker compose logs -f postgres   # follow database logs
 docker compose ps                 # check service status
 docker compose down               # stop services (data persists)
 docker compose down -v            # stop + delete PostgreSQL volume (drops data!)
+```
+
+### Inspect the Docker database
+
+Connect from DBeaver or pgAdmin with:
+
+```text
+Host: localhost
+Port: 5433
+Database: cou_bus_tracker
+Username: postgres
+Password: root1234
+```
+
+Or open the PostgreSQL shell directly:
+
+```bash
+docker exec -it cou-bus-tracker-postgres psql -U postgres -d cou_bus_tracker
+```
+
+Useful commands inside `psql`:
+
+```sql
+\dt
+SELECT * FROM schedules;
 ```
 
 ## 🗃️ Database migrations
@@ -462,17 +484,28 @@ The panel lives in `Backend/admin-panel/`. It is a Vite + React SPA using Tailwi
 ```bash
 cd Backend/admin-panel
 npm install
-npm run dev
 ```
 
-Open `http://localhost:5173`. The Vite dev server proxies requests to the backend:
+Choose the backend you want to test, then start Vite:
 
-| Path | Proxies to |
+```bash
+# Local Spring Boot backend (http://localhost:8080)
+npm run dev:local
+
+# Docker backend (http://localhost:8081)
+npm run dev:docker
+```
+
+On Windows PowerShell where `npm.ps1` is blocked by execution policy, use `npm.cmd run dev:local` or `npm.cmd run dev:docker` instead.
+
+Open `http://localhost:5173`. The Vite dev server proxies requests according to the selected mode:
+
+| Command | `/api` and `/uploads` proxy target |
 |---|---|
-| `/api` | `http://localhost:8080` |
-| `/uploads` | `http://localhost:8080` |
+| `npm run dev:local` | `http://localhost:8080` |
+| `npm run dev:docker` | `http://localhost:8081` |
 
-This means the panel works out of the box as long as the backend runs on port `8080`.
+Stop the Vite server with `Ctrl + C` before switching modes. `npm run dev` defaults to Docker mode.
 
 ## Build for production
 
@@ -525,6 +558,22 @@ The Android team uses [`CoUBusTracker_Project_Spec.md`](Backend/CoUBusTracker_Pr
 
 > The app should use a **configurable base URL** and keep the list of buses, schedules, notices, and tracker links all server-driven.
 
+### USB testing with a physical Android phone
+
+With USB debugging enabled, use ADB reverse so the phone can reach a backend running on your computer through `localhost`:
+
+```bash
+# Docker backend
+adb reverse tcp:8081 tcp:8081
+flutter run --dart-define=API_BASE_URL=http://localhost:8081/api
+
+# Local backend
+adb reverse tcp:8080 tcp:8080
+flutter run --dart-define=API_BASE_URL=http://localhost:8080/api
+```
+
+Verify the phone appears in `adb devices` first. The Android app also needs the `INTERNET` permission.
+
 ---
 
 # 🧪 Testing
@@ -551,12 +600,12 @@ npm run lint
 
 | Symptom | Likely cause / fix |
 |---|---|
-| ❌ `Connection refused` to PostgreSQL | Ensure PostgreSQL is running on port `5432` and the database `cou_bus_tracker` exists |
+| ❌ `Connection refused` to PostgreSQL | For local mode, ensure PostgreSQL runs on `5432`; for Docker mode, use host port `5433` |
 | ❌ `Access denied for user` | Update `username`/`password` in `application-dev.yaml` to match your PostgreSQL credentials |
 | ⚠️ `Port 8080 already in use` | Change `server.port` in `application.yaml` or stop the process on 8080 |
 | ⚠️ Flyway validation error (`checksum mismatch`) | Never edit an applied migration file — add a new `V{n+1}__...sql` migration |
 | ⚠️ `column "is_active" is of type integer but expression is of type boolean` | DBeaver imported MySQL `BOOLEAN` (TINYINT) as PostgreSQL `INTEGER`. Run the V13 migration or manually alter: `ALTER TABLE <table> ALTER COLUMN is_active TYPE BOOLEAN USING is_active::BOOLEAN;` |
-| ⚠️ Panel can't reach API | Make sure the backend is running on port `8080` (Vite proxies `/api` and `/uploads` to it) |
+| ⚠️ Panel can't reach API | Start Vite with `npm run dev:local` for backend `8080`, or `npm run dev:docker` for backend `8081` |
 | ℹ️ 401/403 in the panel | Session token expired or server rebooted; the panel auto-logs out |
 
 ---
