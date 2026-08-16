@@ -40,6 +40,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/buses/**").permitAll()
                         .requestMatchers("/api/schedules/**").permitAll()
                         .requestMatchers("/api/notices/active").permitAll()
@@ -87,10 +88,12 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "http://localhost:5174",
                 "http://127.0.0.1:3000",
-                "http://127.0.0.1:5173"
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:5174"
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

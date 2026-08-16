@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { studentAPI } from '../api';
-import { CheckCircle, X, XCircle, ShieldCheck, Eye, Search, GraduationCap } from 'lucide-react';
+import { CheckCircle, X, XCircle, ShieldCheck, Eye, Search, GraduationCap, Trash2 } from 'lucide-react';
 
 export default function StudentsPage() {
   const [students, setStudents] = useState([]);
@@ -16,6 +16,11 @@ export default function StudentsPage() {
 
   const handleVerify = async (id) => { await studentAPI.verify(id); load(); };
   const handleToggle = async (id) => { await studentAPI.toggleActive(id); load(); };
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Delete student "${name}"? This will permanently remove their account and ID card image.`)) return;
+    await studentAPI.delete(id);
+    load();
+  };
 
   const filtered = (filter === 'pending' ? students.filter(s => !s.isVerified)
     : filter === 'edu' ? students.filter(s => s.isEduMail)
@@ -124,6 +129,9 @@ export default function StudentsPage() {
                       )}
                       <button onClick={() => handleToggle(student.id)} className={`btn-icon ${student.isActive ? 'hover:bg-green-50 text-green-600' : 'hover:bg-red-50 text-red-600'}`}>
                         {student.isActive ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                      </button>
+                      <button onClick={() => handleDelete(student.id, student.name)} className="btn-icon hover:bg-red-50 text-red-600" title="Delete student">
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>

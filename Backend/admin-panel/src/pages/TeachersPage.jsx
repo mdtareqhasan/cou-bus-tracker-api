@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { teacherAPI } from '../api';
-import { CheckCircle, XCircle, ShieldCheck, Search, Users } from 'lucide-react';
+import { CheckCircle, X, XCircle, ShieldCheck, Search, Users, Eye, Trash2 } from 'lucide-react';
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [viewCard, setViewCard] = useState(null);
 
   const load = () => {
     teacherAPI.getAll().then(res => setTeachers(res.data)).catch(() => {}).finally(() => setLoading(false));
@@ -15,6 +16,11 @@ export default function TeachersPage() {
 
   const handleVerify = async (id) => { await teacherAPI.verify(id); load(); };
   const handleToggle = async (id) => { await teacherAPI.toggleActive(id); load(); };
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Delete teacher "${name}"? This will permanently remove their account and ID card image.`)) return;
+    await teacherAPI.delete(id);
+    load();
+  };
 
   const filtered = (filter === 'pending' ? teachers.filter(t => !t.isVerified)
     : filter === 'edu' ? teachers.filter(t => t.isEduMail)
@@ -57,12 +63,14 @@ export default function TeachersPage() {
         </div>
       </div>
 
+      {viewCard && <div className="modal-overlay" onClick={() => setViewCard(null)}><div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}><div className="flex items-center justify-between p-6 border-b border-gray-100"><h3 className="text-xl font-bold text-gray-900">Teacher ID Card — {viewCard.name}</h3><button onClick={() => setViewCard(null)} className="p-2 rounded-xl hover:bg-gray-100"><X className="w-5 h-5 text-gray-500" /></button></div><div className="p-6">{viewCard.idCardImageUrl ? <img src={viewCard.idCardImageUrl} alt="Teacher ID Card" className="w-full rounded-xl border border-gray-100 shadow-sm" /> : <p className="text-center py-12 text-gray-400">No ID card uploaded</p>}</div></div></div>}
+
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50/80 border-b border-gray-100">
               <tr>
-                {['Teacher', 'Designation', 'Department', 'Phone', 'Mail', 'Status', 'Actions'].map(h => (
+                {['Teacher', 'Teacher ID', 'Designation', 'Department', 'Phone', 'Mail', 'Status', 'Actions'].map(h => (
                   <th key={h} className="text-left px-6 py-4 font-semibold text-gray-600 text-xs uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -76,6 +84,7 @@ export default function TeachersPage() {
                       <p className="text-xs text-gray-400">{teacher.email}</p>
                     </div>
                   </td>
+                  <td className="px-6 py-4 font-mono text-gray-700">{teacher.teacherId || '-'}</td>
                   <td className="px-6 py-4 text-gray-600">{teacher.designation || '-'}</td>
                   <td className="px-6 py-4 text-gray-600">{teacher.department || '-'}</td>
                   <td className="px-6 py-4 text-gray-600">{teacher.phone || '-'}</td>
@@ -91,11 +100,15 @@ export default function TeachersPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1">
+                      {teacher.idCardImageUrl && <button onClick={() => setViewCard(teacher)} className="btn-icon hover:bg-teal-50 text-emerald-600" title="View ID Card"><Eye className="w-4 h-4" /></button>}
                       {!teacher.isVerified && (
                         <button onClick={() => handleVerify(teacher.id)} className="btn-icon hover:bg-green-50 text-green-600" title="Verify"><ShieldCheck className="w-4 h-4" /></button>
                       )}
                       <button onClick={() => handleToggle(teacher.id)} className={`btn-icon ${teacher.isActive ? 'hover:bg-green-50 text-green-600' : 'hover:bg-red-50 text-red-600'}`}>
                         {teacher.isActive ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                      </button>
+                      <button onClick={() => handleDelete(teacher.id, teacher.name)} className="btn-icon hover:bg-red-50 text-red-600" title="Delete teacher">
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>

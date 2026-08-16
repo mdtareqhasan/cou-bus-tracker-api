@@ -16,9 +16,11 @@ public class TeacherResponse {
     private Long id;
     private String name;
     private String email;
+    private String teacherId;
     private String designation;
     private String department;
     private String phone;
+    private String idCardImageUrl;
     private Boolean isEduMail;
     private Boolean isVerified;
     private Boolean isActive;

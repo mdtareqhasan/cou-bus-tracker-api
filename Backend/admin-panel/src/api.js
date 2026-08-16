@@ -77,6 +77,7 @@ export const studentAPI = {
   getPending: () => api.get('/admin/students/pending'),
   verify: (id) => api.put(`/admin/students/${id}/verify`),
   toggleActive: (id) => api.put(`/admin/students/${id}/toggle-active`),
+  delete: (id) => api.delete(`/admin/students/${id}`),
 };
 
 export const teacherAPI = {
@@ -84,6 +85,7 @@ export const teacherAPI = {
   getPending: () => api.get('/admin/teachers/pending'),
   verify: (id) => api.put(`/admin/teachers/${id}/verify`),
   toggleActive: (id) => api.put(`/admin/teachers/${id}/toggle-active`),
+  delete: (id) => api.delete(`/admin/teachers/${id}`),
 };
 
 export default api;

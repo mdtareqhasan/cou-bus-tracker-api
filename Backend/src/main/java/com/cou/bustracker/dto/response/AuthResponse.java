@@ -13,5 +13,12 @@ public class AuthResponse {
 
     private String accessToken;
     private String tokenType;
-    private String adminName;
+    private String role;
+
+    // User details returned after login/register
+    private Long id;
+    private String name;
+    private String email;
+    private Boolean isVerified;
+    private Boolean isEduMail;
 }

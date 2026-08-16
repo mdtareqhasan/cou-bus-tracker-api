@@ -14,6 +14,8 @@ public interface TeacherRepository extends JpaRepository<Teacher, Long> {
 
     boolean existsByEmail(String email);
 
+    boolean existsByTeacherId(String teacherId);
+
     List<Teacher> findByIsActiveTrue();
 
     List<Teacher> findAllByOrderByCreatedAtDesc();

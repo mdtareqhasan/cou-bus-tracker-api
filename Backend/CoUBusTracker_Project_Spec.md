@@ -37,16 +37,18 @@ CoU Bus Tracker is a complete university transport platform for Comilla Universi
 
 | Component | Technology | Users | Responsibility |
 |---|---|---|---|
-| **Backend** | Spring Boot 3 + MySQL | All clients | Secure REST API, authentication, business rules, database access |
-| **Admin Panel** | React 19 + Vite + Tailwind | Transport administrators | Manage buses, live tracker links, schedules, notices, students, teachers |
-| **Android App** | Java/Kotlin + Retrofit | Students, teachers, guests | Bengali-first bus, schedule, live-location, and notice experience |
+| **Backend** | Spring Boot 3 + PostgreSQL | All clients | Secure REST API, JWT + Google OAuth2 authentication, business rules, database access |
+| **Admin Panel** | React 19 + Vite + Tailwind | Transport administrators | Manage buses, live tracker links, schedules, notices, students, teachers, admin accounts |
+| **Flutter App** | Dart/Flutter | Students, teachers, guests | Bengali-first bus, schedule, live-location, and notice experience with Google Sign-In |
 
 ### Key Principles
 
 - All bus, route, schedule, tracker-link, and notice information is **server-driven**
-- Neither the admin panel nor Android app should rely on hard-coded operational data
-- The backend is the **only** component that talks to MySQL
-- Admin panel **creates and changes** data; Android app primarily **reads** public data
+- Neither the admin panel nor Flutter app should rely on hard-coded operational data
+- The backend is the **only** component that talks to PostgreSQL
+- Admin panel **creates and changes** data; Flutter app primarily **reads** public data
+- Student/Teacher registration **requires ID card upload** with strict validation
+- Google OAuth2 provides passwordless login option alongside email/password
 
 ---
 
@@ -54,15 +56,15 @@ CoU Bus Tracker is a complete university transport platform for Comilla Universi
 
 ```text
 React Admin Panel ── JWT / HTTPS ──┐
-                                   ├── Spring Boot REST API ── JPA / Flyway ── MySQL 8
-Android App ──────── HTTPS ────────┘
+                                   ├── Spring Boot REST API ── JPA / Flyway ── PostgreSQL
+Flutter App ──────── HTTPS ────────┘
 ```
 
 ### Data Flow
 
-1. **Admin** logs into the React panel, manages buses/schedules/notices/tracker links
-2. **Backend** validates and persists all changes via JPA, enforces JWT security
-3. **Student/Teacher** opens the Android app, authenticates, and reads public data
+1. **Admin** logs into the React panel, manages buses/schedules/notices/tracker links, verifies/deletes students and teachers
+2. **Backend** validates and persists all changes via JPA, enforces JWT security, handles Google OAuth2
+3. **Student/Teacher** opens the Flutter app, authenticates via email/password or Google Sign-In, registers with ID card upload
 4. **Guest** can browse buses, schedules, and notices without authentication
 
 ---
@@ -73,12 +75,12 @@ Android App ──────── HTTPS ────────┘
 |---|---|---|
 | **Language** | Java 21 | LTS version |
 | **Framework** | Spring Boot 3.3 | Spring Web, Spring Security, Spring Data JPA |
-| **Authentication** | JWT | Access token only, BCrypt password hashing |
-| **Database** | MySQL 8 | Production database |
-| **Migration** | Flyway | Versioned SQL migrations, runs on startup |
+| **Authentication** | JWT + Google OAuth2 | Access token, BCrypt password hashing, Google ID token verification |
+| **Database** | PostgreSQL 13+ | Production database |
+| **Migration** | Flyway | Versioned SQL migrations (V1–V14), runs on startup |
 | **API Docs** | Springdoc OpenAPI | Swagger UI at `/swagger-ui.html` |
 | **Admin Panel** | React 19 | Vite bundler, Axios HTTP client, Tailwind CSS |
-| **Android** | Java (Kotlin optional) | Retrofit networking, Glide image loading |
+| **Mobile App** | Flutter/Dart | Google Sign-In, image_picker, flutter_secure_storage |
 | **Deployment** | Docker + Docker Compose | Nginx reverse proxy, HTTPS via TLS |
 
 ---
@@ -155,14 +157,17 @@ Android App ──────── HTTPS ────────┘
 | Column | Type | Constraints | Description |
 |---|---|---|---|
 | `id` | BIGINT | PK, AUTO_INCREMENT | Student identifier |
-| `name` | VARCHAR(100) | NOT NULL | Full name |
+| `name` | VARCHAR(100) | NOT NULL | Full name (2-100 chars) |
 | `email` | VARCHAR(100) | UNIQUE, NOT NULL | Accepts `@cou.ac.bd` (edu) or personal |
-| `password` | VARCHAR(255) | NOT NULL | BCrypt hashed |
-| `student_id` | VARCHAR(20) | UNIQUE, NOT NULL | e.g. `1607041` |
-| `department` | VARCHAR(100) | NULLABLE | Department name |
-| `varsity_batch` | VARCHAR(20) | NULLABLE | e.g. `16` |
+| `password` | VARCHAR(255) | NULLABLE | BCrypt hashed (nullable for Google-only users) |
+| `google_subject` | VARCHAR(255) | UNIQUE, NULLABLE | Google account subject ID |
+| `student_id` | VARCHAR(50) | UNIQUE, NOT NULL | e.g. `1607041` (alphanumeric) |
+| `department` | VARCHAR(100) | NOT NULL | Department name |
+| `varsity_batch` | VARCHAR(20) | NOT NULL | e.g. `2020` or `2020-2024` |
 | `is_edu_mail` | BOOLEAN | DEFAULT FALSE | True if `@cou.ac.bd` |
 | `id_card_image_url` | TEXT | NULLABLE | Uploaded ID card image path |
+| `is_verified` | BOOLEAN | DEFAULT FALSE | Admin-verified status |
+| `is_active` | BOOLEAN | DEFAULT TRUE | Account active status |
 | `created_at` | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
 
 #### `teachers` — Teacher Accounts
@@ -170,12 +175,18 @@ Android App ──────── HTTPS ────────┘
 | Column | Type | Constraints | Description |
 |---|---|---|---|
 | `id` | BIGINT | PK, AUTO_INCREMENT | Teacher identifier |
-| `name` | VARCHAR(100) | NOT NULL | Full name |
+| `name` | VARCHAR(100) | NOT NULL | Full name (2-100 chars) |
 | `email` | VARCHAR(100) | UNIQUE, NOT NULL | Login email |
-| `password` | VARCHAR(255) | NOT NULL | BCrypt hashed |
+| `password` | VARCHAR(255) | NULLABLE | BCrypt hashed (nullable for Google-only users) |
+| `teacher_id` | VARCHAR(50) | UNIQUE, NULLABLE | Official teacher ID (alphanumeric) |
+| `id_card_image_url` | TEXT | NULLABLE | Uploaded ID card image path |
+| `google_subject` | VARCHAR(255) | UNIQUE, NULLABLE | Google account subject ID |
 | `designation` | VARCHAR(100) | NULLABLE | e.g. `Professor` |
-| `department` | VARCHAR(100) | NULLABLE | Department name |
+| `department` | VARCHAR(100) | NOT NULL | Department name |
 | `phone` | VARCHAR(20) | NULLABLE | Contact number |
+| `is_edu_mail` | BOOLEAN | DEFAULT FALSE | True if `@cou.ac.bd` |
+| `is_verified` | BOOLEAN | DEFAULT FALSE | Admin-verified status |
+| `is_active` | BOOLEAN | DEFAULT TRUE | Account active status |
 | `created_at` | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
 
 ### 4.2 Entity Relationships
@@ -212,6 +223,10 @@ teachers ── standalone
 | `V8` | Create `teachers` table |
 | `V9` | Fix initial admin password hash |
 | `V10` | Add optional `bus_name` to buses |
+| `V11` | Move legacy Saturday schedules to weekdays |
+| `V12` | Reseed data with PostgreSQL-compatible sequences |
+| `V13` | Fix boolean columns (TINYINT → BOOLEAN) |
+| `V14` | Add `google_subject`, `teacher_id`, `id_card_image_url`; make passwords nullable |
 
 ---
 
@@ -223,7 +238,8 @@ teachers ── standalone
 src/main/java/com/cou/bustracker/
 ├── config/
 │   ├── SecurityConfig.java          # Spring Security + JWT filter chain
-│   └── OpenApiConfig.java           # Swagger/OpenAPI configuration
+│   ├── OpenApiConfig.java           # Swagger/OpenAPI configuration
+│   └── WebMvcConfig.java            # CORS and static resource mapping
 ├── security/
 │   ├── JwtService.java              # JWT generation, validation, extraction
 │   ├── JwtAuthFilter.java           # OncePerRequestFilter for JWT
@@ -246,31 +262,45 @@ src/main/java/com/cou/bustracker/
 │   └── TeacherRepository.java
 ├── dto/request/
 │   ├── LoginRequest.java
+│   ├── GoogleLoginRequest.java      # Google OAuth2 ID token + role
 │   ├── CreateBusRequest.java
+│   ├── UpdateBusRequest.java
 │   ├── UpdateTrackerLinkRequest.java
 │   ├── CreateScheduleRequest.java
 │   ├── CreateNoticeRequest.java
-│   ├── StudentRegisterRequest.java
-│   └── TeacherRegisterRequest.java
+│   ├── CreateAdminRequest.java
+│   ├── UpdateAdminProfileRequest.java
+│   ├── StudentRegisterRequest.java  # With validation annotations
+│   └── TeacherRegisterRequest.java  # With validation annotations
 ├── dto/response/
-│   ├── AuthResponse.java
+│   ├── AuthResponse.java            # JWT + user details (id, name, email, role, isVerified, isEduMail)
 │   ├── BusResponse.java
 │   ├── BusDetailResponse.java
 │   ├── ScheduleResponse.java
-│   └── NoticeResponse.java
+│   ├── NoticeResponse.java
+│   ├── StudentResponse.java
+│   ├── TeacherResponse.java
+│   ├── FileUploadResponse.java
+│   ├── MessageResponse.java
+│   ├── AdminProfileResponse.java
+│   └── DashboardStatsResponse.java
 ├── service/
 │   ├── AuthService.java
 │   ├── BusService.java
 │   ├── ScheduleService.java
 │   ├── TrackerLinkService.java
 │   ├── NoticeService.java
-│   ├── StudentService.java
-│   ├── TeacherService.java
-│   └── FileStorageService.java
+│   ├── StudentService.java          # Registration + Google OAuth + ID card upload
+│   ├── TeacherService.java          # Registration + Google OAuth + ID card upload
+│   ├── GoogleTokenService.java      # Google ID token verification
+│   ├── FileStorageService.java      # Strict ID card validation (type, size, dimensions)
+│   ├── AdminManagementService.java
+│   └── AdminProfileService.java
 ├── controller/
 │   ├── BusController.java           # GET /api/buses
 │   ├── ScheduleController.java      # GET /api/schedules
 │   ├── NoticeController.java        # GET /api/notices/active
+│   ├── GoogleAuthController.java    # POST /api/auth/google/login
 │   ├── StudentAuthController.java   # /api/auth/student/**
 │   ├── TeacherAuthController.java   # /api/auth/teacher/**
 │   └── admin/
@@ -278,17 +308,20 @@ src/main/java/com/cou/bustracker/
 │       ├── AdminBusController.java  # /api/admin/buses/**
 │       ├── AdminScheduleController.java
 │       ├── AdminNoticeController.java
-│       ├── AdminStudentController.java
-│       ├── AdminTeacherController.java
+│       ├── AdminStudentController.java  # Includes DELETE /{id}
+│       ├── AdminTeacherController.java  # Includes DELETE /{id}
+│       ├── AdminManagementController.java
+│       ├── AdminProfileController.java
 │       └── AdminDashboardController.java
 └── exception/
-    ├── GlobalExceptionHandler.java  # @ControllerAdvice
+    ├── GlobalExceptionHandler.java  # @ControllerAdvice + MultipartException handling
     ├── ResourceNotFoundException.java
     └── UnauthorizedException.java
 
 src/main/resources/
-├── application.yaml                 # Base config, profiles
-├── application-dev.yaml             # Local MySQL config
+├── application.yaml                 # Base config, profiles, Google OAuth2 client-id
+├── application-dev.yaml             # Local PostgreSQL config
+├── application-docker.yaml          # Docker PostgreSQL config
 └── db/migration/
     ├── V1__create_buses_table.sql
     ├── V2__create_schedules_table.sql
@@ -299,7 +332,11 @@ src/main/resources/
     ├── V7__create_students_table.sql
     ├── V8__create_teachers_table.sql
     ├── V9__fix_admin_password.sql
-    └── V10__add_bus_name.sql
+    ├── V10__add_bus_name.sql
+    ├── V11__move_legacy_saturday_schedules_to_weekdays.sql
+    ├── V12__reseed_data_postgresql.sql
+    ├── V13__fix_boolean_columns.sql
+    └── V14__add_teacher_identity_cards_and_google_auth.sql
 ```
 
 ### 5.2 Configuration
@@ -311,21 +348,24 @@ src/main/resources/
 | Profile | `spring.profiles.active: dev` |
 | Server port | `8080` |
 | Flyway | Enabled, locations: `classpath:db/migration` |
-| JWT secret | From environment variable |
+| JWT secret | From environment variable or hardcoded default |
 | JWT expiration | 86400000 ms (24 hours) |
+| Google OAuth2 Client ID | `111634412431-t3hjk2g1fsfoguagsmaqmdc7ouflaivt.apps.googleusercontent.com` |
 | Swagger UI | `/swagger-ui.html` |
 | API docs | `/api-docs` |
+| File upload dir | `./uploads` |
 
 #### `application-dev.yaml`
 
 | Setting | Value |
 |---|---|
-| Database URL | `jdbc:mysql://localhost:3306/cou_bus_tracker` |
-| Username | `root` |
+| Database URL | `jdbc:postgresql://localhost:5432/cou_bus_tracker` |
+| Username | `postgres` |
 | Password | `root1234` |
 | DDL auto | `none` (Flyway manages schema) |
-| Show SQL | `false` |
+| Show SQL | `true` |
 | File upload path | `./uploads/` |
+| Multipart max | 5MB per file/request |
 
 ### 5.3 Security Configuration
 
@@ -333,28 +373,56 @@ src/main/resources/
   - `/api/buses/**`
   - `/api/schedules/**`
   - `/api/notices/active`
-  - `/api/auth/**`
+  - `/api/auth/**` (login, register, Google OAuth)
   - `/uploads/**`
 
 - **Protected endpoints** (JWT required):
-  - `/api/admin/**`
-  - `/api/auth/student/upload-id-card`
-  - `/api/auth/student/me`
+  - `/api/admin/**` (ROLE_ADMIN only)
+  - `/api/auth/student/upload-id-card` (authenticated)
+  - `/api/auth/student/me` (authenticated)
+  - `/api/auth/teacher/upload-id-card` (authenticated)
+  - `/api/auth/teacher/me` (authenticated)
 
 - **JWT flow:**
-  1. Client sends credentials to `/api/auth/*/login`
-  2. Backend validates and returns `accessToken`
+  1. Client sends credentials to `/api/auth/*/login` or Google ID token to `/api/auth/google/login`
+  2. Backend validates and returns `AuthResponse` with `accessToken`, `role`, `id`, `name`, `email`, `isVerified`, `isEduMail`
   3. Client includes `Authorization: Bearer <token>` on protected calls
-  4. `JwtAuthFilter` validates token on every request
+  4. `JwtAuthFilter` validates token and extracts role (ADMIN/STUDENT/TEACHER) on every request
   5. On 401, client clears session and redirects to login
 
-### 5.4 File Upload
+- **Google OAuth2 flow:**
+  1. Flutter app uses `google_sign_in` package to get ID token
+  2. Sends ID token + role (STUDENT/TEACHER) to `POST /api/auth/google/login`
+  3. Backend verifies token with Google, checks if user exists, returns JWT
+  4. If user not registered, returns 401 with message to register first
 
-- **Endpoint:** `POST /api/auth/student/upload-id-card`
-- **Format:** `multipart/form-data`, field name: `file`
-- **Storage:** `./uploads/student-id-cards/`
-- **Access:** Public via `/uploads/student-id-cards/{filename}`
-- **Auth:** Requires student JWT
+- **CORS allowed origins:**
+  - `http://localhost:3000`, `http://localhost:5173`, `http://localhost:5174`
+  - `http://127.0.0.1:3000`, `http://127.0.0.1:5173`, `http://127.0.0.1:5174`
+
+### 5.4 File Upload — ID Card Validation
+
+The `FileStorageService` enforces strict validation for ID card uploads:
+
+| Check | Rule | Error Message |
+|---|---|---|
+| **Empty file** | Must not be empty | "ID card image is required" |
+| **File size** | Max 5 MB | "ID card image must be smaller than 5 MB" |
+| **Content type** | Only `image/jpeg`, `image/jpg`, `image/png` | "Only JPG and PNG images are accepted" |
+| **Magic bytes** | File header must match JPEG/PNG signatures | "The uploaded file is not a valid JPG or PNG image" |
+| **Readable** | Must be a valid image file | "Could not read the uploaded image" |
+| **Min dimensions** | 300 x 200 pixels | "ID card image is too small" |
+| **Max dimensions** | 4000 x 4000 pixels | "ID card image is too large" |
+
+- **Storage paths:** `./uploads/student-id-cards/` and `./uploads/teacher-id-cards/`
+- **Access:** Public via `/uploads/{subdir}/{filename}`
+
+### 5.5 Delete with File Cleanup
+
+When admin deletes a student or teacher:
+1. Entity is removed from database
+2. Associated ID card image file is deleted from filesystem
+3. Graceful handling if file already deleted
 
 ---
 
@@ -496,7 +564,10 @@ All paths below are relative to `/api`.
 {
   "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
   "tokenType": "Bearer",
-  "adminName": "Admin"
+  "role": "ADMIN",
+  "id": 1,
+  "name": "Admin",
+  "email": "admin@cou.ac.bd"
 }
 ```
 
@@ -511,27 +582,50 @@ All paths below are relative to `/api`.
 
 #### `POST /auth/student/register` — Student Registration
 
-**Request:**
+**Request:** `multipart/form-data`
+
+| Field | Type | Required | Validation |
+|---|---|---|---|
+| `name` | string | Yes | 2-100 characters |
+| `email` | string | Yes | Valid email format |
+| `password` | string | Yes (unless Google) | 6-128 characters |
+| `googleIdToken` | string | No | Google ID token |
+| `studentId` | string | Yes | 2-50 alphanumeric characters |
+| `department` | string | Yes | 2-100 characters |
+| `varsityBatch` | string | Yes | Format: `2020` or `2020-2024` |
+| `idCard` | file | Yes | JPG/PNG, max 5MB, min 300x200px |
+
+**Response 200:**
 ```json
 {
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "tokenType": "Bearer",
+  "role": "STUDENT",
+  "id": 1,
   "name": "Tareq Hasan",
   "email": "1607041@cou.ac.bd",
-  "password": "securepass",
-  "studentId": "1607041",
-  "department": "CSE",
-  "varsityBatch": "16"
+  "isVerified": false,
+  "isEduMail": true
 }
 ```
 
-**Response 200:** `AuthResponse` with JWT token.
+**Error Responses:**
+- `400` — Validation errors with field-specific messages
+- `400` — ID card validation failed (wrong type, too small, etc.)
 
 ---
 
 #### `POST /auth/student/login` — Student Login
 
-**Request:** `LoginRequest` (email, password)
+**Request:**
+```json
+{
+  "email": "1607041@cou.ac.bd",
+  "password": "securepass"
+}
+```
 
-**Response 200:** `AuthResponse` with JWT token.
+**Response 200:** `AuthResponse` with JWT token and user details.
 
 ---
 
@@ -539,39 +633,126 @@ All paths below are relative to `/api`.
 
 **Request:** `multipart/form-data`, field: `file`
 
-**Response 200:** `{ "imageUrl": "/uploads/student-id-cards/card.jpg" }`
+**Response 200:**
+```json
+{
+  "message": "ID card uploaded successfully",
+  "filePath": "/uploads/student-id-cards/abc123.jpg"
+}
+```
 
 ---
 
 #### `GET /auth/student/me` — Student Profile
 
-**Response 200:** Student profile data.
+**Response 200:**
+```json
+{
+  "id": 1,
+  "name": "Tareq Hasan",
+  "email": "1607041@cou.ac.bd",
+  "studentId": "1607041",
+  "department": "CSE",
+  "varsityBatch": "16",
+  "idCardImageUrl": "/uploads/student-id-cards/abc123.jpg",
+  "isEduMail": true,
+  "isVerified": false,
+  "isActive": true,
+  "createdAt": "2025-08-07T15:22:00"
+}
+```
 
 ---
 
 #### `POST /auth/teacher/register` — Teacher Registration
 
-**Request:**
+**Request:** `multipart/form-data`
+
+| Field | Type | Required | Validation |
+|---|---|---|---|
+| `name` | string | Yes | 2-100 characters |
+| `email` | string | Yes | Valid email format |
+| `password` | string | Yes (unless Google) | 6-128 characters |
+| `googleIdToken` | string | No | Google ID token |
+| `teacherId` | string | Yes | 2-50 alphanumeric characters |
+| `department` | string | Yes | 2-100 characters |
+| `designation` | string | No | Max 100 characters |
+| `phone` | string | No | 7-20 characters (+, -, spaces allowed) |
+| `idCard` | file | Yes | JPG/PNG, max 5MB, min 300x200px |
+
+**Response 200:**
 ```json
 {
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "tokenType": "Bearer",
+  "role": "TEACHER",
+  "id": 1,
   "name": "Dr. Rahman",
   "email": "rahman@cou.ac.bd",
-  "password": "securepass",
-  "designation": "Professor",
-  "department": "CSE",
-  "phone": "01712345678"
+  "isVerified": false,
+  "isEduMail": true
 }
 ```
-
-**Response 200:** `AuthResponse` with JWT token.
 
 ---
 
 #### `POST /auth/teacher/login` — Teacher Login
 
-**Request:** `LoginRequest` (email, password)
+**Request:**
+```json
+{
+  "email": "rahman@cou.ac.bd",
+  "password": "securepass"
+}
+```
 
-**Response 200:** `AuthResponse` with JWT token.
+**Response 200:** `AuthResponse` with JWT token and user details.
+
+---
+
+#### `POST /auth/teacher/upload-id-card` — Replace Teacher ID Card
+
+**Request:** `multipart/form-data`, field: `file`
+
+**Response 200:**
+```json
+{
+  "message": "ID card uploaded successfully",
+  "filePath": "/uploads/teacher-id-cards/abc123.jpg"
+}
+```
+
+---
+
+#### `GET /auth/teacher/me` — Teacher Profile
+
+**Response 200:** Full teacher profile with all fields.
+
+---
+
+#### `POST /auth/google/login` — Google OAuth2 Login
+
+**Request:**
+```json
+{
+  "idToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "role": "STUDENT"
+}
+```
+
+**Response 200:** `AuthResponse` with JWT token and user details.
+
+**Response 401:**
+```json
+{
+  "message": "No student registration found. Please register first and upload your ID card."
+}
+```
+
+**Google OAuth2 Client ID:**
+```
+111634412431-t3hjk2g1fsfoguagsmaqmdc7ouflaivt.apps.googleusercontent.com
+```
 
 ---
 
@@ -633,6 +814,7 @@ All paths below are relative to `/api`.
 | `GET` | `/admin/students/pending` | List pending students |
 | `PUT` | `/admin/students/{id}/verify` | Verify student |
 | `PUT` | `/admin/students/{id}/toggle-active` | Activate/deactivate |
+| `DELETE` | `/admin/students/{id}` | Delete student + ID card image |
 
 #### Teacher Management
 
@@ -642,6 +824,7 @@ All paths below are relative to `/api`.
 | `GET` | `/admin/teachers/pending` | List pending teachers |
 | `PUT` | `/admin/teachers/{id}/verify` | Verify teacher |
 | `PUT` | `/admin/teachers/{id}/toggle-active` | Activate/deactivate |
+| `DELETE` | `/admin/teachers/{id}` | Delete teacher + ID card image |
 
 ---
 
@@ -683,18 +866,22 @@ The admin panel is the operational control center for the transport system. It m
 | `/buses` | Buses | Create, search, edit, delete buses; set name and live link |
 | `/schedules` | Schedules | Bengali schedule table; dropdown-based management |
 | `/notices` | Notices | Create and remove notices |
-| `/students` | Students | Review, verify, activate/deactivate students |
-| `/teachers` | Teachers | Review, verify, activate/deactivate teachers |
+| `/students` | Students | Review, verify, activate/deactivate, **delete** students |
+| `/teachers` | Teachers | Review, verify, activate/deactivate, **delete** teachers |
+| `/admins` | Admins | Create, edit, delete admin accounts |
+| `/profile` | Profile | Admin profile management |
 
 ### 7.4 Key Behaviors
 
 - Store admin JWT in `localStorage` and send via Axios on protected calls
 - Redirect to `/login` on HTTP 401
-- Use confirmation dialogs before any deletion
+- Use confirmation dialogs before any deletion (e.g., `window.confirm()`)
 - Present server validation and request failures in visible error states
 - Do not show a tracker-link dropdown item unless that bus has a saved tracker URL
 - Bus name is optional in both Add Bus and Add Schedule flows
 - Keep the provided route list as the schedule route options
+- **Student/Teacher delete:** Confirmation dialog warns about permanent removal of account and ID card image
+- **Delete button:** Red Trash2 icon in actions column, consistent with admin users page
 
 ### 7.5 Visual Design
 
@@ -991,12 +1178,17 @@ Use a bottom navigation bar with:
 
 ---
 
-### 8.9 Backend Notes for Android Development
+### 8.9 Backend Notes for Android/Flutter Development
 
 - API documentation is available at `/swagger-ui.html` when the backend is running
-- Flyway migration `V10__add_bus_name.sql` adds the optional `bus_name` field
+- Flyway migrations V1–V14 handle all schema changes
 - Administrators configure buses, schedules, and live links in the React admin panel
-- The Android app is read-oriented and should refresh API data instead of duplicating admin controls
+- The Android/Flutter app is read-oriented and should refresh API data instead of duplicating admin controls
+- **Google OAuth2 Client ID:** `111634412431-t3hjk2g1fsfoguagsmaqmdc7ouflaivt.apps.googleusercontent.com`
+- **Registration requires ID card upload** — show alert if user tries to register without selecting image
+- **Teacher registration requires `teacherId` and `department`** fields
+- **AuthResponse** now includes `id`, `name`, `email`, `isVerified`, `isEduMail` (no more `adminName`)
+- Handle ID card validation errors from backend (file type, size, dimensions)
 
 ---
 
@@ -1038,10 +1230,14 @@ Use a bottom navigation bar with:
 - [x] Public bus, schedule, and notice APIs
 - [x] Admin JWT authentication and admin management APIs
 - [x] Student and teacher registration/login APIs
+- [x] Google OAuth2 integration (ID token verification)
 - [x] Bus, schedule, live-link, and notice persistence
-- [x] Flyway migrations V1–V10, including optional bus name
+- [x] Flyway migrations V1–V14, including Google auth and teacher identity cards
 - [x] Student and teacher entity/service/controller
-- [x] File upload service for ID cards
+- [x] File upload service with strict ID card validation (type, size, dimensions, magic bytes)
+- [x] Delete student/teacher with ID card image cleanup
+- [x] Enhanced AuthResponse with user details (id, name, email, isVerified, isEduMail)
+- [x] Global exception handler with MultipartException support
 - [ ] Swagger smoke test against deployed environment
 - [ ] Automated integration tests for authentication and admin CRUD
 - [ ] Production configuration review and database backup test
@@ -1052,16 +1248,20 @@ Use a bottom navigation bar with:
 - [x] Bus name and live-link entry in the Add Bus flow
 - [x] Bengali schedule management with route/time dropdowns
 - [x] Refined visual styling with Tailwind CSS
+- [x] Delete buttons for students and teachers with confirmation dialogs
+- [x] Delete buttons for admin accounts
 - [ ] Error/success toast standardisation across every page
 - [ ] Production deployment and browser acceptance test
 
-### Android Application
+### Android/Flutter Application
 
 - [ ] Implement API client, session storage, and JWT interceptor
 - [ ] Implement bus list/detail, schedules, and notices
-- [ ] Implement student/teacher authentication and student ID-card upload
+- [ ] Implement student/teacher authentication with Google Sign-In
+- [ ] Implement student/teacher registration with mandatory ID card upload
+- [ ] Implement ID card image picker with validation (JPG/PNG only, max 5MB)
 - [ ] Implement Bengali accessibility, offline cache, and retry states
-- [ ] Test against production HTTPS API and prepare Play Store release
+- [ ] Test against production HTTPS API and prepare release
 
 ---
 

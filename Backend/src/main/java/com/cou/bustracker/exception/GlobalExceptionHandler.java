@@ -8,6 +8,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -18,42 +20,22 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException ex) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", LocalDateTime.now().toString());
-        error.put("status", 404);
-        error.put("error", "Not Found");
-        error.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        return buildResponse(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
     }
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<Map<String, Object>> handleUnauthorized(UnauthorizedException ex) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", LocalDateTime.now().toString());
-        error.put("status", 401);
-        error.put("error", "Unauthorized");
-        error.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Unauthorized", ex.getMessage());
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", LocalDateTime.now().toString());
-        error.put("status", 401);
-        error.put("error", "Unauthorized");
-        error.put("message", "Invalid email or password");
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Unauthorized", ex.getMessage());
     }
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<Map<String, Object>> handleDisabled(DisabledException ex) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", LocalDateTime.now().toString());
-        error.put("status", 403);
-        error.put("error", "Forbidden");
-        error.put("message", "Account is disabled");
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+        return buildResponse(HttpStatus.FORBIDDEN, "Forbidden", "Account is disabled");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -75,33 +57,44 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<Map<String, Object>> handleMissingPart(MissingServletRequestPartException ex) {
+        String partName = ex.getRequestPartName();
+        String message = "Required file part '" + partName + "' is missing. " +
+                "Please upload your university ID card image.";
+        return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", message);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+        String message = "ID card image exceeds the maximum allowed size of 5 MB. " +
+                "Please compress the image and try again.";
+        return buildResponse(HttpStatus.BAD_REQUEST, "File Too Large", message);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", LocalDateTime.now().toString());
-        error.put("status", 400);
-        error.put("error", "Bad Request");
-        error.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", LocalDateTime.now().toString());
-        error.put("status", 500);
-        error.put("error", "Internal Server Error");
-        error.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", LocalDateTime.now().toString());
-        error.put("status", 500);
-        error.put("error", "Internal Server Error");
-        error.put("message", "An unexpected error occurred");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
+                "An unexpected error occurred");
+    }
+
+    private ResponseEntity<Map<String, Object>> buildResponse(
+            HttpStatus status, String error, String message) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", status.value());
+        body.put("error", error);
+        body.put("message", message);
+        return ResponseEntity.status(status).body(body);
     }
 }

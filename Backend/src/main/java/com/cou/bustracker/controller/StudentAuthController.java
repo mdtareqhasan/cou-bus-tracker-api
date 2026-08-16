@@ -29,8 +29,9 @@ public class StudentAuthController {
 
     @PostMapping("/register")
     @Operation(summary = "Student registration")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody StudentRegisterRequest request) {
-        return ResponseEntity.ok(studentService.register(request));
+    public ResponseEntity<AuthResponse> register(@Valid @ModelAttribute StudentRegisterRequest request,
+                                                  @RequestParam("idCard") MultipartFile idCard) throws Exception {
+        return ResponseEntity.ok(studentService.register(request, idCard));
     }
 
     @PostMapping("/login")
@@ -46,7 +47,7 @@ public class StudentAuthController {
             Authentication authentication) throws Exception {
 
         Student student = studentService.getStudentByEmail(authentication.getName());
-        String filePath = fileStorageService.storeFile(file, "student-id-cards");
+        String filePath = fileStorageService.storeIdCard(file, "student-id-cards");
         studentService.uploadIdCard(student.getId(), filePath);
 
         return ResponseEntity.ok(FileUploadResponse.builder()

@@ -57,12 +57,21 @@ public class JwtService {
     }
 
     public String generateToken(String email) {
+        return generateToken(email, "USER");
+    }
+
+    public String generateToken(String email, String role) {
         return Jwts.builder()
+                .claim("role", role)
                 .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    public String extractRole(String token) {
+        return extractClaim(token, claims -> claims.get("role", String.class));
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {

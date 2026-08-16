@@ -9,7 +9,6 @@ import com.cou.bustracker.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -34,13 +33,15 @@ public class AuthService {
         Admin admin = adminRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Admin not found"));
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(admin.getEmail());
-        String token = jwtService.generateToken(userDetails);
+        String token = jwtService.generateToken(admin.getEmail(), "ADMIN");
 
         return AuthResponse.builder()
                 .accessToken(token)
                 .tokenType("Bearer")
-                .adminName(admin.getName())
+                .role("ADMIN")
+                .id(admin.getId())
+                .name(admin.getName())
+                .email(admin.getEmail())
                 .build();
     }
 

@@ -30,6 +30,15 @@ public class Teacher {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "teacher_id", unique = true, length = 50)
+    private String teacherId;
+
+    @Column(name = "id_card_image_url", columnDefinition = "TEXT")
+    private String idCardImageUrl;
+
+    @Column(name = "google_subject", unique = true, length = 255)
+    private String googleSubject;
+
     @Column(name = "designation", length = 100)
     private String designation;
 

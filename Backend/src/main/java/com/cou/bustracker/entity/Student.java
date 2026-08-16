@@ -30,6 +30,9 @@ public class Student {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "google_subject", unique = true, length = 255)
+    private String googleSubject;
+
     @Column(name = "student_id", nullable = false, length = 50)
     private String studentId;
 
