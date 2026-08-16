@@ -89,8 +89,8 @@ public class SecurityConfig {
                 "http://localhost:5174",
                 "http://127.0.0.1:3000",
                 "http://127.0.0.1:5173",
-                "http://127.0.0.1:5174"
-                "https://cou-bus-tracker-admin.onrender.com"
+                "http://127.0.0.1:5174",
+                "https://cou-bus-tracker-backend-admin-frontend-1.onrender.com"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
