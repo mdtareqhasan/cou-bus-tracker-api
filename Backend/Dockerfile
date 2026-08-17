@@ -23,8 +23,8 @@ RUN apk add --no-cache curl
 # Copy the built JAR from the build stage
 COPY --from=build /build/target/*.jar app.jar
 
-# Create uploads directory
-RUN mkdir -p /app/uploads && chown -R appuser:appgroup /app
+# Uploaded images are stored in Cloudinary, not in the container filesystem.
+RUN chown -R appuser:appgroup /app
 
 USER appuser
 

@@ -39,13 +39,10 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-root1234}
       JWT_SECRET: ${JWT_SECRET:-YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnough2024!}
-      FILE_UPLOAD_DIR: /app/uploads
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
       TZ: Asia/Dhaka
-    volumes:
-      - uploads_data:/app/uploads
     networks:
       - cou-bus-network
     depends_on:
@@ -58,6 +55,4 @@ networks:
 
 volumes:
   postgres_data:
-    driver: local
-  uploads_data:
     driver: local

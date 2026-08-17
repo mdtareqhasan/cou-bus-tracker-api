@@ -44,8 +44,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/buses/**").permitAll()
                         .requestMatchers("/api/schedules/**").permitAll()
                         .requestMatchers("/api/notices/active").permitAll()
-                        // Static files (uploaded images)
-                        .requestMatchers("/uploads/**").permitAll()
                         // Swagger/OpenAPI endpoints
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         // Actuator endpoints

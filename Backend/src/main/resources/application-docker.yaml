@@ -39,9 +39,6 @@ jwt:
   secret: YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnough2024!
   expiration: 86400000
 
-file:
-  upload-dir: /app/uploads
-
 springdoc:
   api-docs:
     path: /api-docs
