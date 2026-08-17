@@ -55,7 +55,7 @@ public class TeacherService {
                 .department(request.getDepartment())
                 .phone(request.getPhone())
                 .isEduMail(isEduMail)
-                .isVerified(false)
+                .isVerified(google != null)
                 .isEmailVerified(google != null)
                 .isActive(true)
                 .build();
@@ -168,6 +168,7 @@ public class TeacherService {
     public List<TeacherResponse> getAllTeachers() {
         return teacherRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
+                .filter(teacher -> Boolean.TRUE.equals(teacher.getIsEmailVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -184,7 +185,8 @@ public class TeacherService {
     public List<TeacherResponse> getPendingTeachers() {
         return teacherRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(t -> !t.getIsVerified())
+                .filter(teacher -> Boolean.TRUE.equals(teacher.getIsEmailVerified()))
+                .filter(teacher -> !Boolean.TRUE.equals(teacher.getIsVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }

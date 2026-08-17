@@ -23,4 +23,8 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     long countByIsVerifiedTrue();
 
     long countByIsVerifiedFalse();
+
+    long countByIsEmailVerifiedTrue();
+
+    long countByIsEmailVerifiedTrueAndIsVerifiedFalse();
 }

@@ -54,7 +54,7 @@ public class StudentService {
                 .department(request.getDepartment())
                 .varsityBatch(request.getVarsityBatch())
                 .isEduMail(isEduMail)
-                .isVerified(false)
+                .isVerified(google != null)
                 .isEmailVerified(google != null)
                 .isActive(true)
                 .build();
@@ -167,6 +167,7 @@ public class StudentService {
     public List<StudentResponse> getAllStudents() {
         return studentRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
+                .filter(student -> Boolean.TRUE.equals(student.getIsEmailVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -174,7 +175,8 @@ public class StudentService {
     public List<StudentResponse> getPendingStudents() {
         return studentRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(s -> !s.getIsVerified())
+                .filter(student -> Boolean.TRUE.equals(student.getIsEmailVerified()))
+                .filter(student -> !Boolean.TRUE.equals(student.getIsVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }

@@ -28,13 +28,13 @@ public class AdminDashboardController {
         long totalBuses = busRepository.count();
         long activeBuses = busRepository.countByIsActiveTrue();
 
-        long totalStudents = studentRepository.count();
+        long totalStudents = studentRepository.countByIsEmailVerifiedTrue();
         long verifiedStudents = studentRepository.countByIsVerifiedTrue();
-        long pendingStudents = studentRepository.countByIsVerifiedFalse();
+        long pendingStudents = studentRepository.countByIsEmailVerifiedTrueAndIsVerifiedFalse();
 
-        long totalTeachers = teacherRepository.count();
+        long totalTeachers = teacherRepository.countByIsEmailVerifiedTrue();
         long verifiedTeachers = teacherRepository.countByIsVerifiedTrue();
-        long pendingTeachers = teacherRepository.countByIsVerifiedFalse();
+        long pendingTeachers = teacherRepository.countByIsEmailVerifiedTrueAndIsVerifiedFalse();
 
         long totalNotices = noticeRepository.count();
         long totalSchedules = scheduleRepository.count();

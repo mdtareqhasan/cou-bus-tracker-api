@@ -87,6 +87,9 @@ public class EmailVerificationService {
         Student user = studentRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Student not found"));
         user.setIsEmailVerified(true);
+        // A correct OTP is the automatic approval step. Admins can still
+        // deactivate or delete an account later if the ID card is invalid.
+        user.setIsVerified(true);
         studentRepository.save(user);
         return authResponse(user.getId(), user.getName(), user.getEmail(), user.getIsVerified(), user.getIsEduMail(), "STUDENT");
     }
@@ -95,6 +98,7 @@ public class EmailVerificationService {
         Teacher user = teacherRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Teacher not found"));
         user.setIsEmailVerified(true);
+        user.setIsVerified(true);
         teacherRepository.save(user);
         return authResponse(user.getId(), user.getName(), user.getEmail(), user.getIsVerified(), user.getIsEduMail(), "TEACHER");
     }
