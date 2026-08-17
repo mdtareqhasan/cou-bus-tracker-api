@@ -51,11 +51,9 @@ public class SecurityConfig {
                         // Actuator endpoints
                         .requestMatchers("/actuator/**").permitAll()
                         // All other endpoints require authentication
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -90,8 +88,7 @@ public class SecurityConfig {
                 "http://127.0.0.1:3000",
                 "http://127.0.0.1:5173",
                 "http://127.0.0.1:5174",
-                "https://cou-bus-tracker-backend-admin-frontend-1.onrender.com"
-        ));
+                "https://cou-bus-tracker-backend-admin-frontend-1.onrender.com"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));

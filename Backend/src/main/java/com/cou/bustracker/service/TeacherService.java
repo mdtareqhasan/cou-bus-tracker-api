@@ -28,6 +28,7 @@ public class TeacherService {
     private final PasswordEncoder passwordEncoder;
     private final GoogleTokenService googleTokenService;
     private final FileStorageService fileStorageService;
+    private final EmailVerificationService emailVerificationService;
 
     private static final String EDU_MAIL_DOMAIN = "cou.ac.bd";
 
@@ -55,6 +56,7 @@ public class TeacherService {
                 .phone(request.getPhone())
                 .isEduMail(isEduMail)
                 .isVerified(false)
+                .isEmailVerified(google != null)
                 .isActive(true)
                 .build();
 
@@ -63,17 +65,20 @@ public class TeacherService {
         teacher.setIdCardImageUrl(imageUrl);
 
         teacherRepository.save(teacher);
-
-        String token = jwtService.generateToken(teacher.getEmail(), "TEACHER");
+        if (google == null) {
+            emailVerificationService.sendOtp(teacher.getEmail(),
+                    com.cou.bustracker.entity.EmailVerificationOtp.UserRole.TEACHER, false);
+        }
 
         return AuthResponse.builder()
-                .accessToken(token)
-                .tokenType("Bearer")
+                .accessToken(google == null ? null : jwtService.generateToken(teacher.getEmail(), "TEACHER"))
+                .tokenType(google == null ? null : "Bearer")
                 .role("TEACHER")
                 .id(teacher.getId())
                 .name(teacher.getName())
                 .email(teacher.getEmail())
                 .isVerified(teacher.getIsVerified())
+                .isEmailVerified(teacher.getIsEmailVerified())
                 .isEduMail(teacher.getIsEduMail())
                 .build();
     }
@@ -87,6 +92,9 @@ public class TeacherService {
         if (!teacher.getIsActive()) {
             throw new BadCredentialsException("Account is deactivated. Please contact admin.");
         }
+        if (!teacher.getIsEmailVerified()) {
+            throw new BadCredentialsException("Please verify your email before logging in");
+        }
 
         String token = jwtService.generateToken(teacher.getEmail(), "TEACHER");
 
@@ -98,6 +106,7 @@ public class TeacherService {
                 .name(teacher.getName())
                 .email(teacher.getEmail())
                 .isVerified(teacher.getIsVerified())
+                .isEmailVerified(teacher.getIsEmailVerified())
                 .isEduMail(teacher.getIsEduMail())
                 .build();
     }
@@ -114,6 +123,9 @@ public class TeacherService {
         if (!teacher.getIsActive()) {
             throw new BadCredentialsException("Account is deactivated. Please contact admin.");
         }
+        if (!teacher.getIsEmailVerified()) {
+            throw new BadCredentialsException("Please verify your email before logging in");
+        }
 
         return AuthResponse.builder()
                 .accessToken(jwtService.generateToken(teacher.getEmail(), "TEACHER"))
@@ -123,6 +135,7 @@ public class TeacherService {
                 .name(teacher.getName())
                 .email(teacher.getEmail())
                 .isVerified(teacher.getIsVerified())
+                .isEmailVerified(teacher.getIsEmailVerified())
                 .isEduMail(teacher.getIsEduMail())
                 .build();
     }

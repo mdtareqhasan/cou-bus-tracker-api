@@ -20,5 +20,6 @@ public class AuthResponse {
     private String name;
     private String email;
     private Boolean isVerified;
+    private Boolean isEmailVerified;
     private Boolean isEduMail;
 }

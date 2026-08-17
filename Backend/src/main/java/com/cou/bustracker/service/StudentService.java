@@ -28,6 +28,7 @@ public class StudentService {
     private final PasswordEncoder passwordEncoder;
     private final GoogleTokenService googleTokenService;
     private final FileStorageService fileStorageService;
+    private final EmailVerificationService emailVerificationService;
 
     private static final String EDU_MAIL_DOMAIN = "cou.ac.bd";
 
@@ -54,6 +55,7 @@ public class StudentService {
                 .varsityBatch(request.getVarsityBatch())
                 .isEduMail(isEduMail)
                 .isVerified(false)
+                .isEmailVerified(google != null)
                 .isActive(true)
                 .build();
 
@@ -62,17 +64,20 @@ public class StudentService {
         student.setIdCardImageUrl(imageUrl);
 
         studentRepository.save(student);
-
-        String token = jwtService.generateToken(student.getEmail(), "STUDENT");
+        if (google == null) {
+            emailVerificationService.sendOtp(student.getEmail(),
+                    com.cou.bustracker.entity.EmailVerificationOtp.UserRole.STUDENT, false);
+        }
 
         return AuthResponse.builder()
-                .accessToken(token)
-                .tokenType("Bearer")
+                .accessToken(google == null ? null : jwtService.generateToken(student.getEmail(), "STUDENT"))
+                .tokenType(google == null ? null : "Bearer")
                 .role("STUDENT")
                 .id(student.getId())
                 .name(student.getName())
                 .email(student.getEmail())
                 .isVerified(student.getIsVerified())
+                .isEmailVerified(student.getIsEmailVerified())
                 .isEduMail(student.getIsEduMail())
                 .build();
     }
@@ -86,6 +91,9 @@ public class StudentService {
         if (!student.getIsActive()) {
             throw new BadCredentialsException("Account is deactivated. Please contact admin.");
         }
+        if (!student.getIsEmailVerified()) {
+            throw new BadCredentialsException("Please verify your email before logging in");
+        }
 
         String token = jwtService.generateToken(student.getEmail(), "STUDENT");
 
@@ -97,6 +105,7 @@ public class StudentService {
                 .name(student.getName())
                 .email(student.getEmail())
                 .isVerified(student.getIsVerified())
+                .isEmailVerified(student.getIsEmailVerified())
                 .isEduMail(student.getIsEduMail())
                 .build();
     }
@@ -113,6 +122,9 @@ public class StudentService {
         if (!student.getIsActive()) {
             throw new BadCredentialsException("Account is deactivated. Please contact admin.");
         }
+        if (!student.getIsEmailVerified()) {
+            throw new BadCredentialsException("Please verify your email before logging in");
+        }
 
         return AuthResponse.builder()
                 .accessToken(jwtService.generateToken(student.getEmail(), "STUDENT"))
@@ -122,6 +134,7 @@ public class StudentService {
                 .name(student.getName())
                 .email(student.getEmail())
                 .isVerified(student.getIsVerified())
+                .isEmailVerified(student.getIsEmailVerified())
                 .isEduMail(student.getIsEduMail())
                 .build();
     }

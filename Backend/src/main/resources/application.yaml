@@ -1,9 +1,27 @@
 spring:
+  mail:
+    host: ${MAILERSEND_SMTP_HOST:smtp.mailersend.net}
+    port: ${MAILERSEND_SMTP_PORT:587}
+    username: ${MAILERSEND_SMTP_USERNAME:}
+    password: ${MAILERSEND_SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   profiles:
     active: dev   # 👈 এটি বলে দিচ্ছে, 'dev' প্রোফাইল ইউজ করো (মানে application-dev.yml লোড করো)
 
 server:
   port: 8080
+
+app:
+  email-verification:
+    from: ${MAILERSEND_FROM_EMAIL:}
+    from-name: ${MAILERSEND_FROM_NAME:CoU Bus Tracker}
+    otp-expiry-minutes: ${EMAIL_OTP_EXPIRY_MINUTES:5}
+    resend-cooldown-seconds: ${EMAIL_OTP_RESEND_COOLDOWN_SECONDS:60}
 
 jwt:
   secret: YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnough2024!

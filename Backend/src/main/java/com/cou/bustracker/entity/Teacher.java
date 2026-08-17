@@ -56,6 +56,10 @@ public class Teacher {
     @Builder.Default
     private Boolean isVerified = false;
 
+    @Column(name = "is_email_verified", nullable = false)
+    @Builder.Default
+    private Boolean isEmailVerified = false;
+
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;

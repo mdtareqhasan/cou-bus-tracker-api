@@ -18,10 +18,32 @@ Teacher: `POST /api/auth/teacher/register`
 - fields: `name`, `email`, `password` (or `googleIdToken`), `teacherId`, `department`, optional `designation`, optional `phone`
 - file field: `idCard`
 
-For regular registration require a password. For Google registration send `googleIdToken` and omit/leave blank `password`. On success the app receives:
+For regular registration require a password. For Google registration send `googleIdToken` and omit/leave blank `password`.
+
+## Email OTP verification (regular password registration only)
+
+After a successful password registration, the backend sends a six-digit OTP to the submitted email. The registration response contains `isEmailVerified: false` and **does not contain an access token**. Immediately navigate to an OTP verification screen; do not save a token or treat the user as logged in yet. Google registration is already email-verified and returns a normal token.
+
+Create a six-digit numeric OTP screen with an email summary, a Verify button, a 60-second resend countdown, loading/error states, and a Change email / Back action. Use these JSON APIs:
+
+`POST /api/auth/email-verification/verify`
 
 ```json
-{ "accessToken": "...", "tokenType": "Bearer", "adminName": "Name", "role": "STUDENT" }
+{ "email": "user@example.com", "role": "STUDENT", "otp": "123456" }
+```
+
+`POST /api/auth/email-verification/resend`
+
+```json
+{ "email": "user@example.com", "role": "STUDENT" }
+```
+
+Use `TEACHER` for teachers. OTP expires after five minutes, only five wrong attempts are allowed, and resend is rate-limited to once per minute. A successful verify response has the normal auth shape below: save its `accessToken`, role, and display name in `flutter_secure_storage`, then navigate to the authenticated area. For a 400/401 error, show the backend `message` without clearing the registration form. If login returns “Please verify your email before logging in”, route the user to this OTP screen and offer resend.
+
+Normal authenticated success response:
+
+```json
+{ "accessToken": "...", "tokenType": "Bearer", "name": "Name", "role": "STUDENT", "isEmailVerified": true }
 ```
 
 Save `accessToken` and `role` only in `flutter_secure_storage`. Add `Authorization: Bearer <accessToken>` to all protected API calls. Never use the token as a URL parameter.
