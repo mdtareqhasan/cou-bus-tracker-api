@@ -30,6 +30,11 @@ jwt:
 file:
   upload-dir: ./uploads
 
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+  api-key: ${CLOUDINARY_API_KEY:}
+  api-secret: ${CLOUDINARY_API_SECRET:}
+
 google:
   oauth2:
     # Web OAuth client ID used as the audience for Google ID tokens from the Flutter app.

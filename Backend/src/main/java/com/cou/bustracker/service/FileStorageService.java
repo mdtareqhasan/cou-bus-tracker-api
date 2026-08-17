@@ -1,6 +1,6 @@
 package com.cou.bustracker.service;
 
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -8,19 +8,14 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class FileStorageService {
 
-    @Value("${file.upload-dir:uploads}")
-    private String uploadDir;
+    private final CloudinaryService cloudinaryService;
 
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
     private static final int MIN_IMAGE_WIDTH = 300;
@@ -37,21 +32,11 @@ public class FileStorageService {
             "image/png", new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47}
     );
 
+    /**
+     * Stores an image in Cloudinary and returns its secure URL.
+     */
     public String storeFile(MultipartFile file, String subDir) throws IOException {
-        Path uploadPath = Paths.get(uploadDir, subDir).toAbsolutePath().normalize();
-        Files.createDirectories(uploadPath);
-
-        String originalFilename = file.getOriginalFilename();
-        String extension = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        }
-
-        String filename = UUID.randomUUID() + extension;
-        Path targetLocation = uploadPath.resolve(filename);
-        Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-
-        return "/uploads/" + subDir + "/" + filename;
+        return cloudinaryService.uploadImage(file, subDir);
     }
 
     /**
@@ -130,12 +115,15 @@ public class FileStorageService {
             }
         }
 
-        return storeFile(file, subDir);
+        return cloudinaryService.uploadImage(file, subDir);
     }
 
-    public byte[] loadFile(String filePath) throws IOException {
-        Path path = Paths.get(filePath).toAbsolutePath().normalize();
-        return Files.readAllBytes(path);
+    /**
+     * Deletes an image from Cloudinary by URL or public id. Safe to call with
+     * null / local paths / already-deleted images (no-op).
+     */
+    public void deleteFile(String fileUrlOrPublicId) {
+        cloudinaryService.deleteImage(fileUrlOrPublicId);
     }
 
     // --- helpers ---

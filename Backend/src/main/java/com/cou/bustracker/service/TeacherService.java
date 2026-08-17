@@ -217,12 +217,8 @@ public class TeacherService {
     }
 
     private void deleteIdCardFile(String imageUrl) {
-        try {
-            java.nio.file.Path path = java.nio.file.Paths.get(imageUrl).toAbsolutePath().normalize();
-            java.nio.file.Files.deleteIfExists(path);
-        } catch (Exception ignored) {
-            // File may already be deleted or not found; log but don't fail the delete operation
-        }
+        // Delete ID card image from Cloudinary (no-op for already-deleted/null images)
+        fileStorageService.deleteFile(imageUrl);
     }
 
     private TeacherResponse mapToResponse(Teacher teacher) {
