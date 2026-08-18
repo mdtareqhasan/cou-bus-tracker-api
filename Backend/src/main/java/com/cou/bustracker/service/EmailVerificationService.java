@@ -122,7 +122,7 @@ public class EmailVerificationService {
     }
 
     private void sendEmail(String recipient, String otp) {
-        if (from == null || from.isBlank()) throw new IllegalStateException("MAILERSEND_FROM_EMAIL is not configured");
+        if (from == null || from.isBlank()) throw new IllegalStateException("MAIL_FROM_EMAIL is not configured");
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromName + " <" + from + ">");
         message.setTo(recipient);

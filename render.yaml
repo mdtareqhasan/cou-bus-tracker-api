@@ -1,0 +1,46 @@
+# Render blueprint: deploy the Spring Boot API as a Docker web service.
+#
+# Why this exists: the Maven project lives in Backend/ (pom.xml is not at the repo
+# root), so Render's native language detection fails ("Detected language: unknown").
+# With runtime: docker, Render builds this repo's root Dockerfile and runs its
+# ENTRYPOINT, so no Start Command is required.
+#
+# How to use:
+#   1. Push this repo to GitHub.
+#   2. Render Dashboard -> New -> Blueprint -> select this repo -> Apply.
+#   3. Create a PostgreSQL database (Dashboard -> New -> PostgreSQL).
+#   4. On the web service's Environment tab set the vars marked `sync: false`
+#      (you are prompted during creation). For the database, copy the values from
+#      the PostgreSQL "Connections" tab (Internal Database URL):
+#        SPRING_DATASOURCE_URL      jdbc:postgresql://<HOST>:<PORT>/<DATABASE>
+#        SPRING_DATASOURCE_USERNAME <USERNAME>
+#        SPRING_DATASOURCE_PASSWORD <PASSWORD>
+services:
+  - type: web
+    name: cou-bus-tracker-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/buses
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: RESEND_FROM_NAME
+        value: CoU Bus Tracker

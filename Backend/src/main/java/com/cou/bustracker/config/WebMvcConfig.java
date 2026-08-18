@@ -10,7 +10,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:3000")
+                .allowedOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:3000",
+                        "https://cou-bus-tracker-backend-admin-frontend-1.onrender.com")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
