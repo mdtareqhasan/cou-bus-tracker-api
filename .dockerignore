@@ -1,0 +1,7 @@
+.git
+.agents
+.codex
+**/target
+**/node_modules
+**/.env
+Backend/backups
