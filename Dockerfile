@@ -23,6 +23,6 @@ USER appuser
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD-SHELL curl -f http://localhost:${PORT:-8080}/api/buses || exit 1
+  CMD ["sh", "-c", "curl -f http://localhost:${PORT:-8080}/api/buses || exit 1"]
 
 ENTRYPOINT ["sh", "-c", "exec java -XX:MaxRAMPercentage=75.0 -XX:+UseContainerSupport -Djava.security.egd=file:/dev/./urandom -Dserver.port=${PORT:-8080} -jar app.jar"]
