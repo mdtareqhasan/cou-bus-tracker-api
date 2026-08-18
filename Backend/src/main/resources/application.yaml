@@ -1,10 +1,11 @@
 spring:
   mail:
-    # Resend SMTP defaults. Generic SMTP_* variables can still override them.
-    host: ${SMTP_HOST:${RESEND_SMTP_HOST:smtp.resend.com}}
-    port: ${SMTP_PORT:${RESEND_SMTP_PORT:587}}
-    username: ${SMTP_USERNAME:${RESEND_SMTP_USERNAME:resend}}
-    password: ${SMTP_PASSWORD:${RESEND_API_KEY:}}
+    # MailerSend is the default production mail provider. Generic SMTP_* values are
+    # still accepted as fallbacks for compatibility with older deployments.
+    host: ${MAILERSEND_SMTP_HOST:${SMTP_HOST:${RESEND_SMTP_HOST:smtp.mailersend.net}}}
+    port: ${MAILERSEND_SMTP_PORT:${SMTP_PORT:${RESEND_SMTP_PORT:587}}}
+    username: ${MAILERSEND_SMTP_USERNAME:${SMTP_USERNAME:${RESEND_SMTP_USERNAME:resend}}}
+    password: ${MAILERSEND_SMTP_PASSWORD:${SMTP_PASSWORD:${RESEND_API_KEY:}}}
     properties:
       mail:
         smtp:
@@ -12,15 +13,15 @@ spring:
           starttls:
             enable: true
   profiles:
-    active: dev   # 👈 এটি বলে দিচ্ছে, 'dev' প্রোফাইল ইউজ করো (মানে application-dev.yml লোড করো)
+    active: dev   # dev profile remains the default for local runs; Render sets SPRING_PROFILES_ACTIVE=render
 
 server:
   port: 8080
 
 app:
   email-verification:
-    from: ${MAIL_FROM_EMAIL:${RESEND_FROM_EMAIL:}}
-    from-name: ${MAIL_FROM_NAME:${RESEND_FROM_NAME:CoU Bus Tracker}}
+    from: ${MAILERSEND_FROM_EMAIL:${MAIL_FROM_EMAIL:${RESEND_FROM_EMAIL:}}}
+    from-name: ${MAILERSEND_FROM_NAME:${MAIL_FROM_NAME:${RESEND_FROM_NAME:CoU Bus Tracker}}}
     otp-expiry-minutes: ${EMAIL_OTP_EXPIRY_MINUTES:5}
     resend-cooldown-seconds: ${EMAIL_OTP_RESEND_COOLDOWN_SECONDS:60}
 
