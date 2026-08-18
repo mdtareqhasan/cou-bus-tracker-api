@@ -22,7 +22,9 @@ RUN chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8080
 
+# Default to the Render/Railway profile so the app does not try to connect to a
+# non-existent local PostgreSQL instance when no profile env var is provided.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD ["sh", "-c", "curl -f http://localhost:${PORT:-8080}/api/buses || exit 1"]
+  CMD ["sh", "-c", "curl -fsS http://localhost:${PORT:-8080}/api/buses || exit 1"]
 
-ENTRYPOINT ["sh", "-c", "exec java -XX:MaxRAMPercentage=75.0 -XX:+UseContainerSupport -Djava.security.egd=file:/dev/./urandom -Dserver.port=${PORT:-8080} -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "exec java -XX:MaxRAMPercentage=75.0 -XX:+UseContainerSupport -Djava.security.egd=file:/dev/./urandom -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-render} -Dserver.port=${PORT:-8080} -jar app.jar"]
