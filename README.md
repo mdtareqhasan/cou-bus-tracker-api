@@ -61,12 +61,15 @@
 - 🗃️ **PostgreSQL schema versioning** through Flyway migrations (seeded with real Comilla University bus data)
 - 📚 **OpenAPI / Swagger UI** documentation generated automatically
 - 🚏 Optional **bus name** and **live tracker link** support
+- 🔒 **JWT validation against DB** — deleted/deactivated users are immediately rejected (auto-logout on Flutter app)
+- ⚡ **Active/inactive toggle** for buses and schedules — inactive items hidden from public API
 
 ### 🖥️ Frontend (React admin panel)
 
 - 🔑 Secure login with JWT stored in `localStorage`, auto-redirect on 401/403
 - 📈 Dashboard with live statistics
 - 📝 Full CRUD screens for buses, schedules, and notices
+- ⚡ **Active/inactive toggle** for buses and schedules with status filters
 - 👥 Student & teacher management (list, pending approval, verify, activate/deactivate, delete)
 - 🛡️ Admin user management and admin profile editing
 - 📱 Responsive Tailwind CSS layout
@@ -324,13 +327,20 @@ Flyway runs automatically whenever the backend starts. Migrations live at `src/m
 
 | Entity | Fields | Relationships |
 |---|---|---|
-| 🚌 **Bus** | id, busNumber, busName, category (BLUE/TEACHER/STAFF), route, driverName, driverPhone, busImageUrl, isActive, createdAt | 1→many schedules, one TrackerLink |
-| 🕒 **Schedule** | id, departureTime, arrivalTime, direction, startPoint, endPoint, days (e.g. `SUN-THU`), isActive, createdAt | Many→1 Bus |
+| 🚌 **Bus** | id, busNumber, busName, category (BLUE/TEacher/STAFF), route, driverName, driverPhone, busImageUrl, **isActive**, createdAt | 1→many schedules, one TrackerLink |
+| 🕒 **Schedule** | id, departureTime, arrivalTime, direction, startPoint, endPoint, days (e.g. `SUN-THU`), **isActive**, createdAt | Many→1 Bus |
 | 📍 **TrackerLink** | id, url | 1→1 Bus |
 | 📢 **Notice** | id, title, body, expiryHours (default 24), isActive, expiresAt, createdAt | — |
-| 🎓 **Student** | id, name, email, password, studentId, department, varsityBatch, idCardImageUrl, isEduMail, isVerified, isActive, createdAt | — |
-| 🧑‍🏫 **Teacher** | id, name, email, password, designation, department, phone, isEduMail, isVerified, isActive, createdAt | — |
+| 🎓 **Student** | id, name, email, password, studentId, department, varsityBatch, idCardImageUrl, isEduMail, isVerified, **isActive**, createdAt | — |
+| 🧑‍🏫 **Teacher** | id, name, email, password, teacherId, designation, department, phone, isEduMail, isVerified, **isActive**, createdAt | — |
 | 🛡️ **Admin** | id, email, password, name, createdAt | — |
+
+### Active/inactive system
+
+- **Buses**: When a bus is set inactive, it and all its schedules are hidden from the public API (`/api/buses`, `/api/schedules`)
+- **Schedules**: Individual schedules can be toggled active/inactive independently
+- **Students/Teachers**: Inactive users cannot log in; existing JWTs are rejected on next API call (auto-logout)
+- **Admin panel**: Shows all items (active + inactive) with toggle buttons and status filters
 
 ## 🔌 API reference
 
@@ -338,15 +348,16 @@ Flyway runs automatically whenever the backend starts. Migrations live at `src/m
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/buses` | List active buses |
+| `GET` | `/api/buses` | List active buses (inactive buses hidden) |
 | `GET` | `/api/buses/{id}` | Bus detail (incl. tracker link) |
-| `GET` | `/api/schedules` | All schedules |
-| `GET` | `/api/schedules/bus/{busId}` | Schedules for one bus |
+| `GET` | `/api/schedules` | All active schedules (inactive buses' schedules hidden) |
+| `GET` | `/api/schedules/bus/{busId}` | Schedules for one bus (only if bus is active) |
 | `GET` | `/api/notices/active` | Currently active notices |
 | `POST` | `/api/auth/student/register` | Student registration (`StudentRegisterRequest`) |
 | `POST` | `/api/auth/student/login` | Student login (`{ email, password }`) |
 | `POST` | `/api/auth/teacher/register` | Teacher registration |
 | `POST` | `/api/auth/teacher/login` | Teacher login |
+| `POST` | `/api/auth/google/login` | Google Sign-In (`{ idToken, role }`) |
 
 ### 🎓 Authenticated student endpoints
 
@@ -384,6 +395,7 @@ Flyway runs automatically whenever the backend starts. Migrations live at `src/m
 | `POST` | `/api/admin/buses` | Create bus |
 | `PUT` | `/api/admin/buses/{id}` | Update bus |
 | `PUT` | `/api/admin/buses/{id}/tracker-link` | Update / add live tracker link |
+| `PATCH` | `/api/admin/buses/{id}/toggle` | Toggle bus active/inactive status |
 | `DELETE` | `/api/admin/buses/{id}` | Delete bus |
 
 </details>
@@ -393,9 +405,10 @@ Flyway runs automatically whenever the backend starts. Migrations live at `src/m
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/admin/schedules` | All schedules |
+| `GET` | `/api/admin/schedules` | All schedules (incl. inactive) |
 | `POST` | `/api/admin/schedules` | Create schedule |
 | `PUT` | `/api/admin/schedules/{id}` | Update schedule |
+| `PATCH` | `/api/admin/schedules/{id}/toggle` | Toggle schedule active/inactive status |
 | `DELETE` | `/api/admin/schedules/{id}` | Delete schedule |
 
 </details>
@@ -464,6 +477,9 @@ Flyway runs automatically whenever the backend starts. Migrations live at `src/m
 - 🔑 **Passwords** are stored hashed (bcrypt — seeded admin uses a `$2b$10$` hash)
 - 🎫 **JWT** is issued on login; default expiration from configuration is 24 hours (86400000 ms)
 - 🛡️ The `JwtAuthFilter` examines the `Authorization: Bearer ...` header, validates the token, and populates the security context
+- 🔍 **JWT validation checks DB existence** — deleted or deactivated users are immediately rejected (returns 401), enabling auto-logout on Flutter app
+- ⚡ **Active/inactive checks** — student/teacher `isActive` is verified on every request; inactive users cannot access protected endpoints
+- 🔐 **Profile endpoints protected** — `/api/auth/student/me` and `/api/auth/teacher/me` require valid JWT (not public)
 - 👤 `CustomUserDetailsService` loads user details from the admins (and student/users as needed)
 - 🚧 Protected admin routes require the admin role; unauthorized requests return `401`, forbidden ones `403`
 
@@ -524,8 +540,8 @@ Deploy the contents of `admin-panel/dist/` behind a static file server (or serve
 |---|---|---|
 | `/login` | `LoginPage` | Admin login (calls `/api/auth/admin/login`) |
 | `/` | `DashboardPage` | Statistics from `/api/admin/dashboard` |
-| `/buses` | `BusesPage` | Create / edit / delete buses, set live tracker links |
-| `/schedules` | `SchedulesPage` | Manage schedules |
+| `/buses` | `BusesPage` | Create / edit / delete buses, set live tracker links, toggle active/inactive |
+| `/schedules` | `SchedulesPage` | Manage schedules, toggle active/inactive with status filters |
 | `/notices` | `NoticesPage` | Create / delete notices |
 | `/students` | `StudentsPage` | Approve pending, verify, activate/deactivate, delete |
 | `/teachers` | `TeachersPage` | Same for teachers |
@@ -540,7 +556,7 @@ All requests go through `src/api.js`, which:
 2. Automatically adds the `Authorization: Bearer <token>` header from `localStorage.getItem('admin_token')`
 3. On any `401`/`403` response, clears the token and redirects to `/login` — session expiry is handled globally
 
-**Export groups:** `authAPI` · `profileAPI` · `dashboardAPI` · `noticeAPI` · `scheduleAPI` · `studentAPI` · `busAPI` · `teacherAPI` · `adminAPI`
+**Export groups:** `authAPI` · `profileAPI` · `dashboardAPI` · `noticeAPI` · `scheduleAPI` (incl. `toggle`) · `studentAPI` · `busAPI` (incl. `toggle`) · `teacherAPI` · `adminAPI`
 
 ---
 
@@ -557,6 +573,13 @@ The Android team uses [`CoUBusTracker_Project_Spec.md`](Backend/CoUBusTracker_Pr
 - ✅ Release checklist
 
 > The app should use a **configurable base URL** and keep the list of buses, schedules, notices, and tracker links all server-driven.
+
+### Auto-logout on user deletion/deactivation
+
+When a user is deleted or deactivated from the admin panel, the backend immediately rejects their JWT on the next API call (returns `401`). The Flutter app should handle this in the Dio interceptor:
+
+- On `401` response → clear secure storage → redirect to registration/login screen
+- Show message: "আপনার অ্যাকাউন্ট মুছে ফেলা হয়েছে। আবার রেজিস্ট্রেশন করুন।"
 
 ### USB testing with a physical Android phone
 
