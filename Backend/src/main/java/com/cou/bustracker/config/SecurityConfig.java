@@ -38,8 +38,15 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // Public auth endpoints (register, login, google, email verification)
+                        .requestMatchers("/api/auth/student/register", "/api/auth/student/login").permitAll()
+                        .requestMatchers("/api/auth/teacher/register", "/api/auth/teacher/login").permitAll()
+                        .requestMatchers("/api/auth/google/**").permitAll()
+                        .requestMatchers("/api/auth/email-verification/**").permitAll()
+                        .requestMatchers("/api/auth/admin/login").permitAll()
+                        // Protected auth endpoints (profile, upload-id-card) - require JWT
+                        .requestMatchers("/api/auth/student/me", "/api/auth/student/upload-id-card").authenticated()
+                        .requestMatchers("/api/auth/teacher/me", "/api/auth/teacher/upload-id-card").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/buses/**").permitAll()
                         .requestMatchers("/api/schedules/**").permitAll()

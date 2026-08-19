@@ -56,6 +56,7 @@ export const busAPI = {
   create: (data) => api.post('/admin/buses', data),
   update: (id, data) => api.put(`/admin/buses/${id}`, data),
   delete: (id) => api.delete(`/admin/buses/${id}`),
+  toggle: (id) => api.patch(`/admin/buses/${id}/toggle`),
   updateTrackerLink: (busId, data) => api.put(`/admin/buses/${busId}/tracker-link`, data),
 };
 

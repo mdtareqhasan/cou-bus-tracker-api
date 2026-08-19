@@ -37,6 +37,20 @@ public class BusService {
                 .collect(Collectors.toList());
     }
 
+    public List<BusResponse> getAllBusesForAdmin() {
+        List<Bus> buses = busRepository.findAllByOrderByCreatedAtDesc();
+        return buses.stream()
+                .map(this::mapToBusResponse)
+                .collect(Collectors.toList());
+    }
+
+    public void toggleBus(Long id) {
+        Bus bus = busRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Bus not found with id: " + id));
+        bus.setIsActive(!bus.getIsActive());
+        busRepository.save(bus);
+    }
+
     public BusDetailResponse getBusById(Long id) {
         Bus bus = busRepository.findByIdWithTrackerLinkAndSchedules(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bus not found with id: " + id));

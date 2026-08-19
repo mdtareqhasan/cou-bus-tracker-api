@@ -27,4 +27,6 @@ public interface BusRepository extends JpaRepository<Bus, Long> {
 
     @Query("SELECT b FROM Bus b LEFT JOIN FETCH b.trackerLink LEFT JOIN FETCH b.schedules WHERE b.id = :id")
     Optional<Bus> findByIdWithTrackerLinkAndSchedules(Long id);
+
+    List<Bus> findAllByOrderByCreatedAtDesc();
 }

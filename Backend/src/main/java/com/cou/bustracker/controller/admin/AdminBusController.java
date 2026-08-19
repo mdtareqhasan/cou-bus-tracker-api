@@ -30,7 +30,7 @@ public class AdminBusController {
     @GetMapping
     @Operation(summary = "Get all buses (Admin)", description = "Retrieve all buses including inactive ones")
     public ResponseEntity<List<BusResponse>> getAllBuses() {
-        return ResponseEntity.ok(busService.getAllActiveBuses());
+        return ResponseEntity.ok(busService.getAllBusesForAdmin());
     }
 
     @PostMapping
@@ -74,6 +74,15 @@ public class AdminBusController {
         busService.deleteBus(id);
         return ResponseEntity.ok(MessageResponse.builder()
                 .message("Bus deleted successfully")
+                .build());
+    }
+
+    @PatchMapping("/{id}/toggle")
+    @Operation(summary = "Toggle bus active status", description = "Activate or deactivate a bus")
+    public ResponseEntity<MessageResponse> toggleBus(@PathVariable Long id) {
+        busService.toggleBus(id);
+        return ResponseEntity.ok(MessageResponse.builder()
+                .message("Bus status updated successfully")
                 .build());
     }
 }
