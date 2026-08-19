@@ -19,4 +19,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     @Query("SELECT s FROM Schedule s JOIN FETCH s.bus WHERE s.bus.id = :busId AND s.isActive = true")
     List<Schedule> findByBusIdWithBus(Long busId);
+
+    @Query("SELECT s FROM Schedule s JOIN FETCH s.bus ORDER BY s.departureTime ASC")
+    List<Schedule> findAllWithBusForAdmin();
 }

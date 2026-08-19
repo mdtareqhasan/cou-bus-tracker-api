@@ -36,6 +36,26 @@ public class ScheduleService {
                 .collect(Collectors.toList());
     }
 
+    public List<ScheduleResponse> getAllSchedulesForAdmin() {
+        List<Schedule> schedules = scheduleRepository.findAllWithBusForAdmin();
+        return schedules.stream()
+                .map(this::mapToScheduleResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void toggleSchedule(Long id) {
+        Schedule schedule = scheduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with id: " + id));
+        schedule.setIsActive(!schedule.getIsActive());
+        scheduleRepository.save(schedule);
+    }
+
+    public Schedule getScheduleById(Long id) {
+        return scheduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with id: " + id));
+    }
+
     @Transactional
     public void addSchedule(CreateScheduleRequest request) {
         Bus bus = busRepository.findById(request.getBusId())
@@ -98,6 +118,7 @@ public class ScheduleService {
                 .startPoint(schedule.getStartPoint())
                 .endPoint(schedule.getEndPoint())
                 .days(schedule.getDays())
+                .isActive(schedule.getIsActive())
                 .build();
     }
 }

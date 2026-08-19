@@ -22,4 +22,5 @@ public class ScheduleResponse {
     private String startPoint;
     private String endPoint;
     private String days;
+    private Boolean isActive;
 }

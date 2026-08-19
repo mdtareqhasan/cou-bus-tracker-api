@@ -64,6 +64,7 @@ export const scheduleAPI = {
   create: (data) => api.post('/admin/schedules', data),
   update: (id, data) => api.put(`/admin/schedules/${id}`, data),
   delete: (id) => api.delete(`/admin/schedules/${id}`),
+  toggle: (id) => api.patch(`/admin/schedules/${id}/toggle`),
 };
 
 export const noticeAPI = {

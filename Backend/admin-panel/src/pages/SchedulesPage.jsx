@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { scheduleAPI, busAPI } from '../api';
-import { Plus, Edit2, Trash2, X, Save, Search, BookOpen, Clock3, CalendarDays, BusFront, UsersRound } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, Search, BookOpen, Clock3, CalendarDays, BusFront, UsersRound, Power } from 'lucide-react';
 
 const EMPTY_FORM = {
   busId: '', busName: '', departureTime: '', arrivalTime: '', direction: 'UP',
@@ -43,15 +43,17 @@ const routeParts = (route = '') => {
 
 const isTeacherBus = (schedule) => ['TEACHER', 'OFFICER', 'STAFF'].includes(schedule.category?.toUpperCase());
 
-function ScheduleCard({ schedule, onEdit, onDelete }) {
+function ScheduleCard({ schedule, onEdit, onDelete, onToggle }) {
   const goingToCampus = schedule.direction === 'UP';
+  const isInactive = schedule.isActive === false;
   return (
-    <article className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-teal-100">
+    <article className={`rounded-2xl border p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${isInactive ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-100 bg-white hover:border-teal-100'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-lg bg-teal-50 px-2.5 py-1 text-sm font-bold text-emerald-700">{schedule.busNumber}</span>
+            <span className={`rounded-lg px-2.5 py-1 text-sm font-bold ${isInactive ? 'bg-gray-200 text-gray-500' : 'bg-teal-50 text-emerald-700'}`}>{schedule.busNumber}</span>
             {schedule.busName && <span className="truncate text-sm text-gray-500">{schedule.busName}</span>}
+            {isInactive && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">নিষ্ক্রিয়</span>}
           </div>
           <p className="mt-3 text-sm leading-6 text-gray-600">{schedule.startPoint || '—'} <span className="mx-1 text-cyan-600">→</span> {schedule.endPoint || '—'}</p>
         </div>
@@ -61,7 +63,11 @@ function ScheduleCard({ schedule, onEdit, onDelete }) {
       </div>
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
         <span className="text-sm font-semibold text-emerald-700">{formatTime(schedule.departureTime)}</span>
-        <div className="flex gap-1"><button onClick={() => onEdit(schedule)} className="btn-icon text-emerald-600 hover:bg-teal-50" title="সম্পাদনা"><Edit2 className="h-4 w-4" /></button><button onClick={() => onDelete(schedule.id)} className="btn-icon text-red-600 hover:bg-red-50" title="মুছুন"><Trash2 className="h-4 w-4" /></button></div>
+        <div className="flex gap-1">
+          <button onClick={() => onToggle(schedule.id)} className={`btn-icon ${isInactive ? 'text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-teal-50'}`} title={isInactive ? 'সক্রিয় করুন' : 'নিষ্ক্রিয় করুন'}><Power className="h-4 w-4" /></button>
+          <button onClick={() => onEdit(schedule)} className="btn-icon text-emerald-600 hover:bg-teal-50" title="সম্পাদনা"><Edit2 className="h-4 w-4" /></button>
+          <button onClick={() => onDelete(schedule.id)} className="btn-icon text-red-600 hover:bg-red-50" title="ম�ছুন"><Trash2 className="h-4 w-4" /></button>
+        </div>
       </div>
     </article>
   );
@@ -76,6 +82,7 @@ export default function SchedulesPage() {
   const [search, setSearch] = useState('');
   const [busAudience, setBusAudience] = useState('STUDENT');
   const [dayGroup, setDayGroup] = useState('WEEKDAY');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const [form, setForm] = useState(EMPTY_FORM);
 
   const load = () => {
@@ -136,10 +143,19 @@ export default function SchedulesPage() {
     }
   };
 
+  const handleToggle = async (id) => {
+    await scheduleAPI.toggle(id);
+    load();
+  };
+
   const filtered = schedules.filter(s =>
     [s.busNumber, s.category, s.startPoint, s.endPoint].filter(Boolean)
       .some(value => value.toLowerCase().includes(search.toLowerCase()))
-  );
+  ).filter(s => {
+    if (statusFilter === 'ACTIVE') return s.isActive !== false;
+    if (statusFilter === 'INACTIVE') return s.isActive === false;
+    return true;
+  });
 
   const visibleSchedules = useMemo(() => filtered.filter(schedule => {
     const matchAudience = busAudience === 'TEACHER' ? isTeacherBus(schedule) : !isTeacherBus(schedule);
@@ -163,7 +179,7 @@ export default function SchedulesPage() {
       <div className="schedule-hero flex items-center justify-between mb-8 flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold">বাস শিডিউল ব্যবস্থাপনা</h1>
-          <p className="mt-1">মোট {bengaliNumber.format(schedules.length)}টি সক্রিয় শিডিউল</p>
+          <p className="mt-1">মোট {bengaliNumber.format(schedules.length)}টি শিডিউল ({bengaliNumber.format(schedules.filter(s => s.isActive !== false).length)}টি সক্রিয়, {bengaliNumber.format(schedules.filter(s => s.isActive === false).length)}টি নিষ্ক্রিয়)</p>
         </div>
         <button onClick={openCreateForm} className="btn-primary schedule-add-button">
           <Plus className="w-4 h-4" /> শিডিউল যোগ করুন
@@ -184,6 +200,10 @@ export default function SchedulesPage() {
           <span className="mx-1 hidden h-9 border-l border-slate-200 sm:block" />
           <button onClick={() => setDayGroup('WEEKDAY')} className={`filter-btn ${dayGroup === 'WEEKDAY' ? 'filter-btn-active' : 'filter-btn-inactive'}`}><CalendarDays className="mr-1.5 inline h-4 w-4" />কর্মদিবস</button>
           <button onClick={() => setDayGroup('WEEKEND')} className={`filter-btn ${dayGroup === 'WEEKEND' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>শুক্রবার ও শনিবার</button>
+          <span className="mx-1 hidden h-9 border-l border-slate-200 sm:block" />
+          <button onClick={() => setStatusFilter('ALL')} className={`filter-btn ${statusFilter === 'ALL' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>সব</button>
+          <button onClick={() => setStatusFilter('ACTIVE')} className={`filter-btn ${statusFilter === 'ACTIVE' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>সক্রিয়</button>
+          <button onClick={() => setStatusFilter('INACTIVE')} className={`filter-btn ${statusFilter === 'INACTIVE' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>নিষ্ক্রিয়</button>
         </div>
       </section>
 
@@ -273,7 +293,7 @@ export default function SchedulesPage() {
         {groupedSchedules.map(([time, group]) => (
           <section key={time} className="rounded-2xl border border-teal-100 bg-teal-50/40 p-4 sm:p-5">
             <div className="mb-4 flex items-center gap-3"><div className="rounded-xl bg-teal-100 p-2 text-teal-600"><Clock3 className="h-5 w-5" /></div><div><h2 className="font-bold text-gray-800">{formatTime(time)}</h2><p className="text-sm text-gray-500">{bengaliNumber.format(group.length)}টি বাস</p></div></div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{group.map(schedule => <ScheduleCard key={schedule.id} schedule={schedule} onEdit={handleEdit} onDelete={handleDelete} />)}</div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{group.map(schedule => <ScheduleCard key={schedule.id} schedule={schedule} onEdit={handleEdit} onDelete={handleDelete} onToggle={handleToggle} />)}</div>
           </section>
         ))}
         {!groupedSchedules.length && <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-14 text-center"><BookOpen className="mx-auto mb-3 h-12 w-12 text-gray-300" /><p className="font-medium text-gray-400">এই বিভাগে কোনো শিডিউল পাওয়া যায়নি</p></div>}
@@ -284,7 +304,7 @@ export default function SchedulesPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50/80 border-b border-gray-100">
               <tr>
-                {['বাস নম্বর', 'দিক', 'ছাড়ার সময়', 'পৌঁছানোর সময়', 'রুট', 'দিন', 'কাজ'].map(h => (
+                {['বাস নম্বর', 'দিক', 'ছাড়ার সময়', 'পৌঁছানোর সময়', 'রুট', 'দিন', 'অবস্থা', 'কাজ'].map(h => (
                   <th key={h} className="text-left px-6 py-4 font-semibold text-gray-600 text-xs tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -298,7 +318,8 @@ export default function SchedulesPage() {
                   <td className="px-6 py-4 text-gray-700">{formatTime(s.arrivalTime)}</td>
                   <td className="px-6 py-4 text-gray-600">{s.startPoint || '-'} → {s.endPoint || '-'}</td>
                   <td className="px-6 py-4"><span className="badge bg-gray-100 text-gray-600">{s.days}</span></td>
-                  <td className="px-6 py-4"><div className="flex items-center gap-1"><button onClick={() => handleEdit(s)} className="btn-icon hover:bg-teal-50 text-emerald-600" title="সম্পাদনা"><Edit2 className="w-4 h-4" /></button><button onClick={() => handleDelete(s.id)} className="btn-icon hover:bg-red-50 text-red-600" title="মুছুন"><Trash2 className="w-4 h-4" /></button></div></td>
+                  <td className="px-6 py-4"><span className={`badge ${s.isActive !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>{s.isActive !== false ? 'সক্রিয়' : 'নিষ্ক্রিয়'}</span></td>
+                  <td className="px-6 py-4"><div className="flex items-center gap-1"><button onClick={() => handleToggle(s.id)} className={`btn-icon ${s.isActive !== false ? 'text-emerald-600 hover:bg-teal-50' : 'text-red-600 hover:bg-red-50'}`} title={s.isActive !== false ? 'নিষ্ক্রিয় করুন' : 'সক্রিয় করুন'}><Power className="w-4 h-4" /></button><button onClick={() => handleEdit(s)} className="btn-icon hover:bg-teal-50 text-emerald-600" title="সম্পাদনা"><Edit2 className="w-4 h-4" /></button><button onClick={() => handleDelete(s.id)} className="btn-icon hover:bg-red-50 text-red-600" title="মুছুন"><Trash2 className="w-4 h-4" /></button></div></td>
                 </tr>
               ))}
             </tbody>
