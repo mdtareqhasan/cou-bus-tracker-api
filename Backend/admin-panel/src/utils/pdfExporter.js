@@ -75,36 +75,28 @@ const renderTable = (items) => {
       const isOff = s.isActive === false;
       return `
         <tr data-row-id="${i}" style="background:${bg};">
-          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};font-weight:600;font-size:9px;color:${GRAY_900};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${busCell}</td>
-          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};font-size:9px;color:${GRAY_700};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${directionLabel(s.direction)}</td>
-          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};font-size:9px;color:${GRAY_700};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${route}</td>
-          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};font-size:9px;text-align:center;color:${GRAY_700};overflow:hidden;">${arrival}</td>
-          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};font-size:8px;text-align:center;color:${GRAY_500};overflow:hidden;">${daysLabel(s.days)}</td>
-          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};text-align:center;overflow:hidden;">
-            <span style="display:inline-block;padding:0px 4px;border-radius:3px;font-size:8px;font-weight:600;background:${isOff ? '#fef2f2' : '#ecfdf5'};color:${isOff ? RED_500 : GREEN_600};">${statusLabel(s)}</span>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-weight:600;font-size:10px;color:${GRAY_900};">${busCell}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:10px;color:${GRAY_700};">${directionLabel(s.direction)}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:10px;color:${GRAY_700};">${route}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:10px;text-align:center;color:${GRAY_700};">${arrival}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:9px;text-align:center;color:${GRAY_500};">${daysLabel(s.days)}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};text-align:center;">
+            <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;background:${isOff ? '#fef2f2' : '#ecfdf5'};color:${isOff ? RED_500 : GREEN_600};">${statusLabel(s)}</span>
           </td>
         </tr>`;
     })
     .join('');
 
   return `
-    <table style="width:100%;border-collapse:collapse;font-size:9px;margin-top:3px;table-layout:fixed;">
-      <colgroup>
-        <col style="width:14%;">
-        <col style="width:14%;">
-        <col style="width:32%;">
-        <col style="width:12%;">
-        <col style="width:16%;">
-        <col style="width:12%;">
-      </colgroup>
+    <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:5px;">
       <thead>
         <tr style="background:${TEAL_700};color:${WHITE};">
-          <th style="padding:3px 5px;text-align:left;font-weight:600;font-size:8px;overflow:hidden;">বাস নম্বর</th>
-          <th style="padding:3px 5px;text-align:left;font-weight:600;font-size:8px;overflow:hidden;">দিক</th>
-          <th style="padding:3px 5px;text-align:left;font-weight:600;font-size:8px;overflow:hidden;">রুট</th>
-          <th style="padding:3px 5px;text-align:center;font-weight:600;font-size:8px;overflow:hidden;">পৌঁছানোর সময়</th>
-          <th style="padding:3px 5px;text-align:center;font-weight:600;font-size:8px;overflow:hidden;">দিন</th>
-          <th style="padding:3px 5px;text-align:center;font-weight:600;font-size:8px;overflow:hidden;">অবস্থা</th>
+          <th style="padding:6px 8px;text-align:left;font-weight:600;font-size:9px;">বাস নম্বর</th>
+          <th style="padding:6px 8px;text-align:left;font-weight:600;font-size:9px;">দিক</th>
+          <th style="padding:6px 8px;text-align:left;font-weight:600;font-size:9px;">রুট</th>
+          <th style="padding:6px 8px;text-align:center;font-weight:600;font-size:9px;">পৌঁছানোর সময়</th>
+          <th style="padding:6px 8px;text-align:center;font-weight:600;font-size:9px;">দিন</th>
+          <th style="padding:6px 8px;text-align:center;font-weight:600;font-size:9px;">অবস্থা</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -112,11 +104,11 @@ const renderTable = (items) => {
 };
 
 const renderTimeGroup = (time, slot) => `
-  <div data-block-id="time" data-block-time="${time}" style="margin-top:5px;">
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:1px;">
-      <div style="width:5px;height:5px;border-radius:50%;background:${TEAL_600};"></div>
-      <span style="font-weight:700;color:${TEAL_700};font-size:11px;">${formatTime(time)}</span>
-      <span style="color:${GRAY_400};font-size:9px;margin-left:2px;">(${bengaliNumber.format(slot.length)}টি বাস)</span>
+  <div data-block-id="time" data-block-time="${time}" style="margin-top:12px;">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+      <div style="width:6px;height:6px;border-radius:50%;background:${TEAL_600};"></div>
+      <span style="font-weight:700;color:${TEAL_700};font-size:12px;">${formatTime(time)}</span>
+      <span style="color:${GRAY_400};font-size:10px;margin-left:2px;">(${bengaliNumber.format(slot.length)}টি বাস)</span>
     </div>
     ${renderTable(slot)}
   </div>`;
@@ -128,11 +120,11 @@ const renderAudienceSection = (audLabel, icon, audKey, group) => {
     .join('');
 
   return `
-    <div data-block-id="audience" data-block-audience="${audKey}" style="margin-top:8px;">
-      <div style="display:flex;align-items:center;gap:6px;padding-bottom:3px;border-bottom:2px solid ${TEAL_200};">
-        <span style="font-size:11px;">${icon}</span>
-        <span style="font-weight:700;color:${GRAY_900};font-size:11px;">${audLabel}</span>
-        <span style="color:${GRAY_400};font-size:9px;margin-left:2px;">\u2022 ${bengaliNumber.format(group.length)}টি</span>
+    <div data-block-id="audience" data-block-audience="${audKey}" style="margin-top:14px;">
+      <div style="display:flex;align-items:center;gap:6px;padding-bottom:5px;border-bottom:2px solid ${TEAL_200};">
+        <span style="font-size:13px;">${icon}</span>
+        <span style="font-weight:700;color:${GRAY_900};font-size:13px;">${audLabel}</span>
+        <span style="color:${GRAY_400};font-size:10px;margin-left:2px;">\u2022 ${bengaliNumber.format(group.length)}টি</span>
       </div>
       ${timeGroups}
     </div>`;
@@ -148,10 +140,10 @@ const renderSection = (dayKey, dayLabel, buckets) => {
   ].join('');
 
   return `
-    <div data-block-id="section" data-block-day="${dayKey}" style="margin-top:10px;page-break-inside:avoid;">
-      <div style="background:${TEAL_600};color:${WHITE};padding:5px 12px;border-radius:5px;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:12px;font-weight:700;">${dayLabel}</span>
-        <span style="font-size:9px;opacity:0.9;">${bengaliNumber.format(total)}টি শিডিউল</span>
+    <div data-block-id="section" data-block-day="${dayKey}" style="margin-top:16px;page-break-inside:avoid;">
+      <div style="background:${TEAL_600};color:${WHITE};padding:8px 14px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;font-weight:700;">${dayLabel}</span>
+        <span style="font-size:10px;opacity:0.9;">${bengaliNumber.format(total)}টি শিডিউল</span>
       </div>
       ${audienceBlocks}
     </div>`;
@@ -175,7 +167,7 @@ const renderReportHTML = ({ schedules, scope, filters }) => {
       font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'SolaimanLipi', sans-serif;
       width: 1000px;
       max-width: 1000px;
-      padding: 12px 16px;
+      padding: 18px 24px;
       background: ${BG};
       color: ${GRAY_900};
       box-sizing: border-box;
