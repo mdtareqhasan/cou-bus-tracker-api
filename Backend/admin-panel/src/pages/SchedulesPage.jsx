@@ -114,6 +114,7 @@ export default function SchedulesPage() {
     const data = { ...form, busId: Number(form.busId), arrivalTime: form.arrivalTime || null };
     if (editingSchedule) await scheduleAPI.update(editingSchedule.id, data);
     else await scheduleAPI.create(data);
+    setDayGroup(data.days === 'FRI-SAT' ? 'WEEKEND' : 'WEEKDAY');
     closeForm();
     load();
   };

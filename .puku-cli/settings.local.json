@@ -1,7 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -sL -o \"D:/Java Development/CoU Bus Tracker/Backend/admin-panel/public/fonts/NotoSansBengali-Regular.ttf\" \"https://raw.githubusercontent.com/notofonts/notofonts.github.io/main/fonts/NotoSansBengali/hinted/ttf/NotoSansBengali-Regular.ttf\")",
+      "Bash(curl -sL -o \"D:/Java Development/CoU Bus Tracker/Backend/admin-panel/public/fonts/NotoSansBengali-Bold.ttf\" \"https://raw.githubusercontent.com/notofonts/notofonts.github.io/main/fonts/NotoSansBengali/hinted/ttf/NotoSansBengali-Bold.ttf\")",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(curl -sI \"https://cou-bus-tracker-backend-admin-frontend-1.onrender.com/fonts/NotoSansBengali-Regular.ttf\")",
+      "Bash(curl -s \"https://cou-bus-tracker-backend-admin-frontend-1.onrender.com/fonts/NotoSansBengali-Regular.ttf\" -o \"D:/tmp-font-test.ttf\")",
+      "Bash(node -e \"import\\(''''./src/utils/pdfExporter.js''''\\).then\\(m => { console.log\\(''''Loaded:'''', typeof m.exportSchedulesToPDF\\); }\\).catch\\(e => console.error\\(''''Error:'''', e.message\\)\\)\")",
+      "Bash(grep -o \"NotoSansBengali[^\"\"'''']*\" dist/assets/index-*.js)",
+      "Bash(grep -o \"sv=[\\\\`'''']\\\\{1\\\\}[A-Za-z0-9+/=]\\\\{40,\\\\}\" dist/assets/index-*.js)",
+      "Bash(grep -oE \"sv=[^,]{1,80}\" dist/assets/index-*.js)",
+      "Bash(curl -s \"https://cou-bus-tracker-backend-admin-frontend-1.onrender.com/assets/NotoSansBengali-Regular-DXkiwnMQ.ttf\" -o \"D:/tmp-font2.ttf\")",
+      "Read(//d//**)",
+      "Bash(xxd)"
     ]
   }
 }
