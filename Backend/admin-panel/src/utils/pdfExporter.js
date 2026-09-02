@@ -297,13 +297,23 @@ export async function exportSchedulesToPDF({ schedules, scope, filters }) {
 
   let canvas;
   try {
+    // Force layout so scrollHeight is accurate even though the node is
+    // off-screen (some browsers return 0 for fixed-positioned elements that
+    // have never been visible).
+    const fullHeight = Math.max(
+      mount.scrollHeight,
+      mount.getBoundingClientRect().height,
+      mount.firstElementChild?.scrollHeight ?? 0,
+    );
     canvas = await html2canvas(mount, {
       scale: 1,
       backgroundColor: REPORT_BG,
       useCORS: true,
       logging: false,
+      width: 1123,
+      height: fullHeight,
       windowWidth: 1123,
-      windowHeight: mount.scrollHeight,
+      windowHeight: fullHeight,
     });
   } catch (err) {
     console.error('html2canvas failed', err);

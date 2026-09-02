@@ -14,6 +14,9 @@ export default function ExportPdfButton({ visibleSchedules, schedules, filters }
 
   useEffect(() => {
     if (!open) return undefined;
+    // Listen on the `click` event (which fires AFTER mousedown) so that
+    // clicking a menu item still works — mousedown-based outside-detection
+    // closes the menu before the menu item's `click` handler fires.
     const handleClick = (event) => {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
         setOpen(false);
@@ -22,10 +25,10 @@ export default function ExportPdfButton({ visibleSchedules, schedules, filters }
     const handleEscape = (event) => {
       if (event.key === 'Escape') setOpen(false);
     };
-    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('click', handleClick);
     document.addEventListener('keydown', handleEscape);
     return () => {
-      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('click', handleClick);
       document.removeEventListener('keydown', handleEscape);
     };
   }, [open]);
