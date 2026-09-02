@@ -14,7 +14,11 @@
       "Bash(grep -oE \"sv=[^,]{1,80}\" dist/assets/index-*.js)",
       "Bash(curl -s \"https://cou-bus-tracker-backend-admin-frontend-1.onrender.com/assets/NotoSansBengali-Regular-DXkiwnMQ.ttf\" -o \"D:/tmp-font2.ttf\")",
       "Read(//d//**)",
-      "Bash(xxd)"
+      "Bash(xxd)",
+      "Bash(curl -s -X POST \"https://cou-bus-tracker-api.onrender.com/api/auth/admin/login\" -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"admin@cou.ac.bd\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"Admin@123\"\"\"\"}')",
+      "Bash(node -e \":*)",
+      "Bash(curl -s \"https://cou-bus-tracker-backend-admin-frontend-1.onrender.com/\" -o \"D:/tmp-idx.html\")",
+      "Bash(curl -s \"https://cou-bus-tracker-backend-admin-frontend-1.onrender.com/\" -o \"D:/tmp-idx2.html\")"
     ]
   }
 }
