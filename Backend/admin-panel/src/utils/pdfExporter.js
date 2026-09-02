@@ -1,11 +1,3 @@
-// Client-side PDF export for the Schedules page.
-//
-// Approach: render the report inside a hidden HTML element using the same
-// font stack the app already loads (Noto Sans Bengali via Google Fonts), then
-// capture it with html2canvas and embed each canvas page as an image in a
-// jsPDF document. This avoids the jsPDF limitations on OpenType glyph
-// substitution that caused Bengali conjuncts to render as broken letter pairs.
-
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import {
@@ -18,31 +10,32 @@ import {
   isTeacherBus,
 } from './format';
 
-const REPORT_BG = '#ffffff';
+const BG = '#ffffff';
 const TEAL_50 = '#f0fdfa';
 const TEAL_100 = '#ccfbf1';
-const TEAL_500 = '#14b8a6';
+const TEAL_200 = '#99f6e4';
 const TEAL_600 = '#0d9488';
 const TEAL_700 = '#0f766e';
-const GRAY_50 = '#f9fafb';
+const TEAL_800 = '#115e59';
+const GRAY_100 = '#f3f4f6';
 const GRAY_200 = '#e5e7eb';
-const GRAY_300 = '#d1d5db';
+const GRAY_400 = '#9ca3af';
 const GRAY_500 = '#6b7280';
-const GRAY_600 = '#4b5563';
 const GRAY_700 = '#374151';
-const GRAY_800 = '#1f2937';
 const GRAY_900 = '#111827';
-const RED_600 = '#dc2626';
+const RED_500 = '#ef4444';
 const GREEN_600 = '#059669';
+const WHITE = '#ffffff';
+
+const dash = '\u2014';
 
 const partitionByGroup = (schedules) => {
-  const isWeekend = (s) => s.days === 'FRI-SAT';
   const buckets = {
     weekday: { student: [], teacher: [] },
     weekend: { student: [], teacher: [] },
   };
   schedules.forEach((s) => {
-    const dayKey = isWeekend(s) ? 'weekend' : 'weekday';
+    const dayKey = s.days === 'FRI-SAT' ? 'weekend' : 'weekday';
     const audKey = isTeacherBus(s) ? 'teacher' : 'student';
     buckets[dayKey][audKey].push(s);
   });
@@ -51,30 +44,12 @@ const partitionByGroup = (schedules) => {
 
 const groupByTime = (schedules) => {
   const groups = new Map();
-  schedules.forEach((schedule) => {
-    const key = schedule.departureTime || '99:99';
-    groups.set(key, [...(groups.get(key) || []), schedule]);
+  schedules.forEach((s) => {
+    const key = s.departureTime || '99:99';
+    groups.set(key, [...(groups.get(key) || []), s]);
   });
-  return [...groups.entries()].sort(([first], [second]) => first.localeCompare(second));
+  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
 };
-
-const dash = '—';
-
-const buildFileName = () => {
-  const now = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
-  return `bus-schedules-${stamp}.pdf`;
-};
-
-const SECTION_LAYOUT = [
-  { dayKey: 'weekday', dayLabel: 'কর্মদিবস (রবিবার–বৃহস্পতিবার)' },
-  { dayKey: 'weekend', dayLabel: 'শুক্রবার ও শনিবার' },
-];
-const AUDIENCE_LAYOUT = [
-  { audKey: 'student', audLabel: 'শিক্ষার্থী বাস', icon: '🚌' },
-  { audKey: 'teacher', audLabel: 'শিক্ষক / কর্মকর্তা / কর্মচারী বাস', icon: '👨‍🏫' },
-];
 
 const sortGroup = (group) =>
   [...group].sort((a, b) => {
@@ -84,143 +59,173 @@ const sortGroup = (group) =>
     return String(a.busNumber || '').localeCompare(String(b.busNumber || ''), 'en', { numeric: true });
   });
 
-// Render a single time-slot group as HTML. We keep the DOM dense and use
-// minimal CSS so html2canvas can paint it quickly.
-const renderGroupHTML = (group) => {
-  const rows = sortGroup(group)
-    .map((s) => {
-      const busNumber = (s.busNumber ?? '').toString().trim() || dash;
+const buildFileName = () => {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `bus-schedules-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.pdf`;
+};
+
+const renderTable = (items) => {
+  const rows = sortGroup(items)
+    .map((s, i) => {
+      const bg = i % 2 === 0 ? WHITE : GRAY_100;
       const busName = (s.busName ?? '').toString().trim();
-      const busCell = busName ? `${busNumber} (${busName})` : busNumber;
-      const startPoint = (s.startPoint ?? '').toString().trim() || dash;
-      const endPoint = (s.endPoint ?? '').toString().trim() || dash;
+      const busCell = busName ? `${s.busNumber} (${busName})` : s.busNumber || dash;
+      const route = `${s.startPoint || dash} \u2192 ${s.endPoint || dash}`;
       const arrival = s.arrivalTime ? formatTime(s.arrivalTime) : dash;
-      const isInactive = s.isActive === false;
-      const statusColor = isInactive ? RED_600 : GREEN_600;
-      const statusWeight = isInactive ? 700 : 600;
+      const isOff = s.isActive === false;
       return `
-        <tr>
-          <td style="font-weight:700;padding:6px 10px;border:1px solid ${GRAY_200};">${busCell}</td>
-          <td style="padding:6px 10px;border:1px solid ${GRAY_200};">${directionLabel(s.direction)}</td>
-          <td style="padding:6px 10px;border:1px solid ${GRAY_200};">${startPoint} → ${endPoint}</td>
-          <td style="padding:6px 10px;border:1px solid ${GRAY_200};text-align:center;">${arrival}</td>
-          <td style="padding:6px 10px;border:1px solid ${GRAY_200};text-align:center;">${daysLabel(s.days)}</td>
-          <td style="padding:6px 10px;border:1px solid ${GRAY_200};text-align:center;color:${statusColor};font-weight:${statusWeight};">${statusLabel(s)}</td>
+        <tr style="background:${bg};">
+          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};font-weight:600;color:${GRAY_900};">${busCell}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};color:${GRAY_700};">${directionLabel(s.direction)}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};color:${GRAY_700};">${route}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};text-align:center;color:${GRAY_700};">${arrival}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};text-align:center;color:${GRAY_500};font-size:12px;">${daysLabel(s.days)}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};text-align:center;">
+            <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${isOff ? '#fef2f2' : '#ecfdf5'};color:${isOff ? RED_500 : GREEN_600};">${statusLabel(s)}</span>
+          </td>
         </tr>`;
     })
     .join('');
+
   return `
-    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px;">
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px;">
       <thead>
-        <tr style="background:${TEAL_600};color:white;">
-          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:left;">বাস নম্বর</th>
-          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:left;">দিক</th>
-          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:left;">রুট</th>
-          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:center;">পৌঁছানোর সময়</th>
-          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:center;">দিন</th>
-          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:center;">অবস্থা</th>
+        <tr style="background:${TEAL_700};color:${WHITE};">
+          <th style="padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid ${TEAL_800};">বাস নম্বর</th>
+          <th style="padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid ${TEAL_800};">দিক</th>
+          <th style="padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid ${TEAL_800};">রুট</th>
+          <th style="padding:8px 10px;text-align:center;font-weight:600;border-bottom:2px solid ${TEAL_800};">পৌঁছানোর সময়</th>
+          <th style="padding:8px 10px;text-align:center;font-weight:600;border-bottom:2px solid ${TEAL_800};">দিন</th>
+          <th style="padding:8px 10px;text-align:center;font-weight:600;border-bottom:2px solid ${TEAL_800};">অবস্থা</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>`;
 };
 
+const renderTimeGroup = (time, slot) => `
+  <div style="margin-top:16px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:${TEAL_600};"></div>
+      <span style="font-weight:700;color:${TEAL_700};font-size:14px;">${formatTime(time)}</span>
+      <span style="color:${GRAY_400};font-size:12px;margin-left:4px;">(${bengaliNumber.format(slot.length)}টি বাস)</span>
+    </div>
+    ${renderTable(slot)}
+  </div>`;
+
+const renderAudienceSection = (audKey, audLabel, icon, group) => {
+  if (group.length === 0) return '';
+  const timeGroups = groupByTime(group)
+    .map(([time, slot]) => renderTimeGroup(time, slot))
+    .join('');
+
+  return `
+    <div style="margin-top:20px;padding-bottom:4px;">
+      <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:2px solid ${TEAL_200};">
+        <span style="font-size:15px;">${icon}</span>
+        <span style="font-weight:700;color:${GRAY_900};font-size:15px;">${audLabel}</span>
+        <span style="color:${GRAY_400};font-size:12px;margin-left:4px;">\u2022 ${bengaliNumber.format(group.length)}টি বাস</span>
+      </div>
+      ${timeGroups}
+    </div>`;
+};
+
+const renderSection = (dayKey, dayLabel, buckets) => {
+  const total = buckets[dayKey].student.length + buckets[dayKey].teacher.length;
+  if (total === 0) return '';
+
+  const audienceBlocks = [
+    renderAudienceSection('student', 'শিক্ষার্থী বাস', '🚌', buckets[dayKey].student),
+    renderAudienceSection('teacher', 'শিক্ষক / কর্মকর্তা / কর্মচারী বাস', '👨\u200d🏫', buckets[dayKey].teacher),
+  ].join('');
+
+  return `
+    <div style="margin-top:28px;page-break-inside:avoid;">
+      <div style="background:linear-gradient(135deg,${TEAL_600},${TEAL_700});color:${WHITE};padding:12px 18px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:16px;font-weight:700;">${dayLabel}</span>
+        <span style="font-size:12px;opacity:0.9;">${bengaliNumber.format(total)}টি শিডিউল</span>
+      </div>
+      ${audienceBlocks}
+    </div>`;
+};
+
 const renderReportHTML = ({ schedules, scope, filters }) => {
   const buckets = partitionByGroup(schedules);
-  const sections = [];
 
-  SECTION_LAYOUT.forEach(({ dayKey, dayLabel }) => {
-    const totalInSection = buckets[dayKey].student.length + buckets[dayKey].teacher.length;
-    if (totalInSection === 0) return;
-
-    const audienceBlocks = AUDIENCE_LAYOUT
-      .map(({ audKey, audLabel, icon }) => {
-        const group = sortGroup(buckets[dayKey][audKey]);
-        if (group.length === 0) return '';
-        const timeGroups = groupByTime(group)
-          .map(
-            ([time, slot]) => `
-              <div style="margin-top:14px;">
-                <div style="font-weight:700;color:${TEAL_700};font-size:14px;margin-bottom:4px;">
-                  ⏰ ${formatTime(time)} — ${bengaliNumber.format(slot.length)}টি বাস
-                </div>
-                ${renderGroupHTML(slot)}
-              </div>`,
-          )
-          .join('');
-        return `
-          <div style="margin-top:18px;">
-            <div style="display:flex;align-items:center;gap:8px;padding-bottom:6px;border-bottom:2px solid ${TEAL_100};">
-              <span style="font-size:16px;">${icon}</span>
-              <span style="font-weight:700;color:${GRAY_900};font-size:16px;">${audLabel}</span>
-              <span style="color:${GRAY_500};font-size:13px;">(${bengaliNumber.format(group.length)}টি বাস)</span>
-            </div>
-            ${timeGroups}
-          </div>`;
-      })
-      .join('');
-
-    sections.push(`
-      <section style="margin-top:24px;">
-        <div style="background:${TEAL_600};color:white;padding:10px 16px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:17px;font-weight:700;">${dayLabel}</span>
-          <span style="font-size:13px;opacity:0.95;">${bengaliNumber.format(totalInSection)}টি শিডিউল</span>
-        </div>
-        ${audienceBlocks}
-      </section>`);
-  });
+  const weekdayCount = buckets.weekday.student.length + buckets.weekday.teacher.length;
+  const weekendCount = buckets.weekend.student.length + buckets.weekend.teacher.length;
+  const activeCount = schedules.filter((s) => s.isActive !== false).length;
+  const inactiveCount = schedules.length - activeCount;
 
   const filterLine =
     scope === 'all'
-      ? 'স্কোপ: সব শিডিউল'
-      : `ফিল্টার: ${filters.busAudience === 'TEACHER' ? 'শিক্ষক/কর্মকর্তা বাস' : 'শিক্ষার্থী বাস'} · ${
-          filters.dayGroup === 'WEEKEND' ? 'শুক্রবার ও শনিবার' : 'কর্মদিবস'
-        } · ${
-          filters.statusFilter === 'ACTIVE' ? 'সক্রিয়' : filters.statusFilter === 'INACTIVE' ? 'নিষ্ক্রিয়' : 'সব'
-        }`;
+      ? 'সব শিডিউল'
+      : `${filters.busAudience === 'TEACHER' ? 'শিক্ষক/কর্মকর্তা' : 'শিক্ষার্থী'} · ${filters.dayGroup === 'WEEKEND' ? 'শুক্রবার-শনিবার' : 'কর্মদিবস'} · ${filters.statusFilter === 'ACTIVE' ? 'সক্রিয়' : filters.statusFilter === 'INACTIVE' ? 'নিষ্ক্রিয়' : 'সব'}`;
 
   return `
     <div id="pdf-report-root" style="
-      font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Kalpurush', 'SolaimanLipi', 'Bangla', sans-serif;
+      font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'SolaimanLipi', sans-serif;
       width: 1123px;
-      padding: 36px 40px;
-      background: ${REPORT_BG};
+      padding: 32px 36px;
+      background: ${BG};
       color: ${GRAY_900};
       box-sizing: border-box;
     ">
       <header style="
-        background: ${TEAL_600};
-        color: white;
-        padding: 24px 28px;
+        background: linear-gradient(135deg, ${TEAL_600}, ${TEAL_800});
+        color: ${WHITE};
+        padding: 22px 28px;
         border-radius: 12px;
-        margin-bottom: 18px;
         display: flex;
-        align-items: center;
         justify-content: space-between;
+        align-items: center;
       ">
         <div>
-          <div style="font-size:24px;font-weight:700;letter-spacing:0.2px;">CoU Bus Tracker — বাস শিডিউল</div>
-          <div style="font-size:13px;opacity:0.85;margin-top:4px;">Comilla University Bus Schedule Report</div>
+          <div style="font-size:22px;font-weight:700;letter-spacing:0.3px;">CoU Bus Tracker</div>
+          <div style="font-size:14px;opacity:0.9;margin-top:2px;">বাস শিডিউল রিপোর্ট</div>
         </div>
-        <div style="text-align:right;font-size:12px;opacity:0.9;line-height:1.5;">
+        <div style="text-align:right;font-size:12px;opacity:0.9;line-height:1.6;">
           <div>তৈরি: ${bnDateTime()}</div>
           <div>${filterLine}</div>
-          <div style="font-weight:700;font-size:14px;margin-top:2px;">মোট শিডিউল: ${bengaliNumber.format(schedules.length)}</div>
         </div>
       </header>
-      ${sections.join('')}
-      <footer style="margin-top:30px;border-top:1px solid ${GRAY_200};padding-top:14px;display:flex;justify-content:space-between;color:${GRAY_500};font-size:12px;">
-        <span>CoU Bus Tracker — বাস শিডিউল</span>
-        <span id="pdf-page-info">পৃষ্ঠা ১ / ১</span>
+
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <div style="flex:1;background:${TEAL_50};border:1px solid ${TEAL_200};border-radius:8px;padding:12px 16px;text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:${TEAL_700};">${bengaliNumber.format(schedules.length)}</div>
+          <div style="font-size:11px;color:${GRAY_500};margin-top:2px;">মোট শিডিউল</div>
+        </div>
+        <div style="flex:1;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:12px 16px;text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:${GREEN_600};">${bengaliNumber.format(activeCount)}</div>
+          <div style="font-size:11px;color:${GRAY_500};margin-top:2px;">সক্রিয়</div>
+        </div>
+        <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:${RED_500};">${bengaliNumber.format(inactiveCount)}</div>
+          <div style="font-size:11px;color:${GRAY_500};margin-top:2px;">নিষ্ক্রিয়</div>
+        </div>
+        <div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:#2563eb;">${bengaliNumber.format(weekdayCount)}</div>
+          <div style="font-size:11px;color:${GRAY_500};margin-top:2px;">কর্মদিবস</div>
+        </div>
+        <div style="flex:1;background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:#d97706;">${bengaliNumber.format(weekendCount)}</div>
+          <div style="font-size:11px;color:${GRAY_500};margin-top:2px;">শুক্র-শনি</div>
+        </div>
+      </div>
+
+      ${renderSection('weekday', 'কর্মদিবস (রবিবার \u2013 বৃহস্পতিবার)', buckets)}
+      ${renderSection('weekend', 'শুক্রবার ও শনিবার', buckets)}
+
+      <footer style="margin-top:32px;border-top:1px solid ${GRAY_200};padding-top:12px;display:flex;justify-content:space-between;color:${GRAY_400};font-size:11px;">
+        <span>CoU Bus Tracker \u2014 বাস শিডিউল রিপোর্ট</span>
+        <span id="pdf-page-info"></span>
       </footer>
     </div>`;
 };
 
-// Inject the Noto Sans Bengali Google Font into the host document so the
-// offscreen renderer can use it during html2canvas capture.
-const ensureBengaliFontLink = () => {
-  const href =
-    'https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap';
+const ensureBengaliFont = () => {
+  const href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap';
   let link = document.querySelector(`link[data-pdf-font="${href}"]`);
   if (!link) {
     link = document.createElement('link');
@@ -231,50 +236,39 @@ const ensureBengaliFontLink = () => {
   }
   return new Promise((resolve) => {
     if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => resolve());
+      document.fonts.ready.then(resolve);
     } else {
-      // Best-effort: wait briefly then proceed.
       setTimeout(resolve, 1500);
     }
   });
 };
 
-// Build the offscreen render container.
 const mountReportNode = (htmlString) => {
   const container = document.createElement('div');
   container.id = 'pdf-report-mount';
-  container.style.position = 'fixed';
-  container.style.left = '-100000px';
-  container.style.top = '0';
-  container.style.width = '1123px';
-  container.style.background = REPORT_BG;
-  container.style.pointerEvents = 'none';
-  container.style.zIndex = '-1';
+  container.style.cssText = `position:fixed;left:-100000px;top:0;width:1123px;background:${BG};pointer-events:none;z-index:-1;`;
   container.innerHTML = htmlString;
   document.body.appendChild(container);
   return container;
 };
 
-// Slice a tall canvas into A4-landscape-friendly page chunks. Each page is
-// 297mm × 210mm at 96dpi → ~1123 × 794 px. We slice vertically along the
-// canvas height.
-const A4_LANDSCAPE_PX = { width: 1123, height: 794 };
+const A4_PX = { width: 1123, height: 794 };
 
-const sliceCanvasForPages = (canvas) => {
+const sliceCanvas = (canvas) => {
   const pages = [];
-  const pageHeightPx = A4_LANDSCAPE_PX.height;
+  const h = A4_PX.height;
   let y = 0;
   while (y < canvas.height) {
-    const h = Math.min(pageHeightPx, canvas.height - y);
-    const pageCanvas = document.createElement('canvas');
-    pageCanvas.width = canvas.width;
-    pageCanvas.height = h;
-    const ctx = pageCanvas.getContext('2d');
-    ctx.fillStyle = REPORT_BG;
-    ctx.fillRect(0, 0, pageCanvas.width, h);
-    ctx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
-    pages.push(pageCanvas.toDataURL('image/png'));
-    y += h;
+    const sliceH = Math.min(h, canvas.height - y);
+    const c = document.createElement('canvas');
+    c.width = canvas.width;
+    c.height = sliceH;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, c.width, sliceH);
+    ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+    pages.push(c.toDataURL('image/png'));
+    y += sliceH;
   }
   return pages;
 };
@@ -285,29 +279,20 @@ export async function exportSchedulesToPDF({ schedules, scope, filters }) {
     return;
   }
 
-  // Surface a busy indicator on the button — it will be cleared after PDF save.
-  let busyResolver;
-  const busyPromise = new Promise((resolve) => {
-    busyResolver = resolve;
-  });
-  // The button uses its own loading state; here we just await font readiness.
-  await ensureBengaliFontLink();
+  await ensureBengaliFont();
 
   const mount = mountReportNode(renderReportHTML({ schedules, scope, filters }));
 
   let canvas;
   try {
-    // Force layout so scrollHeight is accurate even though the node is
-    // off-screen (some browsers return 0 for fixed-positioned elements that
-    // have never been visible).
     const fullHeight = Math.max(
       mount.scrollHeight,
       mount.getBoundingClientRect().height,
       mount.firstElementChild?.scrollHeight ?? 0,
     );
     canvas = await html2canvas(mount, {
-      scale: 1,
-      backgroundColor: REPORT_BG,
+      scale: 2,
+      backgroundColor: BG,
       useCORS: true,
       logging: false,
       width: 1123,
@@ -319,23 +304,21 @@ export async function exportSchedulesToPDF({ schedules, scope, filters }) {
     console.error('html2canvas failed', err);
     document.body.removeChild(mount);
     alert('PDF রিপোর্ট রেন্ডার করা যায়নি');
-    if (busyResolver) busyResolver();
     return;
   }
 
   document.body.removeChild(mount);
 
-  const pageImages = sliceCanvasForPages(canvas);
+  const pages = sliceCanvas(canvas);
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-  pageImages.forEach((dataUrl, idx) => {
+  pages.forEach((dataUrl, idx) => {
     if (idx > 0) doc.addPage();
     doc.addImage(dataUrl, 'PNG', 0, 0, 297, 210, undefined, 'FAST');
     doc.setFontSize(8);
     doc.setTextColor(GRAY_500);
-    doc.text(`পৃষ্ঠা ${bengaliNumber.format(idx + 1)} / ${bengaliNumber.format(pageImages.length)}`, 297 - 12, 210 - 4, { align: 'right' });
+    doc.text(`পৃষ্ঠা ${bengaliNumber.format(idx + 1)} / ${bengaliNumber.format(pages.length)}`, 297 - 12, 210 - 4, { align: 'right' });
   });
 
   doc.save(buildFileName());
-  if (busyResolver) busyResolver();
 }
