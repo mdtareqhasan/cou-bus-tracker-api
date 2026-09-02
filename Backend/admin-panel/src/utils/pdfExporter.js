@@ -1,81 +1,39 @@
 // Client-side PDF export for the Schedules page.
-// Uses jsPDF + jspdf-autotable with an embedded Noto Sans Bengali TTF so that
-// Bengali text renders correctly in the resulting PDF.
+//
+// Approach: render the report inside a hidden HTML element using the same
+// font stack the app already loads (Noto Sans Bengali via Google Fonts), then
+// capture it with html2canvas and embed each canvas page as an image in a
+// jsPDF document. This avoids the jsPDF limitations on OpenType glyph
+// substitution that caused Bengali conjuncts to render as broken letter pairs.
 
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-// Vite `?url` emits the TTF as a hashed asset under dist/assets/ and gives us
-// a stable URL at runtime — more reliable than a hard-coded /fonts/... path
-// because Render Static Sites can rewrite unmatched paths to index.html.
-import notoSansBengaliRegularUrl from '../../public/fonts/NotoSansBengali-Regular.ttf?url';
-import notoSansBengaliBoldUrl from '../../public/fonts/NotoSansBengali-Bold.ttf?url';
+import html2canvas from 'html2canvas';
 import {
   formatTime,
   bengaliNumber,
   directionLabel,
   daysLabel,
   statusLabel,
-  audienceLabel,
   bnDateTime,
   isTeacherBus,
 } from './format';
 
-const FONT_REGULAR = 'NotoSansBengali';
-const FONT_BOLD = 'NotoSansBengaliBold';
-
-// Color palette.
-const PRIMARY_RGB = [13, 148, 136]; // teal-600
-const PRIMARY_LIGHT_RGB = [240, 253, 250]; // teal-50
-const PRIMARY_FAINT_RGB = [204, 251, 241]; // teal-100
-const TEXT_RGB = [17, 24, 39]; // gray-900
-const MUTED_RGB = [75, 85, 99]; // gray-600
-const DANGER_RGB = [220, 38, 38]; // red-600
-const SUCCESS_RGB = [5, 150, 105]; // emerald-600
-const BORDER_RGB = [209, 213, 219]; // gray-300
-
-// Module-level cache so the TTF is fetched at most once per page load.
-let fontBase64Cache = null;
-
-const arrayBufferToBase64 = (buffer) => {
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000;
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
-};
-
-const getFontBase64 = async () => {
-  if (fontBase64Cache) return fontBase64Cache;
-  const [regularResp, boldResp] = await Promise.all([
-    fetch(notoSansBengaliRegularUrl),
-    fetch(notoSansBengaliBoldUrl),
-  ]);
-  if (!regularResp.ok || !boldResp.ok) {
-    throw new Error(
-      `Font fetch failed (regular: ${regularResp.status}, bold: ${boldResp.status})`,
-    );
-  }
-  const [regularBuf, boldBuf] = await Promise.all([
-    regularResp.arrayBuffer(),
-    boldResp.arrayBuffer(),
-  ]);
-  fontBase64Cache = {
-    regular: arrayBufferToBase64(regularBuf),
-    bold: arrayBufferToBase64(boldBuf),
-  };
-  return fontBase64Cache;
-};
-
-const groupByTime = (schedules) => {
-  const groups = new Map();
-  schedules.forEach((schedule) => {
-    const key = schedule.departureTime || '99:99';
-    groups.set(key, [...(groups.get(key) || []), schedule]);
-  });
-  return [...groups.entries()].sort(([first], [second]) => first.localeCompare(second));
-};
+const REPORT_BG = '#ffffff';
+const TEAL_50 = '#f0fdfa';
+const TEAL_100 = '#ccfbf1';
+const TEAL_500 = '#14b8a6';
+const TEAL_600 = '#0d9488';
+const TEAL_700 = '#0f766e';
+const GRAY_50 = '#f9fafb';
+const GRAY_200 = '#e5e7eb';
+const GRAY_300 = '#d1d5db';
+const GRAY_500 = '#6b7280';
+const GRAY_600 = '#4b5563';
+const GRAY_700 = '#374151';
+const GRAY_800 = '#1f2937';
+const GRAY_900 = '#111827';
+const RED_600 = '#dc2626';
+const GREEN_600 = '#059669';
 
 const partitionByGroup = (schedules) => {
   const isWeekend = (s) => s.days === 'FRI-SAT';
@@ -91,41 +49,16 @@ const partitionByGroup = (schedules) => {
   return buckets;
 };
 
-// Reading order: কর্মদিবস → শুক্র-শনি, within each: student → teacher.
-const SECTION_LAYOUT = [
-  { dayKey: 'weekday', dayLabel: 'কর্মদিবস (রবিবার–বৃহস্পতিবার)' },
-  { dayKey: 'weekend', dayLabel: 'শুক্রবার ও শনিবার' },
-];
-const AUDIENCE_LAYOUT = [
-  { audKey: 'student', audLabel: '🚌  শিক্ষার্থী বাস' },
-  { audKey: 'teacher', audLabel: '👨‍🏫  শিক্ষক / কর্মকর্তা / কর্মচারী বাস' },
-];
-
-// Build a single table row from a schedule. Every field is normalised to a
-// non-empty string so empty cells never appear — PDF readers (Chrome, Acrobat)
-// collapse empty cells and shift columns visually.
-const dash = '—';
-
-const buildRow = (schedule) => {
-  const busNumber = (schedule.busNumber ?? '').toString().trim() || dash;
-  const busName = (schedule.busName ?? '').toString().trim();
-  const busCell = busName ? `${busNumber} (${busName})` : busNumber;
-  const startPoint = (schedule.startPoint ?? '').toString().trim() || dash;
-  const endPoint = (schedule.endPoint ?? '').toString().trim() || dash;
-  const route = `${startPoint} → ${endPoint}`;
-  const arrival =
-    schedule.arrivalTime && schedule.arrivalTime.length > 0
-      ? formatTime(schedule.arrivalTime)
-      : dash;
-  return [
-    busCell,
-    directionLabel(schedule.direction),
-    route,
-    arrival,
-    daysLabel(schedule.days),
-    statusLabel(schedule),
-  ];
+const groupByTime = (schedules) => {
+  const groups = new Map();
+  schedules.forEach((schedule) => {
+    const key = schedule.departureTime || '99:99';
+    groups.set(key, [...(groups.get(key) || []), schedule]);
+  });
+  return [...groups.entries()].sort(([first], [second]) => first.localeCompare(second));
 };
+
+const dash = '—';
 
 const buildFileName = () => {
   const now = new Date();
@@ -134,178 +67,14 @@ const buildFileName = () => {
   return `bus-schedules-${stamp}.pdf`;
 };
 
-const writeHeader = (doc, { scope, filters, totalCount }) => {
-  const pageWidth = doc.internal.pageSize.getWidth();
-
-  // Title bar background.
-  doc.setFillColor(...PRIMARY_RGB);
-  doc.rect(0, 0, pageWidth, 26, 'F');
-  doc.setFont(FONT_BOLD, 'bold');
-  doc.setFontSize(18);
-  doc.setTextColor(255, 255, 255);
-  doc.text('CoU Bus Tracker — বাস শিডিউল', 12, 12);
-  doc.setFont(FONT_REGULAR, 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(204, 251, 241);
-  doc.text('Comilla University Bus Schedule Export', pageWidth - 12, 12, { align: 'right' });
-
-  doc.setFont(FONT_REGULAR, 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(...MUTED_RGB);
-  doc.text(`তৈরি: ${bnDateTime()}`, 12, 32);
-
-  const filterLine =
-    scope === 'all'
-      ? 'স্কোপ: সব শিডিউল'
-      : `ফিল্টার: ${audienceLabel(filters.busAudience)} · ${
-          filters.dayGroup === 'WEEKEND' ? 'শুক্রবার ও শনিবার' : 'কর্মদিবস'
-        } · ${
-          filters.statusFilter === 'ACTIVE' ? 'সক্রিয়' : filters.statusFilter === 'INACTIVE' ? 'নিষ্ক্রিয়' : 'সব'
-        }`;
-  doc.text(filterLine, 12, 38);
-
-  doc.setFont(FONT_BOLD, 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(...TEXT_RGB);
-  doc.text(`মোট শিডিউল: ${bengaliNumber.format(totalCount)}`, 12, 45);
-
-  // Accent bar.
-  doc.setDrawColor(...PRIMARY_RGB);
-  doc.setLineWidth(0.5);
-  doc.line(12, 49, pageWidth - 12, 49);
-};
-
-const writeFooter = (doc) => {
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i += 1) {
-    doc.setPage(i);
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    doc.setFont(FONT_REGULAR, 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(...MUTED_RGB);
-    doc.text(
-      `পৃষ্ঠা ${bengaliNumber.format(i)} / ${bengaliNumber.format(pageCount)}`,
-      pageWidth - 12,
-      pageHeight - 6,
-      { align: 'right' },
-    );
-    doc.text('CoU Bus Tracker — বাস শিডিউল', 12, pageHeight - 6);
-  }
-};
-
-// Layout constants — A4 landscape printable area is 297×210 mm.
-const TOP_MARGIN = 56;
-const BOTTOM_MARGIN = 14;
-const PAGE_LIMIT = () => 210 - BOTTOM_MARGIN;
-
-const ensureRoom = (doc, needed) => {
-  const limit = PAGE_LIMIT();
-  if (doc.lastAutoTable?.finalY) {
-    return doc.lastAutoTable.finalY + needed <= limit;
-  }
-  return TOP_MARGIN + needed <= limit;
-};
-
-const newPageY = (doc) => {
-  doc.addPage();
-  return TOP_MARGIN;
-};
-
-const addPageIfNeeded = (doc, needed) => {
-  if (!ensureRoom(doc, needed)) return newPageY(doc);
-  return doc.lastAutoTable ? doc.lastAutoTable.finalY + 6 : TOP_MARGIN;
-};
-
-const drawSectionHeading = (doc, { title, count }, cursorY) => {
-  const pageWidth = doc.internal.pageSize.getWidth();
-  doc.setFillColor(...PRIMARY_RGB);
-  doc.rect(0, cursorY - 6, pageWidth, 12, 'F');
-  doc.setFont(FONT_BOLD, 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(255, 255, 255);
-  doc.text(`${title}  •  ${bengaliNumber.format(count)}টি শিডিউল`, 12, cursorY + 1.5);
-  return cursorY + 14;
-};
-
-const drawAudienceHeading = (doc, label, count, cursorY) => {
-  doc.setFont(FONT_BOLD, 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(...PRIMARY_RGB);
-  doc.text(`${label}  (${bengaliNumber.format(count)}টি বাস)`, 12, cursorY);
-  // thin underline
-  const pageWidth = doc.internal.pageSize.getWidth();
-  doc.setDrawColor(...PRIMARY_FAINT_RGB);
-  doc.setLineWidth(0.5);
-  doc.line(12, cursorY + 2, pageWidth - 12, cursorY + 2);
-  return cursorY + 7;
-};
-
-const drawTimeHeading = (doc, label, cursorY) => {
-  doc.setFont(FONT_BOLD, 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...MUTED_RGB);
-  doc.text(`⏰  ${label}`, 14, cursorY);
-  return cursorY + 4;
-};
-
-const renderTable = (doc, group, cursorY) => {
-  autoTable(doc, {
-    startY: cursorY + 2,
-    margin: { left: 12, right: 12 },
-    styles: {
-      font: FONT_REGULAR,
-      fontSize: 9,
-      cellPadding: { top: 2.5, right: 3, bottom: 2.5, left: 3 },
-      overflow: 'linebreak',
-      lineColor: BORDER_RGB,
-      lineWidth: 0.1,
-      textColor: TEXT_RGB,
-      valign: 'middle',
-    },
-    headStyles: {
-      font: FONT_BOLD,
-      fontStyle: 'bold',
-      fillColor: PRIMARY_RGB,
-      textColor: [255, 255, 255],
-      fontSize: 9,
-      halign: 'center',
-      cellPadding: { top: 3, right: 3, bottom: 3, left: 3 },
-    },
-    alternateRowStyles: { fillColor: PRIMARY_LIGHT_RGB },
-    columnStyles: {
-      0: { cellWidth: 42, halign: 'left' }, // বাস নম্বর
-      1: { cellWidth: 32, halign: 'left' }, // দিক
-      2: { cellWidth: 'auto', halign: 'left' }, // রুট
-      3: { cellWidth: 30, halign: 'center' }, // পৌঁছানোর সময়
-      4: { cellWidth: 38, halign: 'center' }, // দিন
-      5: { cellWidth: 26, halign: 'center' }, // অবস্থা
-    },
-    head: [['বাস নম্বর', 'দিক', 'রুট', 'পৌঁছানোর সময়', 'দিন', 'অবস্থা']],
-    body: group.map((schedule) => buildRow(schedule)),
-    didParseCell: (data) => {
-      if (data.section === 'body' && data.column.index === 5) {
-        const isInactive = group[data.row.index]?.isActive === false;
-        if (isInactive) {
-          data.cell.styles.textColor = DANGER_RGB;
-          data.cell.styles.fontStyle = 'bold';
-        } else {
-          data.cell.styles.textColor = SUCCESS_RGB;
-        }
-      }
-      // Bus number column — bold for prominence.
-      if (data.section === 'body' && data.column.index === 0) {
-        data.cell.styles.fontStyle = 'bold';
-      }
-    },
-    didDrawPage: () => {
-      const pageWidth = doc.internal.pageSize.getWidth();
-      doc.setDrawColor(...PRIMARY_RGB);
-      doc.setLineWidth(0.4);
-      doc.line(12, 12, pageWidth - 12, 12);
-    },
-  });
-};
+const SECTION_LAYOUT = [
+  { dayKey: 'weekday', dayLabel: 'কর্মদিবস (রবিবার–বৃহস্পতিবার)' },
+  { dayKey: 'weekend', dayLabel: 'শুক্রবার ও শনিবার' },
+];
+const AUDIENCE_LAYOUT = [
+  { audKey: 'student', audLabel: 'শিক্ষার্থী বাস', icon: '🚌' },
+  { audKey: 'teacher', audLabel: 'শিক্ষক / কর্মকর্তা / কর্মচারী বাস', icon: '👨‍🏫' },
+];
 
 const sortGroup = (group) =>
   [...group].sort((a, b) => {
@@ -315,65 +84,248 @@ const sortGroup = (group) =>
     return String(a.busNumber || '').localeCompare(String(b.busNumber || ''), 'en', { numeric: true });
   });
 
+// Render a single time-slot group as HTML. We keep the DOM dense and use
+// minimal CSS so html2canvas can paint it quickly.
+const renderGroupHTML = (group) => {
+  const rows = sortGroup(group)
+    .map((s) => {
+      const busNumber = (s.busNumber ?? '').toString().trim() || dash;
+      const busName = (s.busName ?? '').toString().trim();
+      const busCell = busName ? `${busNumber} (${busName})` : busNumber;
+      const startPoint = (s.startPoint ?? '').toString().trim() || dash;
+      const endPoint = (s.endPoint ?? '').toString().trim() || dash;
+      const arrival = s.arrivalTime ? formatTime(s.arrivalTime) : dash;
+      const isInactive = s.isActive === false;
+      const statusColor = isInactive ? RED_600 : GREEN_600;
+      const statusWeight = isInactive ? 700 : 600;
+      return `
+        <tr>
+          <td style="font-weight:700;padding:6px 10px;border:1px solid ${GRAY_200};">${busCell}</td>
+          <td style="padding:6px 10px;border:1px solid ${GRAY_200};">${directionLabel(s.direction)}</td>
+          <td style="padding:6px 10px;border:1px solid ${GRAY_200};">${startPoint} → ${endPoint}</td>
+          <td style="padding:6px 10px;border:1px solid ${GRAY_200};text-align:center;">${arrival}</td>
+          <td style="padding:6px 10px;border:1px solid ${GRAY_200};text-align:center;">${daysLabel(s.days)}</td>
+          <td style="padding:6px 10px;border:1px solid ${GRAY_200};text-align:center;color:${statusColor};font-weight:${statusWeight};">${statusLabel(s)}</td>
+        </tr>`;
+    })
+    .join('');
+  return `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px;">
+      <thead>
+        <tr style="background:${TEAL_600};color:white;">
+          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:left;">বাস নম্বর</th>
+          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:left;">দিক</th>
+          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:left;">রুট</th>
+          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:center;">পৌঁছানোর সময়</th>
+          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:center;">দিন</th>
+          <th style="padding:8px 10px;border:1px solid ${TEAL_700};text-align:center;">অবস্থা</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+};
+
+const renderReportHTML = ({ schedules, scope, filters }) => {
+  const buckets = partitionByGroup(schedules);
+  const sections = [];
+
+  SECTION_LAYOUT.forEach(({ dayKey, dayLabel }) => {
+    const totalInSection = buckets[dayKey].student.length + buckets[dayKey].teacher.length;
+    if (totalInSection === 0) return;
+
+    const audienceBlocks = AUDIENCE_LAYOUT
+      .map(({ audKey, audLabel, icon }) => {
+        const group = sortGroup(buckets[dayKey][audKey]);
+        if (group.length === 0) return '';
+        const timeGroups = groupByTime(group)
+          .map(
+            ([time, slot]) => `
+              <div style="margin-top:14px;">
+                <div style="font-weight:700;color:${TEAL_700};font-size:14px;margin-bottom:4px;">
+                  ⏰ ${formatTime(time)} — ${bengaliNumber.format(slot.length)}টি বাস
+                </div>
+                ${renderGroupHTML(slot)}
+              </div>`,
+          )
+          .join('');
+        return `
+          <div style="margin-top:18px;">
+            <div style="display:flex;align-items:center;gap:8px;padding-bottom:6px;border-bottom:2px solid ${TEAL_100};">
+              <span style="font-size:16px;">${icon}</span>
+              <span style="font-weight:700;color:${GRAY_900};font-size:16px;">${audLabel}</span>
+              <span style="color:${GRAY_500};font-size:13px;">(${bengaliNumber.format(group.length)}টি বাস)</span>
+            </div>
+            ${timeGroups}
+          </div>`;
+      })
+      .join('');
+
+    sections.push(`
+      <section style="margin-top:24px;">
+        <div style="background:${TEAL_600};color:white;padding:10px 16px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:17px;font-weight:700;">${dayLabel}</span>
+          <span style="font-size:13px;opacity:0.95;">${bengaliNumber.format(totalInSection)}টি শিডিউল</span>
+        </div>
+        ${audienceBlocks}
+      </section>`);
+  });
+
+  const filterLine =
+    scope === 'all'
+      ? 'স্কোপ: সব শিডিউল'
+      : `ফিল্টার: ${filters.busAudience === 'TEACHER' ? 'শিক্ষক/কর্মকর্তা বাস' : 'শিক্ষার্থী বাস'} · ${
+          filters.dayGroup === 'WEEKEND' ? 'শুক্রবার ও শনিবার' : 'কর্মদিবস'
+        } · ${
+          filters.statusFilter === 'ACTIVE' ? 'সক্রিয়' : filters.statusFilter === 'INACTIVE' ? 'নিষ্ক্রিয়' : 'সব'
+        }`;
+
+  return `
+    <div id="pdf-report-root" style="
+      font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Kalpurush', 'SolaimanLipi', 'Bangla', sans-serif;
+      width: 1123px;
+      padding: 36px 40px;
+      background: ${REPORT_BG};
+      color: ${GRAY_900};
+      box-sizing: border-box;
+    ">
+      <header style="
+        background: ${TEAL_600};
+        color: white;
+        padding: 24px 28px;
+        border-radius: 12px;
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      ">
+        <div>
+          <div style="font-size:24px;font-weight:700;letter-spacing:0.2px;">CoU Bus Tracker — বাস শিডিউল</div>
+          <div style="font-size:13px;opacity:0.85;margin-top:4px;">Comilla University Bus Schedule Report</div>
+        </div>
+        <div style="text-align:right;font-size:12px;opacity:0.9;line-height:1.5;">
+          <div>তৈরি: ${bnDateTime()}</div>
+          <div>${filterLine}</div>
+          <div style="font-weight:700;font-size:14px;margin-top:2px;">মোট শিডিউল: ${bengaliNumber.format(schedules.length)}</div>
+        </div>
+      </header>
+      ${sections.join('')}
+      <footer style="margin-top:30px;border-top:1px solid ${GRAY_200};padding-top:14px;display:flex;justify-content:space-between;color:${GRAY_500};font-size:12px;">
+        <span>CoU Bus Tracker — বাস শিডিউল</span>
+        <span id="pdf-page-info">পৃষ্ঠা ১ / ১</span>
+      </footer>
+    </div>`;
+};
+
+// Inject the Noto Sans Bengali Google Font into the host document so the
+// offscreen renderer can use it during html2canvas capture.
+const ensureBengaliFontLink = () => {
+  const href =
+    'https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap';
+  let link = document.querySelector(`link[data-pdf-font="${href}"]`);
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.setAttribute('data-pdf-font', href);
+    document.head.appendChild(link);
+  }
+  return new Promise((resolve) => {
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => resolve());
+    } else {
+      // Best-effort: wait briefly then proceed.
+      setTimeout(resolve, 1500);
+    }
+  });
+};
+
+// Build the offscreen render container.
+const mountReportNode = (htmlString) => {
+  const container = document.createElement('div');
+  container.id = 'pdf-report-mount';
+  container.style.position = 'fixed';
+  container.style.left = '-100000px';
+  container.style.top = '0';
+  container.style.width = '1123px';
+  container.style.background = REPORT_BG;
+  container.style.pointerEvents = 'none';
+  container.style.zIndex = '-1';
+  container.innerHTML = htmlString;
+  document.body.appendChild(container);
+  return container;
+};
+
+// Slice a tall canvas into A4-landscape-friendly page chunks. Each page is
+// 297mm × 210mm at 96dpi → ~1123 × 794 px. We slice vertically along the
+// canvas height.
+const A4_LANDSCAPE_PX = { width: 1123, height: 794 };
+
+const sliceCanvasForPages = (canvas) => {
+  const pages = [];
+  const pageHeightPx = A4_LANDSCAPE_PX.height;
+  let y = 0;
+  while (y < canvas.height) {
+    const h = Math.min(pageHeightPx, canvas.height - y);
+    const pageCanvas = document.createElement('canvas');
+    pageCanvas.width = canvas.width;
+    pageCanvas.height = h;
+    const ctx = pageCanvas.getContext('2d');
+    ctx.fillStyle = REPORT_BG;
+    ctx.fillRect(0, 0, pageCanvas.width, h);
+    ctx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+    pages.push(pageCanvas.toDataURL('image/png'));
+    y += h;
+  }
+  return pages;
+};
+
 export async function exportSchedulesToPDF({ schedules, scope, filters }) {
   if (!Array.isArray(schedules) || schedules.length === 0) {
     alert('নির্বাচিত স্কোপে কোনো শিডিউল নেই');
     return;
   }
 
-  let fontBase64;
+  // Surface a busy indicator on the button — it will be cleared after PDF save.
+  let busyResolver;
+  const busyPromise = new Promise((resolve) => {
+    busyResolver = resolve;
+  });
+  // The button uses its own loading state; here we just await font readiness.
+  await ensureBengaliFontLink();
+
+  const mount = mountReportNode(renderReportHTML({ schedules, scope, filters }));
+
+  let canvas;
   try {
-    fontBase64 = await getFontBase64();
+    canvas = await html2canvas(mount, {
+      scale: 1,
+      backgroundColor: REPORT_BG,
+      useCORS: true,
+      logging: false,
+      windowWidth: 1123,
+      windowHeight: mount.scrollHeight,
+    });
   } catch (err) {
-    console.error('PDF font load failed', err);
-    alert('PDF ফন্ট লোড করা যায়নি');
+    console.error('html2canvas failed', err);
+    document.body.removeChild(mount);
+    alert('PDF রিপোর্ট রেন্ডার করা যায়নি');
+    if (busyResolver) busyResolver();
     return;
   }
 
-  const { regular: regularBase64, bold: boldBase64 } = fontBase64;
+  document.body.removeChild(mount);
 
+  const pageImages = sliceCanvasForPages(canvas);
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  doc.addFileToVFS('NotoSansBengali-Regular.ttf', regularBase64);
-  doc.addFont('NotoSansBengali-Regular.ttf', FONT_REGULAR, 'normal');
-  doc.addFileToVFS('NotoSansBengali-Bold.ttf', boldBase64);
-  doc.addFont('NotoSansBengali-Bold.ttf', FONT_BOLD, 'bold');
 
-  writeHeader(doc, { scope, filters, totalCount: schedules.length });
-
-  const buckets = partitionByGroup(schedules);
-  let cursorY = TOP_MARGIN;
-
-  // Track which sections had data so we can write a summary table-of-contents.
-  const sectionsRendered = [];
-
-  SECTION_LAYOUT.forEach(({ dayKey, dayLabel }) => {
-    const totalInSection =
-      buckets[dayKey].student.length + buckets[dayKey].teacher.length;
-    if (totalInSection === 0) return;
-
-    sectionsRendered.push({ dayLabel, count: totalInSection });
-
-    cursorY = addPageIfNeeded(doc, 22);
-    cursorY = drawSectionHeading(doc, { title: dayLabel, count: totalInSection }, cursorY);
-
-    AUDIENCE_LAYOUT.forEach(({ audKey, audLabel }) => {
-      const group = sortGroup(buckets[dayKey][audKey]);
-      if (group.length === 0) return;
-
-      cursorY = addPageIfNeeded(doc, 16);
-      cursorY = drawAudienceHeading(doc, audLabel, group.length, cursorY);
-
-      const timeGroups = groupByTime(group);
-      timeGroups.forEach(([time, slot]) => {
-        const estimatedRowHeight = 10 + slot.length * 9;
-        cursorY = addPageIfNeeded(doc, estimatedRowHeight + 12);
-        cursorY = drawTimeHeading(doc, `${formatTime(time)} — ${bengaliNumber.format(slot.length)}টি বাস`, cursorY);
-        renderTable(doc, slot, cursorY);
-        cursorY = doc.lastAutoTable.finalY + 6;
-      });
-    });
+  pageImages.forEach((dataUrl, idx) => {
+    if (idx > 0) doc.addPage();
+    doc.addImage(dataUrl, 'PNG', 0, 0, 297, 210, undefined, 'FAST');
+    doc.setFontSize(8);
+    doc.setTextColor(GRAY_500);
+    doc.text(`পৃষ্ঠা ${bengaliNumber.format(idx + 1)} / ${bengaliNumber.format(pageImages.length)}`, 297 - 12, 210 - 4, { align: 'right' });
   });
 
-  writeFooter(doc);
   doc.save(buildFileName());
+  if (busyResolver) busyResolver();
 }
