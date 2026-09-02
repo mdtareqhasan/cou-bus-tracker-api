@@ -74,29 +74,29 @@ const renderTable = (items) => {
       const arrival = s.arrivalTime ? formatTime(s.arrivalTime) : DASH;
       const isOff = s.isActive === false;
       return `
-        <tr style="background:${bg};">
-          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-weight:600;font-size:11px;color:${GRAY_900};">${busCell}</td>
-          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:11px;color:${GRAY_700};">${directionLabel(s.direction)}</td>
-          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:11px;color:${GRAY_700};">${route}</td>
-          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:11px;text-align:center;color:${GRAY_700};">${arrival}</td>
-          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:10px;text-align:center;color:${GRAY_500};">${daysLabel(s.days)}</td>
-          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};text-align:center;">
-            <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:${isOff ? '#fef2f2' : '#ecfdf5'};color:${isOff ? RED_500 : GREEN_600};">${statusLabel(s)}</span>
+        <tr data-row-id="${i}" style="background:${bg};">
+          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};font-weight:600;font-size:10px;color:${GRAY_900};">${busCell}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};font-size:10px;color:${GRAY_700};">${directionLabel(s.direction)}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};font-size:10px;color:${GRAY_700};">${route}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};font-size:10px;text-align:center;color:${GRAY_700};">${arrival}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};font-size:9px;text-align:center;color:${GRAY_500};">${daysLabel(s.days)}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};text-align:center;">
+            <span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600;background:${isOff ? '#fef2f2' : '#ecfdf5'};color:${isOff ? RED_500 : GREEN_600};">${statusLabel(s)}</span>
           </td>
         </tr>`;
     })
     .join('');
 
   return `
-    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:4px;">
+    <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:3px;">
       <thead>
         <tr style="background:${TEAL_700};color:${WHITE};">
-          <th style="padding:6px 8px;text-align:left;font-weight:600;font-size:10px;">বাস নম্বর</th>
-          <th style="padding:6px 8px;text-align:left;font-weight:600;font-size:10px;">দিক</th>
-          <th style="padding:6px 8px;text-align:left;font-weight:600;font-size:10px;">রুট</th>
-          <th style="padding:6px 8px;text-align:center;font-weight:600;font-size:10px;">পৌঁছানোর সময়</th>
-          <th style="padding:6px 8px;text-align:center;font-weight:600;font-size:10px;">দিন</th>
-          <th style="padding:6px 8px;text-align:center;font-weight:600;font-size:10px;">অবস্থা</th>
+          <th style="padding:4px 6px;text-align:left;font-weight:600;font-size:9px;">বাস নম্বর</th>
+          <th style="padding:4px 6px;text-align:left;font-weight:600;font-size:9px;">দিক</th>
+          <th style="padding:4px 6px;text-align:left;font-weight:600;font-size:9px;">রুট</th>
+          <th style="padding:4px 6px;text-align:center;font-weight:600;font-size:9px;">পৌঁছানোর সময়</th>
+          <th style="padding:4px 6px;text-align:center;font-weight:600;font-size:9px;">দিন</th>
+          <th style="padding:4px 6px;text-align:center;font-weight:600;font-size:9px;">অবস্থা</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -104,11 +104,11 @@ const renderTable = (items) => {
 };
 
 const renderTimeGroup = (time, slot) => `
-  <div style="margin-top:10px;">
+  <div style="margin-top:6px;">
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-      <div style="width:6px;height:6px;border-radius:50%;background:${TEAL_600};"></div>
-      <span style="font-weight:700;color:${TEAL_700};font-size:12px;">${formatTime(time)}</span>
-      <span style="color:${GRAY_400};font-size:10px;margin-left:2px;">(${bengaliNumber.format(slot.length)}টি বাস)</span>
+      <div style="width:5px;height:5px;border-radius:50%;background:${TEAL_600};"></div>
+      <span style="font-weight:700;color:${TEAL_700};font-size:11px;">${formatTime(time)}</span>
+      <span style="color:${GRAY_400};font-size:9px;margin-left:2px;">(${bengaliNumber.format(slot.length)}টি বাস)</span>
     </div>
     ${renderTable(slot)}
   </div>`;
@@ -120,11 +120,11 @@ const renderAudienceSection = (audLabel, icon, group) => {
     .join('');
 
   return `
-    <div style="margin-top:14px;">
-      <div style="display:flex;align-items:center;gap:6px;padding-bottom:5px;border-bottom:2px solid ${TEAL_200};">
-        <span style="font-size:13px;">${icon}</span>
-        <span style="font-weight:700;color:${GRAY_900};font-size:13px;">${audLabel}</span>
-        <span style="color:${GRAY_400};font-size:10px;margin-left:2px;">\u2022 ${bengaliNumber.format(group.length)}টি</span>
+    <div style="margin-top:10px;">
+      <div style="display:flex;align-items:center;gap:6px;padding-bottom:4px;border-bottom:2px solid ${TEAL_200};">
+        <span style="font-size:12px;">${icon}</span>
+        <span style="font-weight:700;color:${GRAY_900};font-size:12px;">${audLabel}</span>
+        <span style="color:${GRAY_400};font-size:9px;margin-left:2px;">\u2022 ${bengaliNumber.format(group.length)}টি</span>
       </div>
       ${timeGroups}
     </div>`;
@@ -140,10 +140,10 @@ const renderSection = (dayKey, dayLabel, buckets) => {
   ].join('');
 
   return `
-    <div style="margin-top:18px;page-break-inside:avoid;">
-      <div style="background:${TEAL_600};color:${WHITE};padding:8px 14px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:13px;font-weight:700;">${dayLabel}</span>
-        <span style="font-size:10px;opacity:0.9;">${bengaliNumber.format(total)}টি শিডিউল</span>
+    <div style="margin-top:12px;page-break-inside:avoid;">
+      <div style="background:${TEAL_600};color:${WHITE};padding:6px 12px;border-radius:5px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;font-weight:700;">${dayLabel}</span>
+        <span style="font-size:9px;opacity:0.9;">${bengaliNumber.format(total)}টি শিডিউল</span>
       </div>
       ${audienceBlocks}
     </div>`;
@@ -166,7 +166,7 @@ const renderReportHTML = ({ schedules, scope, filters }) => {
     <div id="pdf-report-root" style="
       font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'SolaimanLipi', sans-serif;
       width: 1000px;
-      padding: 24px 28px;
+      padding: 14px 18px;
       background: ${BG};
       color: ${GRAY_900};
       box-sizing: border-box;
@@ -174,42 +174,42 @@ const renderReportHTML = ({ schedules, scope, filters }) => {
       <header style="
         background: linear-gradient(135deg, ${TEAL_600}, ${TEAL_800});
         color: ${WHITE};
-        padding: 16px 22px;
-        border-radius: 10px;
+        padding: 10px 14px;
+        border-radius: 8px;
         display: flex;
         justify-content: space-between;
         align-items: center;
       ">
         <div>
-          <div style="font-size:18px;font-weight:700;">CoU Bus Tracker</div>
-          <div style="font-size:11px;opacity:0.85;margin-top:2px;">বাস শিডিউল রিপোর্ট</div>
+          <div style="font-size:16px;font-weight:700;">CoU Bus Tracker</div>
+          <div style="font-size:10px;opacity:0.85;margin-top:1px;">বাস শিডিউল রিপোর্ট</div>
         </div>
-        <div style="text-align:right;font-size:10px;opacity:0.9;line-height:1.5;">
+        <div style="text-align:right;font-size:9px;opacity:0.9;line-height:1.4;">
           <div>তৈরি: ${bnDateTime()}</div>
           <div>${filterLine}</div>
         </div>
       </header>
 
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <div style="flex:1;background:${TEAL_50};border:1px solid ${TEAL_200};border-radius:6px;padding:8px 10px;text-align:center;">
-          <div style="font-size:18px;font-weight:700;color:${TEAL_700};">${bengaliNumber.format(schedules.length)}</div>
-          <div style="font-size:9px;color:${GRAY_500};margin-top:1px;">মোট</div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <div style="flex:1;background:${TEAL_50};border:1px solid ${TEAL_200};border-radius:5px;padding:5px 6px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:${TEAL_700};">${bengaliNumber.format(schedules.length)}</div>
+          <div style="font-size:8px;color:${GRAY_500};margin-top:1px;">মোট</div>
         </div>
-        <div style="flex:1;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:8px 10px;text-align:center;">
-          <div style="font-size:18px;font-weight:700;color:${GREEN_600};">${bengaliNumber.format(activeCount)}</div>
-          <div style="font-size:9px;color:${GRAY_500};margin-top:1px;">সক্রিয়</div>
+        <div style="flex:1;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:5px;padding:5px 6px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:${GREEN_600};">${bengaliNumber.format(activeCount)}</div>
+          <div style="font-size:8px;color:${GRAY_500};margin-top:1px;">সক্রিয়</div>
         </div>
-        <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px 10px;text-align:center;">
-          <div style="font-size:18px;font-weight:700;color:${RED_500};">${bengaliNumber.format(inactiveCount)}</div>
-          <div style="font-size:9px;color:${GRAY_500};margin-top:1px;">নিষ্ক্রিয়</div>
+        <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:5px;padding:5px 6px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:${RED_500};">${bengaliNumber.format(inactiveCount)}</div>
+          <div style="font-size:8px;color:${GRAY_500};margin-top:1px;">নিষ্ক্রিয়</div>
         </div>
-        <div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px 10px;text-align:center;">
-          <div style="font-size:18px;font-weight:700;color:#2563eb;">${bengaliNumber.format(weekdayCount)}</div>
-          <div style="font-size:9px;color:${GRAY_500};margin-top:1px;">কর্মদিবস</div>
+        <div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;padding:5px 6px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:#2563eb;">${bengaliNumber.format(weekdayCount)}</div>
+          <div style="font-size:8px;color:${GRAY_500};margin-top:1px;">কর্মদিবস</div>
         </div>
-        <div style="flex:1;background:#fefce8;border:1px solid #fde68a;border-radius:6px;padding:8px 10px;text-align:center;">
-          <div style="font-size:18px;font-weight:700;color:#d97706;">${bengaliNumber.format(weekendCount)}</div>
-          <div style="font-size:9px;color:${GRAY_500};margin-top:1px;">শুক্র-শনি</div>
+        <div style="flex:1;background:#fefce8;border:1px solid #fde68a;border-radius:5px;padding:5px 6px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:#d97706;">${bengaliNumber.format(weekendCount)}</div>
+          <div style="font-size:8px;color:${GRAY_500};margin-top:1px;">শুক্র-শনি</div>
         </div>
       </div>
 
@@ -253,22 +253,90 @@ const mountReportNode = (htmlString) => {
 
 const A4_PX = { width: 1000, height: 707 };
 
-const sliceCanvas = (canvas) => {
+/**
+ * Row-aware canvas slicing.
+ *
+ * Walks the list of <tr data-row-id> rows in DOM order, converts each
+ * row's offsetTop to a canvas-space Y position (multiplying by the
+ * html2canvas scale factor), and slices the canvas so a row is NEVER
+ * split across two pages. If a single row is taller than the page
+ * (extremely rare), it gets its own page to avoid visual corruption.
+ *
+ * Returns: array of PNG data URLs, one per A4 page.
+ */
+const sliceCanvasAtRowBoundaries = (canvas, rowOffsetsPx) => {
   const pages = [];
-  const h = A4_PX.height;
-  let y = 0;
-  while (y < canvas.height) {
-    const sliceH = Math.min(h, canvas.height - y);
+  const pageHeight = A4_PX.height;
+  let pageStartY = 0;
+  let cursorRowIdx = 0;
+
+  while (pageStartY < canvas.height) {
+    // Find the last row that ends on or before pageStartY + pageHeight.
+    let endY = pageStartY + pageHeight;
+    let lastFittingRowEnd = pageStartY; // fallback: empty page area
+
+    for (let i = cursorRowIdx; i < rowOffsetsPx.length; i++) {
+      const rowStart = rowOffsetsPx[i];
+      // row height approximated as 30px in scaled-canvas space (works for
+      // compact table; actual height doesn't matter — only that we never
+      // cross a row boundary). Better: measure each row individually.
+      const rowHeight = i + 1 < rowOffsetsPx.length
+        ? rowOffsetsPx[i + 1] - rowStart
+        : canvas.height - rowStart;
+      const rowEnd = rowStart + rowHeight;
+
+      if (rowEnd <= pageStartY + pageHeight) {
+        lastFittingRowEnd = rowEnd;
+        cursorRowIdx = i + 1;
+      } else {
+        break;
+      }
+    }
+
+    // Ensure at least minimal content per page (avoid near-empty pages when
+    // a row is slightly too tall to fit but starts before boundary).
+    if (lastFittingRowEnd === pageStartY && rowOffsetsPx[cursorRowIdx] !== undefined) {
+      // Force include at least the next row, even if it slightly overflows.
+      const rowStart = rowOffsetsPx[cursorRowIdx];
+      const rowEnd = (cursorRowIdx + 1 < rowOffsetsPx.length)
+        ? rowOffsetsPx[cursorRowIdx + 1]
+        : canvas.height;
+      lastFittingRowEnd = Math.min(rowEnd, pageStartY + pageHeight);
+      cursorRowIdx += 1;
+    }
+
+    endY = Math.min(lastFittingRowEnd, canvas.height);
+    if (endY <= pageStartY) {
+      // No progress possible (shouldn't happen); bail out to avoid infinite loop.
+      break;
+    }
+
+    const sliceH = endY - pageStartY;
     const c = document.createElement('canvas');
     c.width = canvas.width;
     c.height = sliceH;
     const ctx = c.getContext('2d');
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, c.width, sliceH);
-    ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, c.width, sliceH);
+    ctx.drawImage(canvas, 0, pageStartY, canvas.width, sliceH, 0, 0, c.width, sliceH);
     pages.push(c.toDataURL('image/png'));
-    y += sliceH;
+
+    pageStartY = endY;
   }
+
+  // Tail page: any remaining content after last row.
+  if (pageStartY < canvas.height) {
+    const sliceH = canvas.height - pageStartY;
+    const c = document.createElement('canvas');
+    c.width = canvas.width;
+    c.height = sliceH;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, c.width, sliceH);
+    ctx.drawImage(canvas, 0, pageStartY, canvas.width, sliceH, 0, 0, c.width, sliceH);
+    pages.push(c.toDataURL('image/png'));
+  }
+
   return pages;
 };
 
@@ -308,6 +376,18 @@ export async function exportSchedulesToPDF({ schedules, scope, filters }) {
 
   const mount = mountReportNode(renderReportHTML({ schedules, scope, filters }));
 
+  // Collect row offsets BEFORE html2canvas renders, so we know where each
+  // <tr data-row-id> sits in DOM coordinates. These are then scaled to
+  // canvas coordinates using the html2canvas scale factor (1.5).
+  const HTML2CANVAS_SCALE = 1.5;
+  const domRows = Array.from(mount.querySelectorAll('tr[data-row-id]'));
+  const mountTop = mount.getBoundingClientRect().top;
+  const rowOffsetsPx = domRows.map((tr) => {
+    const offsetWithinMount = tr.getBoundingClientRect().top - mountTop;
+    return Math.round(offsetWithinMount * HTML2CANVAS_SCALE);
+  });
+  console.log('[pdfExporter] row offsets (px in canvas space):', rowOffsetsPx.length, 'rows');
+
   let canvas;
   try {
     const fullHeight = Math.max(
@@ -316,7 +396,7 @@ export async function exportSchedulesToPDF({ schedules, scope, filters }) {
       mount.firstElementChild?.scrollHeight ?? 0,
     );
     canvas = await html2canvas(mount, {
-      scale: 1.5,
+      scale: HTML2CANVAS_SCALE,
       backgroundColor: BG,
       useCORS: true,
       logging: false,
@@ -334,7 +414,8 @@ export async function exportSchedulesToPDF({ schedules, scope, filters }) {
 
   document.body.removeChild(mount);
 
-  const pages = sliceCanvas(canvas);
+  const pages = sliceCanvasAtRowBoundaries(canvas, rowOffsetsPx);
+  console.log('[pdfExporter] generated', pages.length, 'pages');
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
   pages.forEach((dataUrl, idx) => {
