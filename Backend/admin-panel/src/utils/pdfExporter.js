@@ -104,8 +104,8 @@ const renderTable = (items) => {
 };
 
 const renderTimeGroup = (time, slot) => `
-  <div style="margin-top:6px;">
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+  <div data-block-id="time" data-block-time="${time}" style="margin-top:5px;">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:1px;">
       <div style="width:5px;height:5px;border-radius:50%;background:${TEAL_600};"></div>
       <span style="font-weight:700;color:${TEAL_700};font-size:11px;">${formatTime(time)}</span>
       <span style="color:${GRAY_400};font-size:9px;margin-left:2px;">(${bengaliNumber.format(slot.length)}টি বাস)</span>
@@ -113,17 +113,17 @@ const renderTimeGroup = (time, slot) => `
     ${renderTable(slot)}
   </div>`;
 
-const renderAudienceSection = (audLabel, icon, group) => {
+const renderAudienceSection = (audLabel, icon, audKey, group) => {
   if (group.length === 0) return '';
   const timeGroups = groupByTime(group)
     .map(([time, slot]) => renderTimeGroup(time, slot))
     .join('');
 
   return `
-    <div style="margin-top:10px;">
-      <div style="display:flex;align-items:center;gap:6px;padding-bottom:4px;border-bottom:2px solid ${TEAL_200};">
-        <span style="font-size:12px;">${icon}</span>
-        <span style="font-weight:700;color:${GRAY_900};font-size:12px;">${audLabel}</span>
+    <div data-block-id="audience" data-block-audience="${audKey}" style="margin-top:8px;">
+      <div style="display:flex;align-items:center;gap:6px;padding-bottom:3px;border-bottom:2px solid ${TEAL_200};">
+        <span style="font-size:11px;">${icon}</span>
+        <span style="font-weight:700;color:${GRAY_900};font-size:11px;">${audLabel}</span>
         <span style="color:${GRAY_400};font-size:9px;margin-left:2px;">\u2022 ${bengaliNumber.format(group.length)}টি</span>
       </div>
       ${timeGroups}
@@ -135,13 +135,13 @@ const renderSection = (dayKey, dayLabel, buckets) => {
   if (total === 0) return '';
 
   const audienceBlocks = [
-    renderAudienceSection('শিক্ষার্থী বাস', '\uD83D\uDE8C', buckets[dayKey].student),
-    renderAudienceSection('শিক্ষক / কর্মকর্তা / কর্মচারী বাস', '\uD83D\uDC68\u200D\uD83C\uDFEB', buckets[dayKey].teacher),
+    renderAudienceSection('শিক্ষার্থী বাস', '\uD83D\uDE8C', 'student', buckets[dayKey].student),
+    renderAudienceSection('শিক্ষক / কর্মকর্তা / কর্মচারী বাস', '\uD83D\uDC68\u200D\uD83C\uDFEB', 'teacher', buckets[dayKey].teacher),
   ].join('');
 
   return `
-    <div style="margin-top:12px;page-break-inside:avoid;">
-      <div style="background:${TEAL_600};color:${WHITE};padding:6px 12px;border-radius:5px;display:flex;justify-content:space-between;align-items:center;">
+    <div data-block-id="section" data-block-day="${dayKey}" style="margin-top:10px;page-break-inside:avoid;">
+      <div style="background:${TEAL_600};color:${WHITE};padding:5px 12px;border-radius:5px;display:flex;justify-content:space-between;align-items:center;">
         <span style="font-size:12px;font-weight:700;">${dayLabel}</span>
         <span style="font-size:9px;opacity:0.9;">${bengaliNumber.format(total)}টি শিডিউল</span>
       </div>
@@ -166,7 +166,7 @@ const renderReportHTML = ({ schedules, scope, filters }) => {
     <div id="pdf-report-root" style="
       font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'SolaimanLipi', sans-serif;
       width: 1000px;
-      padding: 14px 18px;
+      padding: 12px 16px;
       background: ${BG};
       color: ${GRAY_900};
       box-sizing: border-box;
@@ -174,15 +174,15 @@ const renderReportHTML = ({ schedules, scope, filters }) => {
       <header style="
         background: linear-gradient(135deg, ${TEAL_600}, ${TEAL_800});
         color: ${WHITE};
-        padding: 10px 14px;
+        padding: 8px 12px;
         border-radius: 8px;
         display: flex;
         justify-content: space-between;
         align-items: center;
       ">
         <div>
-          <div style="font-size:16px;font-weight:700;">CoU Bus Tracker</div>
-          <div style="font-size:10px;opacity:0.85;margin-top:1px;">বাস শিডিউল রিপোর্ট</div>
+          <div style="font-size:15px;font-weight:700;">CoU Bus Tracker</div>
+          <div style="font-size:9px;opacity:0.85;margin-top:1px;">বাস শিডিউল রিপোর্ট</div>
         </div>
         <div style="text-align:right;font-size:9px;opacity:0.9;line-height:1.4;">
           <div>তৈরি: ${bnDateTime()}</div>
@@ -190,26 +190,26 @@ const renderReportHTML = ({ schedules, scope, filters }) => {
         </div>
       </header>
 
-      <div style="display:flex;gap:6px;margin-top:8px;">
-        <div style="flex:1;background:${TEAL_50};border:1px solid ${TEAL_200};border-radius:5px;padding:5px 6px;text-align:center;">
-          <div style="font-size:14px;font-weight:700;color:${TEAL_700};">${bengaliNumber.format(schedules.length)}</div>
-          <div style="font-size:8px;color:${GRAY_500};margin-top:1px;">মোট</div>
+      <div style="display:flex;gap:5px;margin-top:6px;">
+        <div style="flex:1;background:${TEAL_50};border:1px solid ${TEAL_200};border-radius:5px;padding:4px 5px;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:${TEAL_700};">${bengaliNumber.format(schedules.length)}</div>
+          <div style="font-size:8px;color:${GRAY_500};">মোট</div>
         </div>
-        <div style="flex:1;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:5px;padding:5px 6px;text-align:center;">
-          <div style="font-size:14px;font-weight:700;color:${GREEN_600};">${bengaliNumber.format(activeCount)}</div>
-          <div style="font-size:8px;color:${GRAY_500};margin-top:1px;">সক্রিয়</div>
+        <div style="flex:1;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:5px;padding:4px 5px;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:${GREEN_600};">${bengaliNumber.format(activeCount)}</div>
+          <div style="font-size:8px;color:${GRAY_500};">সক্রিয়</div>
         </div>
-        <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:5px;padding:5px 6px;text-align:center;">
-          <div style="font-size:14px;font-weight:700;color:${RED_500};">${bengaliNumber.format(inactiveCount)}</div>
-          <div style="font-size:8px;color:${GRAY_500};margin-top:1px;">নিষ্ক্রিয়</div>
+        <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:5px;padding:4px 5px;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:${RED_500};">${bengaliNumber.format(inactiveCount)}</div>
+          <div style="font-size:8px;color:${GRAY_500};">নিষ্ক্রিয়</div>
         </div>
-        <div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;padding:5px 6px;text-align:center;">
-          <div style="font-size:14px;font-weight:700;color:#2563eb;">${bengaliNumber.format(weekdayCount)}</div>
-          <div style="font-size:8px;color:${GRAY_500};margin-top:1px;">কর্মদিবস</div>
+        <div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;padding:4px 5px;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:#2563eb;">${bengaliNumber.format(weekdayCount)}</div>
+          <div style="font-size:8px;color:${GRAY_500};">কর্মদিবস</div>
         </div>
-        <div style="flex:1;background:#fefce8;border:1px solid #fde68a;border-radius:5px;padding:5px 6px;text-align:center;">
-          <div style="font-size:14px;font-weight:700;color:#d97706;">${bengaliNumber.format(weekendCount)}</div>
-          <div style="font-size:8px;color:${GRAY_500};margin-top:1px;">শুক্র-শনি</div>
+        <div style="flex:1;background:#fefce8;border:1px solid #fde68a;border-radius:5px;padding:4px 5px;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:#d97706;">${bengaliNumber.format(weekendCount)}</div>
+          <div style="font-size:8px;color:${GRAY_500};">শুক্র-শনি</div>
         </div>
       </div>
 
@@ -254,87 +254,99 @@ const mountReportNode = (htmlString) => {
 const A4_PX = { width: 1000, height: 707 };
 
 /**
- * Row-aware canvas slicing.
+ * Block-aware canvas slicing.
  *
- * Walks the list of <tr data-row-id> rows in DOM order, converts each
- * row's offsetTop to a canvas-space Y position (multiplying by the
- * html2canvas scale factor), and slices the canvas so a row is NEVER
- * split across two pages. If a single row is taller than the page
- * (extremely rare), it gets its own page to avoid visual corruption.
+ * Cuts the canvas at the optimal point near each page boundary so:
+ *   1. Rows are NEVER split across pages.
+ *   2. Time-group blocks (time header + table) stay together — if a
+ *      time-group doesn't fit, the entire block moves to next page.
+ *   3. Each page slice is padded to exactly A4 landscape aspect ratio
+ *      (1000px × 707px) so jsPDF renders without distortion.
  *
- * Returns: array of PNG data URLs, one per A4 page.
+ * `boundaries` is a sorted array of { y, type, ... } where type is
+ * either 'afterRow' (cut after row) or 'beforeBlock' (cut before block).
+ *
+ * Algorithm per page:
+ *   - Walk boundaries; the largest y ≤ pageEndTarget is the candidate.
+ *   - If the candidate is 'beforeBlock' but the block doesn't fit on this
+ *     page (i.e. block would extend past pageEndTarget), use the most
+ *     recent 'afterRow' boundary instead.
+ *   - Pad the slice to exactly A4 landscape aspect (1000 × 707).
  */
-const sliceCanvasAtRowBoundaries = (canvas, rowOffsetsPx) => {
+// Nesting levels for block kinds (lower = higher in DOM).
+const BLOCK_LEVEL = { section: 0, audience: 1, time: 2 };
+
+const sliceCanvasAtBlockBoundaries = (canvas, boundaries) => {
   const pages = [];
   const pageHeight = A4_PX.height;
+  const canvasH = canvas.height;
   let pageStartY = 0;
-  let cursorRowIdx = 0;
 
-  while (pageStartY < canvas.height) {
-    // Find the last row that ends on or before pageStartY + pageHeight.
-    let endY = pageStartY + pageHeight;
-    let lastFittingRowEnd = pageStartY; // fallback: empty page area
+  while (pageStartY < canvasH) {
+    const pageEndTarget = pageStartY + pageHeight;
 
-    for (let i = cursorRowIdx; i < rowOffsetsPx.length; i++) {
-      const rowStart = rowOffsetsPx[i];
-      // row height approximated as 30px in scaled-canvas space (works for
-      // compact table; actual height doesn't matter — only that we never
-      // cross a row boundary). Better: measure each row individually.
-      const rowHeight = i + 1 < rowOffsetsPx.length
-        ? rowOffsetsPx[i + 1] - rowStart
-        : canvas.height - rowStart;
-      const rowEnd = rowStart + rowHeight;
+    // Walk boundaries; track best candidate.
+    let bestY = pageStartY;
+    let bestType = 'start';
+    let lastAfterRowY = pageStartY;
 
-      if (rowEnd <= pageStartY + pageHeight) {
-        lastFittingRowEnd = rowEnd;
-        cursorRowIdx = i + 1;
-      } else {
-        break;
+    for (let i = 0; i < boundaries.length; i++) {
+      const b = boundaries[i];
+      if (b.y > pageEndTarget) break;
+
+      if (b.type === 'afterRow') {
+        lastAfterRowY = b.y;
+        // Only update bestY if no later clean block break is possible.
+        if (bestType !== 'beforeBlock') {
+          bestY = b.y;
+          bestType = 'afterRow';
+        }
+      } else if (b.type === 'beforeBlock') {
+        // Compute block extent: from this Y to the next sibling-or-higher
+        // beforeBlock (i.e. same level or higher in DOM = same or lower level).
+        const currentLevel = BLOCK_LEVEL[b.blockKind];
+        let blockEnd = canvasH;
+        for (let j = i + 1; j < boundaries.length; j++) {
+          const next = boundaries[j];
+          if (next.type === 'beforeBlock') {
+            const nextLevel = BLOCK_LEVEL[next.blockKind];
+            if (nextLevel <= currentLevel) {
+              blockEnd = next.y;
+              break;
+            }
+          }
+        }
+        // If block fits on this page (blockEnd ≤ pageEndTarget), use this cut.
+        if (blockEnd <= pageEndTarget) {
+          bestY = b.y;
+          bestType = 'beforeBlock';
+        }
+        // else: this block won't fit; keep bestY as lastAfterRowY and keep scanning.
       }
     }
 
-    // Ensure at least minimal content per page (avoid near-empty pages when
-    // a row is slightly too tall to fit but starts before boundary).
-    if (lastFittingRowEnd === pageStartY && rowOffsetsPx[cursorRowIdx] !== undefined) {
-      // Force include at least the next row, even if it slightly overflows.
-      const rowStart = rowOffsetsPx[cursorRowIdx];
-      const rowEnd = (cursorRowIdx + 1 < rowOffsetsPx.length)
-        ? rowOffsetsPx[cursorRowIdx + 1]
-        : canvas.height;
-      lastFittingRowEnd = Math.min(rowEnd, pageStartY + pageHeight);
-      cursorRowIdx += 1;
+    // Forward progress guarantee.
+    if (bestY <= pageStartY) {
+      bestY = Math.min(pageStartY + pageHeight, canvasH);
+      if (bestY <= pageStartY) break;
     }
 
-    endY = Math.min(lastFittingRowEnd, canvas.height);
-    if (endY <= pageStartY) {
-      // No progress possible (shouldn't happen); bail out to avoid infinite loop.
-      break;
+    const sliceH = bestY - pageStartY;
+
+    // Pad slice to exactly A4 landscape aspect ratio so jsPDF doesn't
+    // stretch it vertically when filling 297×210mm.
+    const c = document.createElement('canvas');
+    c.width = A4_PX.width;
+    c.height = pageHeight;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, c.width, pageHeight);
+    if (sliceH > 0) {
+      ctx.drawImage(canvas, 0, pageStartY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
     }
-
-    const sliceH = endY - pageStartY;
-    const c = document.createElement('canvas');
-    c.width = canvas.width;
-    c.height = sliceH;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = BG;
-    ctx.fillRect(0, 0, c.width, sliceH);
-    ctx.drawImage(canvas, 0, pageStartY, canvas.width, sliceH, 0, 0, c.width, sliceH);
     pages.push(c.toDataURL('image/png'));
 
-    pageStartY = endY;
-  }
-
-  // Tail page: any remaining content after last row.
-  if (pageStartY < canvas.height) {
-    const sliceH = canvas.height - pageStartY;
-    const c = document.createElement('canvas');
-    c.width = canvas.width;
-    c.height = sliceH;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = BG;
-    ctx.fillRect(0, 0, c.width, sliceH);
-    ctx.drawImage(canvas, 0, pageStartY, canvas.width, sliceH, 0, 0, c.width, sliceH);
-    pages.push(c.toDataURL('image/png'));
+    pageStartY = bestY;
   }
 
   return pages;
@@ -376,17 +388,50 @@ export async function exportSchedulesToPDF({ schedules, scope, filters }) {
 
   const mount = mountReportNode(renderReportHTML({ schedules, scope, filters }));
 
-  // Collect row offsets BEFORE html2canvas renders, so we know where each
-  // <tr data-row-id> sits in DOM coordinates. These are then scaled to
-  // canvas coordinates using the html2canvas scale factor (1.5).
+  // Collect DOM offsets BEFORE html2canvas renders. Build a unified list
+  // of cuttable boundaries (sorted by Y) that the slicing algorithm uses.
   const HTML2CANVAS_SCALE = 1.5;
-  const domRows = Array.from(mount.querySelectorAll('tr[data-row-id]'));
   const mountTop = mount.getBoundingClientRect().top;
-  const rowOffsetsPx = domRows.map((tr) => {
-    const offsetWithinMount = tr.getBoundingClientRect().top - mountTop;
-    return Math.round(offsetWithinMount * HTML2CANVAS_SCALE);
+  const offsetInCanvas = (el) =>
+    Math.round((el.getBoundingClientRect().top - mountTop) * HTML2CANVAS_SCALE);
+
+  const boundaries = [];
+
+  // Row-end boundaries (in DOM order = row order).
+  const domRows = Array.from(mount.querySelectorAll('tr[data-row-id]'));
+  const rowEndsPx = [];
+  domRows.forEach((tr) => {
+    const start = offsetInCanvas(tr);
+    const h = tr.getBoundingClientRect().height * HTML2CANVAS_SCALE;
+    rowEndsPx.push({ start, end: Math.round(start + h) });
   });
-  console.log('[pdfExporter] row offsets (px in canvas space):', rowOffsetsPx.length, 'rows');
+  rowEndsPx.forEach(({ end }, i) => {
+    boundaries.push({ y: end, type: 'afterRow', rowIndex: i });
+  });
+
+  // Block-start boundaries (before time-group, audience, section).
+  const blocks = Array.from(mount.querySelectorAll('[data-block-id]'));
+  blocks.forEach((el) => {
+    const startY = offsetInCanvas(el);
+    if (startY > 0) {
+      boundaries.push({
+        y: startY,
+        type: 'beforeBlock',
+        blockKind: el.getAttribute('data-block-id'),
+      });
+    }
+  });
+
+  // Sort by Y ascending. Stable sort preserves insertion order on ties.
+  boundaries.sort((a, b) => a.y - b.y);
+
+  console.log('[pdfExporter] boundaries:', {
+    rows: domRows.length,
+    blocks: blocks.length,
+    totalBoundaries: boundaries.length,
+    firstBoundary: boundaries[0],
+    lastBoundary: boundaries[boundaries.length - 1],
+  });
 
   let canvas;
   try {
@@ -414,7 +459,7 @@ export async function exportSchedulesToPDF({ schedules, scope, filters }) {
 
   document.body.removeChild(mount);
 
-  const pages = sliceCanvasAtRowBoundaries(canvas, rowOffsetsPx);
+  const pages = sliceCanvasAtBlockBoundaries(canvas, boundaries);
   console.log('[pdfExporter] generated', pages.length, 'pages');
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
