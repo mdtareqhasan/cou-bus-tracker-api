@@ -44,3 +44,40 @@ services:
         sync: false
       - key: RESEND_FROM_NAME
         value: CoU Bus Tracker
+
+  # ----------------------------------------------------------------------------
+  # Admin Panel — React SPA hosted as a Render Static Site.
+  #
+  # Build/Publish paths in Render Static Sites are relative to the repo root,
+  # so we `cd` into the admin-panel folder in the Build Command. The
+  # `headers` block ensures Noto Sans Bengali TTF files served from /fonts/
+  # have the correct font/ttf MIME type so jsPDF (and future FontFace API use)
+  # parse them reliably.
+  #
+  # `spa: true` adds the single-page rewrite so deep links like /schedules hit
+  # index.html and React Router takes over.
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: cou-bus-tracker-admin
+    runtime: static
+    buildCommand: cd Backend/admin-panel && npm install && npm run build
+    staticPublishPath: Backend/admin-panel/dist
+    spa: true
+    headers:
+      - path: /fonts/*
+        name: Content-Type
+        value: font/ttf
+      - path: /fonts/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    envVars:
+      - key: VITE_API_BASE_URL
+        # Production API base URL — must point at the deployed Spring Boot
+        # backend (which has CORS whitelisted for the admin frontend origin).
+        # Find the actual URL on the Render dashboard for the
+        # `cou-bus-tracker-api` service and replace the value below if it
+        # differs from the default.
+        value: https://cou-bus-tracker-api.onrender.com/api
