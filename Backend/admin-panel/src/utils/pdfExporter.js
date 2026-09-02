@@ -4,16 +4,13 @@
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-// `?url` returns the asset URL at build time but Vite emits the binary into
-// the bundle (it is then re-fetched at runtime the same way dynamic assets
-// work). To avoid any network failure — including misconfigured SPA rewrites
-// on Render Static Sites — we read the TTF as raw text via `?raw` and
-// base64-encode it in-place. This guarantees the font is always available
-// regardless of how the static site is hosted.
+// Use Vite's `?url` import so the build emits the TTF as a separate asset in
+// `dist/assets/` (hashed filename) and we get a stable URL at runtime. This is
+// more reliable than a hard-coded `/fonts/...` path because Render Static
+// Sites route-asset matching can be tricky. The fonts are still bundled in the
+// deployable output so no third-party CDN is required.
 import notoSansBengaliRegularUrl from '../../public/fonts/NotoSansBengali-Regular.ttf?url';
 import notoSansBengaliBoldUrl from '../../public/fonts/NotoSansBengali-Bold.ttf?url';
-import notoSansBengaliRegularRaw from '../../public/fonts/NotoSansBengali-Regular.ttf?raw';
-import notoSansBengaliBoldRaw from '../../public/fonts/NotoSansBengali-Bold.ttf?raw';
 import {
   formatTime,
   bengaliNumber,
@@ -34,16 +31,9 @@ const DANGER_RGB = [220, 38, 38]; // red-600
 const BORDER_RGB = [229, 231, 235]; // gray-200
 const SECTION_BG = [240, 253, 250]; // teal-50
 
-// Vite's `?raw` returns the file as a UTF-8 string. TTF bytes are arbitrary
-// (0x00..0xFF) so we round-trip via a binary read of the underlying URL.
-// This keeps the TTF bytes intact while only requiring one round-trip on
-// first module evaluation.
-const loadFontAsBase64 = async (url) => {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Font fetch failed (${response.status}) for ${url}`);
-  }
-  const buffer = await response.arrayBuffer();
+let fontBase64Cache = null;
+
+const arrayBufferToBase64 = (buffer) => {
   const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
   let binary = '';
@@ -53,33 +43,26 @@ const loadFontAsBase64 = async (url) => {
   return btoa(binary);
 };
 
-// Use the raw (base64-encoded) import synchronously so the PDF generation
-// itself is sync after first export. `?raw` in Vite is already a UTF-8 string
-// representation of the file bytes, but for binary safety we still decode via
-// fetch with the resolved asset URL. The inline raw is kept as a fallback so
-// this still works in test environments where the asset URL cannot be fetched.
-let fontBase64Cache = null;
-
 const getFontBase64 = async () => {
   if (fontBase64Cache) return fontBase64Cache;
-
-  // Prefer the asset URL fetch — preserves binary integrity.
-  try {
-    const [regular, bold] = await Promise.all([
-      loadFontAsBase64(notoSansBengaliRegularUrl),
-      loadFontAsBase64(notoSansBengaliBoldUrl),
-    ]);
-    fontBase64Cache = { regular, bold };
-    return fontBase64Cache;
-  } catch (urlErr) {
-    console.warn('Font fetch by URL failed, falling back to inline ?raw import.', urlErr);
-    // Fallback: ?raw returns base64 string already (Vite 5+ detects .ttf as binary).
-    fontBase64Cache = {
-      regular: notoSansBengaliRegularRaw,
-      bold: notoSansBengaliBoldRaw,
-    };
-    return fontBase64Cache;
+  const [regularResp, boldResp] = await Promise.all([
+    fetch(notoSansBengaliRegularUrl),
+    fetch(notoSansBengaliBoldUrl),
+  ]);
+  if (!regularResp.ok || !boldResp.ok) {
+    throw new Error(
+      `Font fetch failed (regular: ${regularResp.status}, bold: ${boldResp.status})`,
+    );
   }
+  const [regularBuf, boldBuf] = await Promise.all([
+    regularResp.arrayBuffer(),
+    boldResp.arrayBuffer(),
+  ]);
+  fontBase64Cache = {
+    regular: arrayBufferToBase64(regularBuf),
+    bold: arrayBufferToBase64(boldBuf),
+  };
+  return fontBase64Cache;
 };
 
 const groupByTime = (schedules) => {
