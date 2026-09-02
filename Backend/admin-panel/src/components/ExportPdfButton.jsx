@@ -1,22 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { FileDown, ChevronDown, Loader2 } from 'lucide-react';
 import { exportSchedulesToPDF } from '../utils/pdfExporter';
+import { scheduleAPI } from '../api';
 
 const SCOPES = [
   { id: 'current', label: 'বর্তমান ভিউ', description: 'প্রযোজ্য ফিল্টার অনুযায়ী' },
-  { id: 'all', label: 'সব শিডিউল', description: 'ফিল্টার উপেক্ষা করে' },
+  { id: 'all', label: 'সব শিডিউল', description: 'ডাটাবেস থেকে সরাসরি' },
 ];
 
-export default function ExportPdfButton({ visibleSchedules, schedules, filters }) {
+export default function ExportPdfButton({ visibleSchedules, filters }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const wrapperRef = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
-    // Listen on the `click` event (which fires AFTER mousedown) so that
-    // clicking a menu item still works — mousedown-based outside-detection
-    // closes the menu before the menu item's `click` handler fires.
     const handleClick = (event) => {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
         setOpen(false);
@@ -37,12 +35,14 @@ export default function ExportPdfButton({ visibleSchedules, schedules, filters }
     setOpen(false);
     setLoading(true);
     try {
-      const payload = {
-        scope: scopeId,
-        schedules: scopeId === 'all' ? schedules : visibleSchedules,
-        filters,
-      };
-      // Allow the spinner to paint before the font fetch + render begins.
+      let data;
+      if (scopeId === 'all') {
+        const res = await scheduleAPI.getAll();
+        data = res.data;
+      } else {
+        data = visibleSchedules;
+      }
+      const payload = { scope: scopeId, schedules: data, filters };
       await new Promise((resolve) => setTimeout(resolve, 0));
       await exportSchedulesToPDF(payload);
     } finally {

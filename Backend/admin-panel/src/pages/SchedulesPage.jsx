@@ -177,7 +177,6 @@ export default function SchedulesPage() {
         <div className="flex flex-wrap items-center gap-2">
           <ExportPdfButton
             visibleSchedules={visibleSchedules}
-            schedules={schedules}
             filters={{ busAudience, dayGroup, statusFilter }}
           />
           <button onClick={openCreateForm} className="btn-primary schedule-add-button">

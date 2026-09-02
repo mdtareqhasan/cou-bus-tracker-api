@@ -12,7 +12,6 @@ import {
 
 const BG = '#ffffff';
 const TEAL_50 = '#f0fdfa';
-const TEAL_100 = '#ccfbf1';
 const TEAL_200 = '#99f6e4';
 const TEAL_600 = '#0d9488';
 const TEAL_700 = '#0f766e';
@@ -27,7 +26,7 @@ const RED_500 = '#ef4444';
 const GREEN_600 = '#059669';
 const WHITE = '#ffffff';
 
-const dash = '\u2014';
+const DASH = '\u2014';
 
 const partitionByGroup = (schedules) => {
   const buckets = {
@@ -70,34 +69,34 @@ const renderTable = (items) => {
     .map((s, i) => {
       const bg = i % 2 === 0 ? WHITE : GRAY_100;
       const busName = (s.busName ?? '').toString().trim();
-      const busCell = busName ? `${s.busNumber} (${busName})` : s.busNumber || dash;
-      const route = `${s.startPoint || dash} \u2192 ${s.endPoint || dash}`;
-      const arrival = s.arrivalTime ? formatTime(s.arrivalTime) : dash;
+      const busCell = busName ? `${s.busNumber} (${busName})` : s.busNumber || DASH;
+      const route = `${s.startPoint || DASH} \u2192 ${s.endPoint || DASH}`;
+      const arrival = s.arrivalTime ? formatTime(s.arrivalTime) : DASH;
       const isOff = s.isActive === false;
       return `
         <tr style="background:${bg};">
-          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};font-weight:600;color:${GRAY_900};">${busCell}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};color:${GRAY_700};">${directionLabel(s.direction)}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};color:${GRAY_700};">${route}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};text-align:center;color:${GRAY_700};">${arrival}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};text-align:center;color:${GRAY_500};font-size:12px;">${daysLabel(s.days)}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid ${GRAY_200};text-align:center;">
-            <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${isOff ? '#fef2f2' : '#ecfdf5'};color:${isOff ? RED_500 : GREEN_600};">${statusLabel(s)}</span>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-weight:600;font-size:11px;color:${GRAY_900};">${busCell}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:11px;color:${GRAY_700};">${directionLabel(s.direction)}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:11px;color:${GRAY_700};">${route}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:11px;text-align:center;color:${GRAY_700};">${arrival}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};font-size:10px;text-align:center;color:${GRAY_500};">${daysLabel(s.days)}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid ${GRAY_200};text-align:center;">
+            <span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:${isOff ? '#fef2f2' : '#ecfdf5'};color:${isOff ? RED_500 : GREEN_600};">${statusLabel(s)}</span>
           </td>
         </tr>`;
     })
     .join('');
 
   return `
-    <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px;">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:4px;">
       <thead>
         <tr style="background:${TEAL_700};color:${WHITE};">
-          <th style="padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid ${TEAL_800};">বাস নম্বর</th>
-          <th style="padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid ${TEAL_800};">দিক</th>
-          <th style="padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid ${TEAL_800};">রুট</th>
-          <th style="padding:8px 10px;text-align:center;font-weight:600;border-bottom:2px solid ${TEAL_800};">পৌঁছানোর সময়</th>
-          <th style="padding:8px 10px;text-align:center;font-weight:600;border-bottom:2px solid ${TEAL_800};">দিন</th>
-          <th style="padding:8px 10px;text-align:center;font-weight:600;border-bottom:2px solid ${TEAL_800};">অবস্থা</th>
+          <th style="padding:6px 8px;text-align:left;font-weight:600;font-size:10px;">বাস নম্বর</th>
+          <th style="padding:6px 8px;text-align:left;font-weight:600;font-size:10px;">দিক</th>
+          <th style="padding:6px 8px;text-align:left;font-weight:600;font-size:10px;">রুট</th>
+          <th style="padding:6px 8px;text-align:center;font-weight:600;font-size:10px;">পৌঁছানোর সময়</th>
+          <th style="padding:6px 8px;text-align:center;font-weight:600;font-size:10px;">দিন</th>
+          <th style="padding:6px 8px;text-align:center;font-weight:600;font-size:10px;">অবস্থা</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -105,27 +104,27 @@ const renderTable = (items) => {
 };
 
 const renderTimeGroup = (time, slot) => `
-  <div style="margin-top:16px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-      <div style="width:8px;height:8px;border-radius:50%;background:${TEAL_600};"></div>
-      <span style="font-weight:700;color:${TEAL_700};font-size:14px;">${formatTime(time)}</span>
-      <span style="color:${GRAY_400};font-size:12px;margin-left:4px;">(${bengaliNumber.format(slot.length)}টি বাস)</span>
+  <div style="margin-top:10px;">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+      <div style="width:6px;height:6px;border-radius:50%;background:${TEAL_600};"></div>
+      <span style="font-weight:700;color:${TEAL_700};font-size:12px;">${formatTime(time)}</span>
+      <span style="color:${GRAY_400};font-size:10px;margin-left:2px;">(${bengaliNumber.format(slot.length)}টি বাস)</span>
     </div>
     ${renderTable(slot)}
   </div>`;
 
-const renderAudienceSection = (audKey, audLabel, icon, group) => {
+const renderAudienceSection = (audLabel, icon, group) => {
   if (group.length === 0) return '';
   const timeGroups = groupByTime(group)
     .map(([time, slot]) => renderTimeGroup(time, slot))
     .join('');
 
   return `
-    <div style="margin-top:20px;padding-bottom:4px;">
-      <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:2px solid ${TEAL_200};">
-        <span style="font-size:15px;">${icon}</span>
-        <span style="font-weight:700;color:${GRAY_900};font-size:15px;">${audLabel}</span>
-        <span style="color:${GRAY_400};font-size:12px;margin-left:4px;">\u2022 ${bengaliNumber.format(group.length)}টি বাস</span>
+    <div style="margin-top:14px;">
+      <div style="display:flex;align-items:center;gap:6px;padding-bottom:5px;border-bottom:2px solid ${TEAL_200};">
+        <span style="font-size:13px;">${icon}</span>
+        <span style="font-weight:700;color:${GRAY_900};font-size:13px;">${audLabel}</span>
+        <span style="color:${GRAY_400};font-size:10px;margin-left:2px;">\u2022 ${bengaliNumber.format(group.length)}টি</span>
       </div>
       ${timeGroups}
     </div>`;
@@ -136,15 +135,15 @@ const renderSection = (dayKey, dayLabel, buckets) => {
   if (total === 0) return '';
 
   const audienceBlocks = [
-    renderAudienceSection('student', 'শিক্ষার্থী বাস', '🚌', buckets[dayKey].student),
-    renderAudienceSection('teacher', 'শিক্ষক / কর্মকর্তা / কর্মচারী বাস', '👨\u200d🏫', buckets[dayKey].teacher),
+    renderAudienceSection('শিক্ষার্থী বাস', '\uD83D\uDE8C', buckets[dayKey].student),
+    renderAudienceSection('শিক্ষক / কর্মকর্তা / কর্মচারী বাস', '\uD83D\uDC68\u200D\uD83C\uDFEB', buckets[dayKey].teacher),
   ].join('');
 
   return `
-    <div style="margin-top:28px;page-break-inside:avoid;">
-      <div style="background:linear-gradient(135deg,${TEAL_600},${TEAL_700});color:${WHITE};padding:12px 18px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:16px;font-weight:700;">${dayLabel}</span>
-        <span style="font-size:12px;opacity:0.9;">${bengaliNumber.format(total)}টি শিডিউল</span>
+    <div style="margin-top:18px;page-break-inside:avoid;">
+      <div style="background:${TEAL_600};color:${WHITE};padding:8px 14px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;font-weight:700;">${dayLabel}</span>
+        <span style="font-size:10px;opacity:0.9;">${bengaliNumber.format(total)}টি শিডিউল</span>
       </div>
       ${audienceBlocks}
     </div>`;
@@ -160,14 +159,14 @@ const renderReportHTML = ({ schedules, scope, filters }) => {
 
   const filterLine =
     scope === 'all'
-      ? 'সব শিডিউল'
-      : `${filters.busAudience === 'TEACHER' ? 'শিক্ষক/কর্মকর্তা' : 'শিক্ষার্থী'} · ${filters.dayGroup === 'WEEKEND' ? 'শুক্রবার-শনিবার' : 'কর্মদিবস'} · ${filters.statusFilter === 'ACTIVE' ? 'সক্রিয়' : filters.statusFilter === 'INACTIVE' ? 'নিষ্ক্রিয়' : 'সব'}`;
+      ? 'সব শিডিউল (ডাটাবেস থেকে)'
+      : `${filters.busAudience === 'TEACHER' ? 'শিক্ষক/কর্মকর্তা' : 'শিক্ষার্থী'} \u00B7 ${filters.dayGroup === 'WEEKEND' ? 'শুক্র-শনি' : 'কর্মদিবস'} \u00B7 ${filters.statusFilter === 'ACTIVE' ? 'সক্রিয়' : filters.statusFilter === 'INACTIVE' ? 'নিষ্ক্রিয়' : 'সব'}`;
 
   return `
     <div id="pdf-report-root" style="
       font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'SolaimanLipi', sans-serif;
-      width: 1123px;
-      padding: 32px 36px;
+      width: 1000px;
+      padding: 24px 28px;
       background: ${BG};
       color: ${GRAY_900};
       box-sizing: border-box;
@@ -175,50 +174,50 @@ const renderReportHTML = ({ schedules, scope, filters }) => {
       <header style="
         background: linear-gradient(135deg, ${TEAL_600}, ${TEAL_800});
         color: ${WHITE};
-        padding: 22px 28px;
-        border-radius: 12px;
+        padding: 16px 22px;
+        border-radius: 10px;
         display: flex;
         justify-content: space-between;
         align-items: center;
       ">
         <div>
-          <div style="font-size:22px;font-weight:700;letter-spacing:0.3px;">CoU Bus Tracker</div>
-          <div style="font-size:14px;opacity:0.9;margin-top:2px;">বাস শিডিউল রিপোর্ট</div>
+          <div style="font-size:18px;font-weight:700;">CoU Bus Tracker</div>
+          <div style="font-size:11px;opacity:0.85;margin-top:2px;">বাস শিডিউল রিপোর্ট</div>
         </div>
-        <div style="text-align:right;font-size:12px;opacity:0.9;line-height:1.6;">
+        <div style="text-align:right;font-size:10px;opacity:0.9;line-height:1.5;">
           <div>তৈরি: ${bnDateTime()}</div>
           <div>${filterLine}</div>
         </div>
       </header>
 
-      <div style="display:flex;gap:12px;margin-top:16px;">
-        <div style="flex:1;background:${TEAL_50};border:1px solid ${TEAL_200};border-radius:8px;padding:12px 16px;text-align:center;">
-          <div style="font-size:22px;font-weight:700;color:${TEAL_700};">${bengaliNumber.format(schedules.length)}</div>
-          <div style="font-size:11px;color:${GRAY_500};margin-top:2px;">মোট শিডিউল</div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <div style="flex:1;background:${TEAL_50};border:1px solid ${TEAL_200};border-radius:6px;padding:8px 10px;text-align:center;">
+          <div style="font-size:18px;font-weight:700;color:${TEAL_700};">${bengaliNumber.format(schedules.length)}</div>
+          <div style="font-size:9px;color:${GRAY_500};margin-top:1px;">মোট</div>
         </div>
-        <div style="flex:1;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:12px 16px;text-align:center;">
-          <div style="font-size:22px;font-weight:700;color:${GREEN_600};">${bengaliNumber.format(activeCount)}</div>
-          <div style="font-size:11px;color:${GRAY_500};margin-top:2px;">সক্রিয়</div>
+        <div style="flex:1;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:8px 10px;text-align:center;">
+          <div style="font-size:18px;font-weight:700;color:${GREEN_600};">${bengaliNumber.format(activeCount)}</div>
+          <div style="font-size:9px;color:${GRAY_500};margin-top:1px;">সক্রিয়</div>
         </div>
-        <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;text-align:center;">
-          <div style="font-size:22px;font-weight:700;color:${RED_500};">${bengaliNumber.format(inactiveCount)}</div>
-          <div style="font-size:11px;color:${GRAY_500};margin-top:2px;">নিষ্ক্রিয়</div>
+        <div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px 10px;text-align:center;">
+          <div style="font-size:18px;font-weight:700;color:${RED_500};">${bengaliNumber.format(inactiveCount)}</div>
+          <div style="font-size:9px;color:${GRAY_500};margin-top:1px;">নিষ্ক্রিয়</div>
         </div>
-        <div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;text-align:center;">
-          <div style="font-size:22px;font-weight:700;color:#2563eb;">${bengaliNumber.format(weekdayCount)}</div>
-          <div style="font-size:11px;color:${GRAY_500};margin-top:2px;">কর্মদিবস</div>
+        <div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px 10px;text-align:center;">
+          <div style="font-size:18px;font-weight:700;color:#2563eb;">${bengaliNumber.format(weekdayCount)}</div>
+          <div style="font-size:9px;color:${GRAY_500};margin-top:1px;">কর্মদিবস</div>
         </div>
-        <div style="flex:1;background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;text-align:center;">
-          <div style="font-size:22px;font-weight:700;color:#d97706;">${bengaliNumber.format(weekendCount)}</div>
-          <div style="font-size:11px;color:${GRAY_500};margin-top:2px;">শুক্র-শনি</div>
+        <div style="flex:1;background:#fefce8;border:1px solid #fde68a;border-radius:6px;padding:8px 10px;text-align:center;">
+          <div style="font-size:18px;font-weight:700;color:#d97706;">${bengaliNumber.format(weekendCount)}</div>
+          <div style="font-size:9px;color:${GRAY_500};margin-top:1px;">শুক্র-শনি</div>
         </div>
       </div>
 
       ${renderSection('weekday', 'কর্মদিবস (রবিবার \u2013 বৃহস্পতিবার)', buckets)}
       ${renderSection('weekend', 'শুক্রবার ও শনিবার', buckets)}
 
-      <footer style="margin-top:32px;border-top:1px solid ${GRAY_200};padding-top:12px;display:flex;justify-content:space-between;color:${GRAY_400};font-size:11px;">
-        <span>CoU Bus Tracker \u2014 বাস শিডিউল রিপোর্ট</span>
+      <footer style="margin-top:20px;border-top:1px solid ${GRAY_200};padding-top:8px;display:flex;justify-content:space-between;color:${GRAY_400};font-size:9px;">
+        <span>CoU Bus Tracker \u2014 বাস শিডিউল</span>
         <span id="pdf-page-info"></span>
       </footer>
     </div>`;
@@ -246,13 +245,13 @@ const ensureBengaliFont = () => {
 const mountReportNode = (htmlString) => {
   const container = document.createElement('div');
   container.id = 'pdf-report-mount';
-  container.style.cssText = `position:fixed;left:-100000px;top:0;width:1123px;background:${BG};pointer-events:none;z-index:-1;`;
+  container.style.cssText = `position:fixed;left:-100000px;top:0;width:1000px;background:${BG};pointer-events:none;z-index:-1;`;
   container.innerHTML = htmlString;
   document.body.appendChild(container);
   return container;
 };
 
-const A4_PX = { width: 1123, height: 794 };
+const A4_PX = { width: 1000, height: 707 };
 
 const sliceCanvas = (canvas) => {
   const pages = [];
@@ -266,7 +265,7 @@ const sliceCanvas = (canvas) => {
     const ctx = c.getContext('2d');
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, c.width, sliceH);
-    ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+    ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, c.width, sliceH);
     pages.push(c.toDataURL('image/png'));
     y += sliceH;
   }
@@ -291,13 +290,13 @@ export async function exportSchedulesToPDF({ schedules, scope, filters }) {
       mount.firstElementChild?.scrollHeight ?? 0,
     );
     canvas = await html2canvas(mount, {
-      scale: 2,
+      scale: 1.5,
       backgroundColor: BG,
       useCORS: true,
       logging: false,
-      width: 1123,
+      width: 1000,
       height: fullHeight,
-      windowWidth: 1123,
+      windowWidth: 1000,
       windowHeight: fullHeight,
     });
   } catch (err) {
