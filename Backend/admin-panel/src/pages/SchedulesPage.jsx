@@ -1,5 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { scheduleAPI, busAPI } from '../api';
+import {
+  formatTime,
+  bengaliNumber,
+  routeParts,
+  isTeacherBus,
+} from '../utils/format';
+import ExportPdfButton from '../components/ExportPdfButton';
 import { Plus, Edit2, Trash2, X, Save, Search, BookOpen, Clock3, CalendarDays, BusFront, UsersRound, Power } from 'lucide-react';
 
 const EMPTY_FORM = {
@@ -26,22 +33,7 @@ const DEFAULT_ROUTE_OPTIONS = [
   'ক্যাম্পাস > ধর্মপুর > কান্দিরপাড়'
 ];
 
-const bengaliNumber = new Intl.NumberFormat('bn-BD');
-
-const formatTime = (time) => {
-  if (!time) return 'নির্ধারিত নয়';
-  const [hour, minute] = time.split(':').map(Number);
-  const period = hour < 12 ? 'সকাল' : hour < 16 ? 'দুপুর' : hour < 19 ? 'বিকাল' : 'রাত';
-  const hour12 = hour % 12 || 12;
-  return `${period} ${bengaliNumber.format(hour12)}:${bengaliNumber.format(minute).padStart(2, '০')}`;
-};
-
-const routeParts = (route = '') => {
-  const points = route.replaceAll('â†’', '→').split(/\s*(?:→|>|->|–|-)\s*/).filter(Boolean);
-  return { startPoint: points[0] || '', endPoint: points.slice(1).join(' → ') || '' };
-};
-
-const isTeacherBus = (schedule) => ['TEACHER', 'OFFICER', 'STAFF'].includes(schedule.category?.toUpperCase());
+// formatTime, bengaliNumber, routeParts, isTeacherBus are imported from '../utils/format'.
 
 function ScheduleCard({ schedule, onEdit, onDelete, onToggle }) {
   const goingToCampus = schedule.direction === 'UP';
@@ -181,9 +173,16 @@ export default function SchedulesPage() {
           <h1 className="text-3xl font-bold">বাস শিডিউল ব্যবস্থাপনা</h1>
           <p className="mt-1">মোট {bengaliNumber.format(schedules.length)}টি শিডিউল ({bengaliNumber.format(schedules.filter(s => s.isActive !== false).length)}টি সক্রিয়, {bengaliNumber.format(schedules.filter(s => s.isActive === false).length)}টি নিষ্ক্রিয়)</p>
         </div>
-        <button onClick={openCreateForm} className="btn-primary schedule-add-button">
-          <Plus className="w-4 h-4" /> শিডিউল যোগ করুন
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportPdfButton
+            visibleSchedules={visibleSchedules}
+            schedules={schedules}
+            filters={{ busAudience, dayGroup, statusFilter }}
+          />
+          <button onClick={openCreateForm} className="btn-primary schedule-add-button">
+            <Plus className="w-4 h-4" /> শিডিউল যোগ করুন
+          </button>
+        </div>
       </div>
 
       <div className="schedule-search mb-6">
