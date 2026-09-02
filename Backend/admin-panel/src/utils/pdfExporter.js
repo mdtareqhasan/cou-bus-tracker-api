@@ -273,10 +273,36 @@ const sliceCanvas = (canvas) => {
 };
 
 export async function exportSchedulesToPDF({ schedules, scope, filters }) {
+  console.log('[pdfExporter] called with', {
+    scope,
+    totalReceived: Array.isArray(schedules) ? schedules.length : 0,
+    sample: Array.isArray(schedules) && schedules.length > 0 ? {
+      id: schedules[0].id,
+      busNumber: schedules[0].busNumber,
+      category: schedules[0].category,
+      departureTime: schedules[0].departureTime,
+      days: schedules[0].days,
+    } : null,
+  });
+
   if (!Array.isArray(schedules) || schedules.length === 0) {
     alert('নির্বাচিত স্কোপে কোনো শিডিউল নেই');
     return;
   }
+
+  // Log category distribution so we can see why teacher/teacher section might be empty.
+  const catCount = schedules.reduce((acc, s) => {
+    const c = s.category || '(empty)';
+    acc[c] = (acc[c] || 0) + 1;
+    return acc;
+  }, {});
+  const daysCount = schedules.reduce((acc, s) => {
+    const d = s.days || '(empty)';
+    acc[d] = (acc[d] || 0) + 1;
+    return acc;
+  }, {});
+  console.log('[pdfExporter] category distribution:', catCount);
+  console.log('[pdfExporter] days distribution:', daysCount);
 
   await ensureBengaliFont();
 
