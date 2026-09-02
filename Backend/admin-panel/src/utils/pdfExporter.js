@@ -75,28 +75,36 @@ const renderTable = (items) => {
       const isOff = s.isActive === false;
       return `
         <tr data-row-id="${i}" style="background:${bg};">
-          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};font-weight:600;font-size:10px;color:${GRAY_900};">${busCell}</td>
-          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};font-size:10px;color:${GRAY_700};">${directionLabel(s.direction)}</td>
-          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};font-size:10px;color:${GRAY_700};">${route}</td>
-          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};font-size:10px;text-align:center;color:${GRAY_700};">${arrival}</td>
-          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};font-size:9px;text-align:center;color:${GRAY_500};">${daysLabel(s.days)}</td>
-          <td style="padding:3px 6px;border-bottom:1px solid ${GRAY_200};text-align:center;">
-            <span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600;background:${isOff ? '#fef2f2' : '#ecfdf5'};color:${isOff ? RED_500 : GREEN_600};">${statusLabel(s)}</span>
+          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};font-weight:600;font-size:9px;color:${GRAY_900};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${busCell}</td>
+          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};font-size:9px;color:${GRAY_700};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${directionLabel(s.direction)}</td>
+          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};font-size:9px;color:${GRAY_700};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${route}</td>
+          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};font-size:9px;text-align:center;color:${GRAY_700};overflow:hidden;">${arrival}</td>
+          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};font-size:8px;text-align:center;color:${GRAY_500};overflow:hidden;">${daysLabel(s.days)}</td>
+          <td style="padding:2px 5px;border-bottom:1px solid ${GRAY_200};text-align:center;overflow:hidden;">
+            <span style="display:inline-block;padding:0px 4px;border-radius:3px;font-size:8px;font-weight:600;background:${isOff ? '#fef2f2' : '#ecfdf5'};color:${isOff ? RED_500 : GREEN_600};">${statusLabel(s)}</span>
           </td>
         </tr>`;
     })
     .join('');
 
   return `
-    <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:3px;">
+    <table style="width:100%;border-collapse:collapse;font-size:9px;margin-top:3px;table-layout:fixed;">
+      <colgroup>
+        <col style="width:14%;">
+        <col style="width:14%;">
+        <col style="width:32%;">
+        <col style="width:12%;">
+        <col style="width:16%;">
+        <col style="width:12%;">
+      </colgroup>
       <thead>
         <tr style="background:${TEAL_700};color:${WHITE};">
-          <th style="padding:4px 6px;text-align:left;font-weight:600;font-size:9px;">বাস নম্বর</th>
-          <th style="padding:4px 6px;text-align:left;font-weight:600;font-size:9px;">দিক</th>
-          <th style="padding:4px 6px;text-align:left;font-weight:600;font-size:9px;">রুট</th>
-          <th style="padding:4px 6px;text-align:center;font-weight:600;font-size:9px;">পৌঁছানোর সময়</th>
-          <th style="padding:4px 6px;text-align:center;font-weight:600;font-size:9px;">দিন</th>
-          <th style="padding:4px 6px;text-align:center;font-weight:600;font-size:9px;">অবস্থা</th>
+          <th style="padding:3px 5px;text-align:left;font-weight:600;font-size:8px;overflow:hidden;">বাস নম্বর</th>
+          <th style="padding:3px 5px;text-align:left;font-weight:600;font-size:8px;overflow:hidden;">দিক</th>
+          <th style="padding:3px 5px;text-align:left;font-weight:600;font-size:8px;overflow:hidden;">রুট</th>
+          <th style="padding:3px 5px;text-align:center;font-weight:600;font-size:8px;overflow:hidden;">পৌঁছানোর সময়</th>
+          <th style="padding:3px 5px;text-align:center;font-weight:600;font-size:8px;overflow:hidden;">দিন</th>
+          <th style="padding:3px 5px;text-align:center;font-weight:600;font-size:8px;overflow:hidden;">অবস্থা</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -166,10 +174,12 @@ const renderReportHTML = ({ schedules, scope, filters }) => {
     <div id="pdf-report-root" style="
       font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'SolaimanLipi', sans-serif;
       width: 1000px;
+      max-width: 1000px;
       padding: 12px 16px;
       background: ${BG};
       color: ${GRAY_900};
       box-sizing: border-box;
+      overflow: hidden;
     ">
       <header style="
         background: linear-gradient(135deg, ${TEAL_600}, ${TEAL_800});
@@ -190,7 +200,7 @@ const renderReportHTML = ({ schedules, scope, filters }) => {
         </div>
       </header>
 
-      <div style="display:flex;gap:5px;margin-top:6px;">
+      <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:nowrap;">
         <div style="flex:1;background:${TEAL_50};border:1px solid ${TEAL_200};border-radius:5px;padding:4px 5px;text-align:center;">
           <div style="font-size:13px;font-weight:700;color:${TEAL_700};">${bengaliNumber.format(schedules.length)}</div>
           <div style="font-size:8px;color:${GRAY_500};">মোট</div>
@@ -296,11 +306,10 @@ const sliceCanvasAtBlockBoundaries = (canvas, boundaries) => {
 
       if (b.type === 'afterRow') {
         lastAfterRowY = b.y;
-        // Only update bestY if no later clean block break is possible.
-        if (bestType !== 'beforeBlock') {
-          bestY = b.y;
-          bestType = 'afterRow';
-        }
+        // Always update bestY to the latest afterRow; if a clean block
+        // break exists later in the same page, it'll overwrite us.
+        bestY = b.y;
+        bestType = 'afterRow';
       } else if (b.type === 'beforeBlock') {
         // Compute block extent: from this Y to the next sibling-or-higher
         // beforeBlock (i.e. same level or higher in DOM = same or lower level).
@@ -316,16 +325,26 @@ const sliceCanvasAtBlockBoundaries = (canvas, boundaries) => {
             }
           }
         }
-        // If block fits on this page (blockEnd ≤ pageEndTarget), use this cut.
+        // If block fits on this page (blockEnd ≤ pageEndTarget), cut at
+        // the last `afterRow` boundary (or pageStartY if no rows yet).
+        // Cutting AT block's own Y would include the block's header in
+        // this page, which then re-appears at the top of the next page
+        // — so always cut BEFORE the block, not AT it.
         if (blockEnd <= pageEndTarget) {
-          bestY = b.y;
-          bestType = 'beforeBlock';
+          // Prefer this cut only if it's deeper than current bestY
+          // (avoids staying at page start when no rows processed yet).
+          const candidateY = Math.max(lastAfterRowY, pageStartY);
+          if (candidateY > bestY || bestY <= pageStartY) {
+            bestY = candidateY;
+            bestType = 'beforeBlock';
+          }
         }
-        // else: this block won't fit; keep bestY as lastAfterRowY and keep scanning.
+        // else: this block won't fit; keep bestY as lastAfterRowY.
       }
     }
 
-    // Forward progress guarantee.
+    // Forward progress guarantee — if no useful cut found, advance by
+    // one full page (rare; means a single block is taller than a page).
     if (bestY <= pageStartY) {
       bestY = Math.min(pageStartY + pageHeight, canvasH);
       if (bestY <= pageStartY) break;
