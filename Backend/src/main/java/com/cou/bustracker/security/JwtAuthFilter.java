@@ -2,6 +2,7 @@ package com.cou.bustracker.security;
 
 import com.cou.bustracker.repository.AdminRepository;
 import com.cou.bustracker.repository.StudentRepository;
+import com.cou.bustracker.repository.SuperAdminRepository;
 import com.cou.bustracker.repository.TeacherRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -28,6 +29,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final AdminRepository adminRepository;
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
+    private final SuperAdminRepository superAdminRepository;
 
     @Override
     protected void doFilterInternal(
@@ -75,6 +77,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     .orElse(false);
             case "TEACHER" -> teacherRepository.findByEmail(email)
                     .map(teacher -> Boolean.TRUE.equals(teacher.getIsActive()))
+                    .orElse(false);
+            case "SUPER_ADMIN" -> superAdminRepository.findByEmail(email)
+                    .map(superAdmin -> Boolean.TRUE.equals(superAdmin.getIsActive()))
                     .orElse(false);
             default -> false;
         };

@@ -2,6 +2,7 @@ package com.cou.bustracker.config;
 
 import com.cou.bustracker.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,6 +27,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -44,9 +46,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/google/**").permitAll()
                         .requestMatchers("/api/auth/email-verification/**").permitAll()
                         .requestMatchers("/api/auth/admin/login").permitAll()
+                        // Public Flutter runtime config
+                        .requestMatchers("/api/config", "/api/config/**").permitAll()
+                        // Public super-admin login only; everything else under /api/super-admin requires SUPER_ADMIN
+                        .requestMatchers("/api/super-admin/auth/login").permitAll()
                         // Protected auth endpoints (profile, upload-id-card) - require JWT
                         .requestMatchers("/api/auth/student/me", "/api/auth/student/upload-id-card").authenticated()
                         .requestMatchers("/api/auth/teacher/me", "/api/auth/teacher/upload-id-card").authenticated()
+                        .requestMatchers("/api/super-admin/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/buses/**").permitAll()
                         .requestMatchers("/api/schedules/**").permitAll()
