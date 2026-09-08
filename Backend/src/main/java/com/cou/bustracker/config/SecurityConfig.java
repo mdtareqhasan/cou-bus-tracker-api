@@ -16,6 +16,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -40,6 +41,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // Allow all OPTIONS requests for CORS preflight
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Public auth endpoints (register, login, google, email verification)
                         .requestMatchers("/api/auth/student/register", "/api/auth/student/login").permitAll()
                         .requestMatchers("/api/auth/teacher/register", "/api/auth/teacher/login").permitAll()
@@ -103,7 +106,11 @@ public class SecurityConfig {
                 "http://127.0.0.1:5174",
                 "http://127.0.0.1:56545",
                 "https://cou-bus-tracker-backend-admin-frontend-1.onrender.com",
-                "https://co-u-bus-tracker-flutter-chi.vercel.app"));
+                "https://cou-bus-tracker-backend-admin-frontend.onrender.com",
+                "https://co-u-bus-tracker-flutter-chi.vercel.app",
+                // TODO: Replace with actual Vercel deployment URL of super-admin panel
+                "https://cou-bus-tracker-super-admin.vercel.app",
+                "https://cou-super-admin.vercel.app"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));
