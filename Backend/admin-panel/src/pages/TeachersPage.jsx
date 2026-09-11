@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { teacherAPI } from '../api';
 import { CheckCircle, X, XCircle, ShieldCheck, Search, Users, Eye, Trash2 } from 'lucide-react';
+import IdCardThumb from '../components/IdCardThumb';
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState([]);
@@ -79,9 +80,16 @@ export default function TeachersPage() {
               {filtered.map(teacher => (
                 <tr key={teacher.id} className="table-row">
                   <td className="px-6 py-4">
-                    <div>
-                      <p className="font-semibold text-gray-900">{teacher.name}</p>
-                      <p className="text-xs text-gray-400">{teacher.email}</p>
+                    <div className="flex items-center gap-3">
+                      <IdCardThumb
+                        url={teacher.idCardImageUrl}
+                        name={teacher.name}
+                        onOpen={() => setViewCard(teacher)}
+                      />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">{teacher.name}</p>
+                        <p className="text-xs text-gray-400 truncate">{teacher.email}</p>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 font-mono text-gray-700">{teacher.teacherId || '-'}</td>

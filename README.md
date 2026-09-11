@@ -23,8 +23,12 @@
 |---|---|---|---|
 | 🔧 **REST API** (local backend) | `Backend/` | Java 21 · Spring Boot 3.3 · Spring Security + JWT · Spring Data JPA · **PostgreSQL** · Flyway · OpenAPI | `http://localhost:8080` |
 | 🐳 **REST API** (Docker backend) | `Backend/` | Spring Boot + containerized PostgreSQL | `http://localhost:8081` |
-| 🎛️ **Admin panel** (frontend) | `Backend/admin-panel/` | React 19 · Vite · Tailwind CSS 4 · React Router 7 · Axios | `http://localhost:5173` |
-| 📱 **Android app spec** | `Backend/CoUBusTracker_Project_Spec.md` | Android-ready API & UI specification | — |
+| ☁️ **REST API** (Render) | `Backend/` | Same Spring Boot jar on Render | `https://cou-bus-tracker-backend-admin-frontend.onrender.com` |
+| 🎛️ **Admin panel** | `Backend/admin-panel/` | React 19 · Vite · Tailwind CSS 4 · React Router 7 · Axios | `http://localhost:5173` |
+| 🎛️ **Admin panel** (Render) | `Backend/admin-panel/` | Same React build, static site on Render | `https://cou-bus-tracker-backend-admin-frontend-1.onrender.com` |
+| 👑 **Super admin panel** | `super_admin/` | React 18 · Vite · MUI 5 · React Hook Form · Yup | `http://localhost:5174` |
+| 👑 **Super admin panel** (Vercel) | `super_admin/` | Same React build on Vercel | `https://cou-bus-tracker-super-admin.vercel.app` |
+| 📱 **Android app** | `Backend/CoUBusTracker_Project_Spec.md` | Android-ready API & UI specification | — |
 
 ---
 
@@ -37,11 +41,13 @@
   - [Configuration](#configuration)
   - [Run locally](#run-locally)
   - [Docker deployment](#docker-deployment)
+  - [Render deployment](#render-deployment)
   - [Database migrations](#database-migrations)
   - [Data model](#data-model)
   - [API reference](#api-reference)
   - [Authentication & security](#authentication--security)
 - [🖥️ Frontend (React admin panel)](#️-frontend-react-admin-panel)
+- [👑 Super admin panel](#-super-admin-panel)
 - [📱 Android application](#-android-application)
 - [🧪 Testing](#-testing)
 - [🛠️ Troubleshooting](#️-troubleshooting)
@@ -74,6 +80,16 @@
 - 🛡️ Admin user management and admin profile editing
 - 📱 Responsive Tailwind CSS layout
 
+### 👑 Super admin panel
+
+- 🔐 Separate super admin login (independent from regular admins)
+- 📊 Dashboard with system-wide stats (total admins, buses, students, teachers)
+- 🛡️ CRUD for super admin accounts (create, activate/deactivate, delete)
+- ⚙️ **Server config** — edit runtime config keys (API base URL, Play Store URL, maintenance mode, etc.)
+- 📢 **Broadcast notice** — send push notification messages to all app users
+- 🔧 **App version control** — set latest/minimum Flutter app version, force-update flag
+- 📱 Modern glassmorphism UI with MUI 5
+
 ---
 
 ## 🗂️ Project structure
@@ -93,18 +109,21 @@ Backend/
 │   │   ├── java/com/cou/bustracker/
 │   │   │   ├── config/              # Security, OpenAPI, WebMVC config
 │   │   │   ├── controller/          # Public + admin REST controllers
-│   │   │   ├── dto/                 # request/ and response/ DTOs
-│   │   │   ├── entity/              # Bus, Schedule, Notice, Student, Teacher, Admin, TrackerLink
+│   │   │   │   └── superadmin/      # Super admin controllers (auth, config, management, notices)
+│   │   │   ├── dto/                 # request/, response/, config/ DTOs
+│   │   │   ├── entity/              # Bus, Schedule, Notice, Student, Teacher, Admin,
+│   │   │   │                        # TrackerLink, SuperAdmin, AppConfig, EmailVerificationOtp
 │   │   │   ├── exception/           # Global exception handler
 │   │   │   ├── repository/          # Spring Data JPA repositories
 │   │   │   ├── security/            # JWT service, filter, user details service
 │   │   │   ├── service/             # Business logic services
 │   │   │   └── CouBusTrackerApplication.java
 │   │   └── resources/
-│   │       ├── db/migration/        # Flyway SQL migrations (V1–V13, PostgreSQL)
+│   │       ├── db/migration/        # Flyway SQL migrations (V1–V16, PostgreSQL)
 │   │       ├── application.yaml         # Base config (profile, JWT, server, swagger)
 │   │       ├── application-dev.yaml     # Dev profile — local PostgreSQL datasource
-│   │       └── application-docker.yaml  # Docker profile — container PostgreSQL datasource
+│   │       ├── application-docker.yaml  # Docker profile — container PostgreSQL datasource
+│   │       └── application-render.yaml  # Render profile — managed PostgreSQL datasource
 │   └── test/                        # Unit/integration tests
 ├── Dockerfile                       # Multi-stage build (Maven + JRE)
 ├── .dockerignore                    # Excludes target/, node_modules/, .env from build context
@@ -112,6 +131,21 @@ Backend/
 ├── pom.xml                          # Maven build (Spring Boot 3.3.2)
 ├── .env / .env.example              # Environment variables for Docker
 └── …Spec.md                         # Android app & project specifications
+
+super_admin/                         # Super admin panel (React + Vite + MUI)
+├── api/                             # Vercel serverless functions
+├── public/                          # Static assets
+├── src/
+│   ├── api/axios.js                 # Axios instance with super admin auth interceptor
+│   ├── components/                  # Sidebar, TopBar, LoadingScreen, ConfirmDialog
+│   ├── context/AuthContext.jsx      # Super admin auth state
+│   ├── layouts/DashboardLayout.jsx  # Sidebar + TopBar shell
+│   ├── pages/                       # Login, Dashboard, SuperAdmins, ServerConfig,
+│   │                                # AppVersion, BroadcastNotice
+│   ├── theme.js                     # MUI theme (glassmorphism palette)
+│   └── utils/validationSchemas.js   # Yup schemas for forms
+├── vercel.json                      # SPA rewrite rules
+└── package.json
 ```
 
 ---
@@ -199,6 +233,13 @@ The app also needs `admin` initialization data. The default admin (created by mi
 | Password | `Admin@123` |
 
 > 🚨 **Change this password before any public deployment.**
+
+The default **super admin** (seeded by `SuperAdminDataInitializer` at startup) is:
+
+| Field | Value |
+|---|---|
+| Email | `superadmincou@gmail.com` |
+| Password | `Admin@123` |
 
 ## Run locally
 
@@ -299,6 +340,37 @@ Useful commands inside `psql`:
 SELECT * FROM schedules;
 ```
 
+## ☁️ Render deployment
+
+The backend is deployed as a **Web Service** on Render with the `render` profile.
+
+### Environment variables (Render dashboard)
+
+| Variable | Example | Purpose |
+|---|---|---|
+| `SPRING_PROFILES_ACTIVE` | `render` | Activates `application-render.yaml` |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://...` | Render-managed PostgreSQL URL |
+| `SPRING_DATASOURCE_USERNAME` | `dbuser` | DB username |
+| `SPRING_DATASOURCE_PASSWORD` | `****` | DB password |
+| `JWT_SECRET` | `your-production-secret` | JWT signing key (≥ 32 chars) |
+| `PORT` | `8080` | Render assigns this automatically |
+| `CLOUDINARY_CLOUD_NAME` | `...` | Image uploads (optional) |
+| `CLOUDINARY_API_KEY` | `...` | Image uploads (optional) |
+| `CLOUDINARY_API_SECRET` | `...` | Image uploads (optional) |
+| `GOOGLE_OAUTH_CLIENT_ID` | `...` | Google Sign-In for Flutter app |
+
+### Render static sites
+
+| Site | Source | URL |
+|---|---|---|
+| Admin panel | `Backend/admin-panel/dist/` | `https://cou-bus-tracker-backend-admin-frontend-1.onrender.com` |
+
+### Vercel (super admin panel)
+
+| Site | Source | URL |
+|---|---|---|
+| Super admin panel | `super_admin/dist/` | `https://cou-bus-tracker-super-admin.vercel.app` |
+
 ## 🗃️ Database migrations
 
 Flyway runs automatically whenever the backend starts. Migrations live at `src/main/resources/db/migration/`:
@@ -318,6 +390,9 @@ Flyway runs automatically whenever the backend starts. Migrations live at `src/m
 | `V11__move_legacy_saturday_schedules_to_weekdays.sql` | Re-route legacy Saturday schedules |
 | `V12__reseed_data_postgresql.sql` | Seed/repair data + fix missing sequences (PostgreSQL) |
 | `V13__fix_boolean_columns.sql` | Convert INTEGER boolean columns to native BOOLEAN |
+| `V14__add_teacher_identity_cards_and_google_auth.sql` | Teacher identity cards, Google auth subject for students & teachers |
+| `V15__add_email_verification.sql` | Email verification OTP table, `is_email_verified` columns |
+| `V16__create_super_admins_and_app_config.sql` | `super_admins` table, `app_config` key/value table (seeded with defaults) |
 
 > 💡 **PostgreSQL note:** All migrations use PostgreSQL-compatible syntax (`BIGSERIAL`, native `BOOLEAN`, no `ENGINE` clauses). When migrating from MySQL via DBeaver, boolean columns may be imported as `INTEGER` — V13 fixes this automatically.
 
@@ -331,9 +406,12 @@ Flyway runs automatically whenever the backend starts. Migrations live at `src/m
 | 🕒 **Schedule** | id, departureTime, arrivalTime, direction, startPoint, endPoint, days (e.g. `SUN-THU`), **isActive**, createdAt | Many→1 Bus |
 | 📍 **TrackerLink** | id, url | 1→1 Bus |
 | 📢 **Notice** | id, title, body, expiryHours (default 24), isActive, expiresAt, createdAt | — |
-| 🎓 **Student** | id, name, email, password, studentId, department, varsityBatch, idCardImageUrl, isEduMail, isVerified, **isActive**, createdAt | — |
-| 🧑‍🏫 **Teacher** | id, name, email, password, teacherId, designation, department, phone, isEduMail, isVerified, **isActive**, createdAt | — |
+| 🎓 **Student** | id, name, email, password, studentId, department, varsityBatch, idCardImageUrl, googleSubject, isEduMail, isVerified, isEmailVerified, **isActive**, createdAt | — |
+| 🧑‍🏫 **Teacher** | id, name, email, password, teacherId, designation, department, phone, idCardImageUrl, googleSubject, isEduMail, isVerified, isEmailVerified, **isActive**, createdAt | — |
 | 🛡️ **Admin** | id, email, password, name, createdAt | — |
+| 👑 **SuperAdmin** | id, email, password, fullName, **isActive**, createdAt, updatedAt | — |
+| ⚙️ **AppConfig** | id, configKey (unique), configValue, description, updatedAt, updatedBy | — |
+| 📧 **EmailVerificationOtp** | id, email, userRole, otpHash, expiresAt, lastSentAt, failedAttempts, createdAt | — |
 
 ### Active/inactive system
 
@@ -348,6 +426,7 @@ Flyway runs automatically whenever the backend starts. Migrations live at `src/m
 
 | Method | Path | Description |
 |---|---|---|
+| `GET` | `/api/config` | Public app config (API base URL, version info, maintenance mode, Play Store URL) |
 | `GET` | `/api/buses` | List active buses (inactive buses hidden) |
 | `GET` | `/api/buses/{id}` | Bus detail (incl. tracker link) |
 | `GET` | `/api/schedules` | All active schedules (inactive buses' schedules hidden) |
@@ -472,6 +551,25 @@ Flyway runs automatically whenever the backend starts. Migrations live at `src/m
 
 </details>
 
+<details>
+<summary><b>👑 Super admin endpoints (JWT required, `Authorization: Bearer <super_admin_token>`)</summary>
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/super-admin/auth/login` | Super admin login → returns JWT |
+| `GET` | `/api/super-admin/auth/me` | Current super admin profile |
+| `GET` | `/api/super-admin/manage` | List all super admins |
+| `POST` | `/api/super-admin/manage` | Create super admin |
+| `PUT` | `/api/super-admin/manage/{id}` | Update super admin |
+| `DELETE` | `/api/super-admin/manage/{id}` | Delete super admin |
+| `GET` | `/api/super-admin/config` | List all app config keys |
+| `PUT` | `/api/super-admin/config` | Update app config values |
+| `GET` | `/api/super-admin/notices` | List broadcast notices |
+| `POST` | `/api/super-admin/notices` | Create broadcast notice |
+| `DELETE` | `/api/super-admin/notices/{id}` | Delete broadcast notice |
+
+</details>
+
 ## 🔒 Authentication & security
 
 - 🔑 **Passwords** are stored hashed (bcrypt — seeded admin uses a `$2b$10$` hash)
@@ -560,6 +658,55 @@ All requests go through `src/api.js`, which:
 
 ---
 
+# 👑 Super admin panel
+
+The super admin panel lives in `super_admin/`. It is a separate Vite + React SPA using MUI 5, deployed on Vercel.
+
+## Stack
+
+`React 18` · `Vite` · `MUI 5` (`@mui/material`, `@mui/icons-material`) · `React Router 6` · `Axios` · `React Hook Form` · `Yup` · `react-hot-toast`
+
+## Run locally
+
+```bash
+cd super_admin
+npm install
+npm run dev
+```
+
+Opens at `http://localhost:5174`. The Vite dev server proxies `/api` to the backend.
+
+## Build for production
+
+```bash
+cd super_admin
+npm run build    # outputs to dist/
+```
+
+Deploy `dist/` to Vercel. The `vercel.json` handles SPA rewrites.
+
+## Default super admin credentials
+
+| Field | Value |
+|---|---|
+| Email | `superadmincou@gmail.com` |
+| Password | `Admin@123` |
+
+> **Change this password before any public deployment.**
+
+## Pages / features
+
+| Route | Page | Description |
+|---|---|---|
+| `/login` | `Login` | Super admin login |
+| `/` | `Dashboard` | System-wide statistics |
+| `/super-admins` | `SuperAdmins` | Manage super admin accounts |
+| `/server-config` | `ServerConfig` | Edit runtime config (API URL, maintenance mode, etc.) |
+| `/app-version` | `AppVersion` | Set Flutter app version constraints |
+| `/broadcast-notice` | `BroadcastNotice` | Send push notifications to all users |
+
+---
+
 # 📱 Android application
 
 The Android team uses [`CoUBusTracker_Project_Spec.md`](Backend/CoUBusTracker_Project_Spec.md) as the single source of truth for the mobile app. That document contains:
@@ -629,6 +776,8 @@ npm run lint
 | ⚠️ Flyway validation error (`checksum mismatch`) | Never edit an applied migration file — add a new `V{n+1}__...sql` migration |
 | ⚠️ `column "is_active" is of type integer but expression is of type boolean` | DBeaver imported MySQL `BOOLEAN` (TINYINT) as PostgreSQL `INTEGER`. Run the V13 migration or manually alter: `ALTER TABLE <table> ALTER COLUMN is_active TYPE BOOLEAN USING is_active::BOOLEAN;` |
 | ⚠️ Panel can't reach API | Start Vite with `npm run dev:local` for backend `8080`, or `npm run dev:docker` for backend `8081` |
+| ⚠️ Super admin 403 on login | Ensure `SecurityConfig` allows `OPTIONS` preflight: `.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()` |
+| ⚠️ CORS errors from Flutter/super admin | Check `WebMvcConfig` has the correct origins and methods mapped |
 | ℹ️ 401/403 in the panel | Session token expired or server rebooted; the panel auto-logs out |
 
 ---
@@ -637,12 +786,15 @@ npm run lint
 
 - [ ] 🔑 Override the **default JWT secret**
 - [ ] 🔐 Change the **default admin password** (`admin@cou.ac.bd` / `Admin@123`)
+- [ ] 👑 Change the **default super admin password** (`superadmincou@gmail.com` / `Admin@123`)
 - [ ] 🛡️ Use strong DB credentials (not `root1234`), ideally from secrets/Env
 - [ ] 🎛️ Switch to a production profile (or harden `application-dev.yaml`)
 - [ ] ☁️ Deploy `admin-panel/dist/` behind a static server / CDN and enable TLS
+- [ ] 👑 Deploy `super_admin/dist/` to Vercel
 - [ ] 📁 Restrict file uploads (extensions, size) and protect the `uploads/` directory
 - [ ] 🗃️ Run Flyway migrations before deploying the Android version that uses `bus_name`
 - [ ] 💾 Set up backups for the PostgreSQL database and the `uploads/` folder
+- [ ] ⚙️ Set `api_base_url` in `app_config` to the production backend URL
 
 ---
 
