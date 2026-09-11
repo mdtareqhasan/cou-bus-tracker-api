@@ -18,7 +18,7 @@ export default function IdCardThumb({ url, name, onOpen }) {
   const ariaLabel = showImage ? `View ${name}'s ID card` : undefined;
 
   const className =
-    'relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-gray-200 ' +
+    'relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-white shadow-sm ' +
     'bg-gradient-to-br from-teal-400 to-emerald-500 text-white font-semibold text-sm ' +
     'flex items-center justify-center transition-all ' +
     (interactive && showImage ? 'hover:ring-emerald-400 hover:scale-105 cursor-pointer' : 'cursor-default');
