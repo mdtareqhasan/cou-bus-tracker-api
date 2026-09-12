@@ -24,7 +24,7 @@ public class PhoneVerificationController {
     @Operation(summary = "Send OTP to phone number")
     public ResponseEntity<MessageResponse> sendOtp(@Valid @RequestBody SendPhoneOtpRequest request) {
         phoneVerificationService.sendOtp(request.phone(), request.role(), false);
-        return ResponseEntity.ok(new MessageResponse("OTP sent successfully to " + request.phone()));
+        return ResponseEntity.ok(MessageResponse.builder().message("OTP sent successfully to " + request.phone()).build());
     }
 
     @PostMapping("/verify")
@@ -37,6 +37,6 @@ public class PhoneVerificationController {
     @Operation(summary = "Resend OTP to phone number")
     public ResponseEntity<MessageResponse> resendOtp(@Valid @RequestBody SendPhoneOtpRequest request) {
         phoneVerificationService.sendOtp(request.phone(), request.role(), true);
-        return ResponseEntity.ok(new MessageResponse("OTP resent successfully to " + request.phone()));
+        return ResponseEntity.ok(MessageResponse.builder().message("OTP resent successfully to " + request.phone()).build());
     }
 }
