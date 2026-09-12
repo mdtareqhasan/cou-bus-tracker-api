@@ -27,6 +27,9 @@ public class StudentRegisterRequest {
     /** Google ID token for Google Sign-In registrations. Password is required when this is absent. */
     private String googleIdToken;
 
+    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Please provide a valid phone number")
+    private String phone;
+
     @NotBlank(message = "Student ID is required")
     @Pattern(regexp = "^[A-Za-z0-9\\-]{2,50}$", message = "Student ID must be 2-50 alphanumeric characters")
     private String studentId;

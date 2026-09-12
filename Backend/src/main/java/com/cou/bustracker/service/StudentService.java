@@ -37,6 +37,9 @@ public class StudentService {
         if (studentRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
         }
+        if (request.getPhone() != null && studentRepository.existsByPhone(request.getPhone())) {
+            throw new RuntimeException("Phone number already registered");
+        }
         if (studentRepository.existsByStudentId(request.getStudentId())) {
             throw new RuntimeException("Student ID already registered");
         }
@@ -50,12 +53,14 @@ public class StudentService {
                 .email(request.getEmail())
                 .password(google == null ? passwordEncoder.encode(request.getPassword()) : null)
                 .googleSubject(google == null ? null : google.subject())
+                .phone(request.getPhone())
                 .studentId(request.getStudentId())
                 .department(request.getDepartment())
                 .varsityBatch(request.getVarsityBatch())
                 .isEduMail(isEduMail)
                 .isVerified(google != null)
                 .isEmailVerified(google != null)
+                .isPhoneVerified(false)
                 .isActive(true)
                 .build();
 
@@ -76,8 +81,10 @@ public class StudentService {
                 .id(student.getId())
                 .name(student.getName())
                 .email(student.getEmail())
+                .phone(student.getPhone())
                 .isVerified(student.getIsVerified())
                 .isEmailVerified(student.getIsEmailVerified())
+                .isPhoneVerified(student.getIsPhoneVerified())
                 .isEduMail(student.getIsEduMail())
                 .build();
     }
@@ -104,8 +111,37 @@ public class StudentService {
                 .id(student.getId())
                 .name(student.getName())
                 .email(student.getEmail())
+                .phone(student.getPhone())
                 .isVerified(student.getIsVerified())
                 .isEmailVerified(student.getIsEmailVerified())
+                .isPhoneVerified(student.getIsPhoneVerified())
+                .isEduMail(student.getIsEduMail())
+                .build();
+    }
+
+    public AuthResponse loginWithPhoneOtp(String phone, String otp) {
+        Student student = studentRepository.findByPhone(phone)
+                .orElseThrow(() -> new RuntimeException("Student not found with this phone number"));
+        if (!student.getIsActive()) {
+            throw new BadCredentialsException("Account is deactivated. Please contact admin.");
+        }
+        if (!student.getIsPhoneVerified()) {
+            throw new BadCredentialsException("Please verify your phone number before logging in");
+        }
+
+        String token = jwtService.generateToken(student.getPhone(), "STUDENT");
+
+        return AuthResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .role("STUDENT")
+                .id(student.getId())
+                .name(student.getName())
+                .email(student.getEmail())
+                .phone(student.getPhone())
+                .isVerified(student.getIsVerified())
+                .isEmailVerified(student.getIsEmailVerified())
+                .isPhoneVerified(student.getIsPhoneVerified())
                 .isEduMail(student.getIsEduMail())
                 .build();
     }

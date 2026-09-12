@@ -60,6 +60,10 @@ public class Teacher {
     @Builder.Default
     private Boolean isEmailVerified = false;
 
+    @Column(name = "is_phone_verified")
+    @Builder.Default
+    private Boolean isPhoneVerified = false;
+
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;

@@ -37,6 +37,9 @@ public class TeacherService {
         if (teacherRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
         }
+        if (request.getPhone() != null && teacherRepository.existsByPhone(request.getPhone())) {
+            throw new RuntimeException("Phone number already registered");
+        }
         if (teacherRepository.existsByTeacherId(request.getTeacherId())) {
             throw new RuntimeException("Teacher ID already registered");
         }
@@ -57,6 +60,7 @@ public class TeacherService {
                 .isEduMail(isEduMail)
                 .isVerified(google != null)
                 .isEmailVerified(google != null)
+                .isPhoneVerified(false)
                 .isActive(true)
                 .build();
 
@@ -77,8 +81,10 @@ public class TeacherService {
                 .id(teacher.getId())
                 .name(teacher.getName())
                 .email(teacher.getEmail())
+                .phone(teacher.getPhone())
                 .isVerified(teacher.getIsVerified())
                 .isEmailVerified(teacher.getIsEmailVerified())
+                .isPhoneVerified(teacher.getIsPhoneVerified())
                 .isEduMail(teacher.getIsEduMail())
                 .build();
     }
@@ -105,8 +111,37 @@ public class TeacherService {
                 .id(teacher.getId())
                 .name(teacher.getName())
                 .email(teacher.getEmail())
+                .phone(teacher.getPhone())
                 .isVerified(teacher.getIsVerified())
                 .isEmailVerified(teacher.getIsEmailVerified())
+                .isPhoneVerified(teacher.getIsPhoneVerified())
+                .isEduMail(teacher.getIsEduMail())
+                .build();
+    }
+
+    public AuthResponse loginWithPhoneOtp(String phone, String otp) {
+        Teacher teacher = teacherRepository.findByPhone(phone)
+                .orElseThrow(() -> new RuntimeException("Teacher not found with this phone number"));
+        if (!teacher.getIsActive()) {
+            throw new BadCredentialsException("Account is deactivated. Please contact admin.");
+        }
+        if (!teacher.getIsPhoneVerified()) {
+            throw new BadCredentialsException("Please verify your phone number before logging in");
+        }
+
+        String token = jwtService.generateToken(teacher.getPhone(), "TEACHER");
+
+        return AuthResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .role("TEACHER")
+                .id(teacher.getId())
+                .name(teacher.getName())
+                .email(teacher.getEmail())
+                .phone(teacher.getPhone())
+                .isVerified(teacher.getIsVerified())
+                .isEmailVerified(teacher.getIsEmailVerified())
+                .isPhoneVerified(teacher.getIsPhoneVerified())
                 .isEduMail(teacher.getIsEduMail())
                 .build();
     }

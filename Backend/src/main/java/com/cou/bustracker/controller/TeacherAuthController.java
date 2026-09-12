@@ -40,6 +40,12 @@ public class TeacherAuthController {
         return ResponseEntity.ok(teacherService.login(request.get("email"), request.get("password")));
     }
 
+    @PostMapping("/login-phone")
+    @Operation(summary = "Teacher login with phone number and OTP")
+    public ResponseEntity<AuthResponse> loginWithPhone(@RequestBody Map<String, String> request) {
+        return ResponseEntity.ok(teacherService.loginWithPhoneOtp(request.get("phone"), request.get("otp")));
+    }
+
     @PostMapping("/upload-id-card")
     @Operation(summary = "Replace teacher ID card image")
     public ResponseEntity<FileUploadResponse> uploadIdCard(@RequestParam("file") MultipartFile file,

@@ -40,6 +40,12 @@ public class StudentAuthController {
         return ResponseEntity.ok(studentService.login(request.get("email"), request.get("password")));
     }
 
+    @PostMapping("/login-phone")
+    @Operation(summary = "Student login with phone number and OTP")
+    public ResponseEntity<AuthResponse> loginWithPhone(@RequestBody Map<String, String> request) {
+        return ResponseEntity.ok(studentService.loginWithPhoneOtp(request.get("phone"), request.get("otp")));
+    }
+
     @PostMapping("/upload-id-card")
     @Operation(summary = "Upload student ID card image")
     public ResponseEntity<FileUploadResponse> uploadIdCard(
@@ -64,6 +70,7 @@ public class StudentAuthController {
                 .id(student.getId())
                 .name(student.getName())
                 .email(student.getEmail())
+                .phone(student.getPhone())
                 .studentId(student.getStudentId())
                 .department(student.getDepartment())
                 .varsityBatch(student.getVarsityBatch())
