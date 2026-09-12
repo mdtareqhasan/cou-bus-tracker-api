@@ -1,5 +1,6 @@
 package com.cou.bustracker.service;
 
+import com.cou.bustracker.util.PhoneUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -153,19 +154,11 @@ public class SmsService {
 
     /**
      * Normalize phone number to 8801XXXXXXXXX format for BulkSMSBD API.
-     * Input: 01XXXXXXXXX (11 digit BD format)
+     * Input: 01XXXXXXXXX (11 digit BD format) — anything else will be
+     *        passed through to the gateway as-is and logged so we notice.
      * Output: 8801XXXXXXXXX (13 digit with country code)
      */
     private String normalizePhone(String phone) {
-        if (phone == null) return phone;
-        String cleaned = phone.replaceAll("[^0-9]", "");
-        // BD numbers start with 01 - add 88 country code
-        if (cleaned.startsWith("01") && cleaned.length() == 11) {
-            return "88" + cleaned;
-        }
-        if (cleaned.startsWith("880") && cleaned.length() == 13) {
-            return cleaned;
-        }
-        return cleaned;
+        return PhoneUtils.toE164Bd(phone);
     }
 }

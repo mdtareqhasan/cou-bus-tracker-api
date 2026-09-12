@@ -6,6 +6,7 @@ import com.cou.bustracker.entity.Teacher;
 import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.security.JwtService;
+import com.cou.bustracker.util.PhoneUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,7 +31,7 @@ public class TeacherService {
     private final FileStorageService fileStorageService;
 
     public AuthResponse loginWithPhone(String phone, String password) {
-        String normalized = normalizePhone(phone);
+        String normalized = PhoneUtils.normalizeBd(phone);
         Teacher teacher = teacherRepository.findByPhone(normalized)
                 .orElseThrow(() -> new RuntimeException("Teacher not found with this phone number"));
         if (teacher.getPassword() == null || !passwordEncoder.matches(password, teacher.getPassword())) {
@@ -74,7 +75,7 @@ public class TeacherService {
     }
 
     public Teacher getTeacherByPhone(String phone) {
-        return teacherRepository.findByPhone(normalizePhone(phone))
+        return teacherRepository.findByPhone(PhoneUtils.normalizeBd(phone))
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found"));
     }
 
@@ -135,20 +136,5 @@ public class TeacherService {
                 .isActive(teacher.getIsActive())
                 .createdAt(teacher.getCreatedAt())
                 .build();
-    }
-
-    private String normalizePhone(String phone) {
-        if (phone == null) return null;
-        String cleaned = phone.replaceAll("[^0-9]", "");
-        if (cleaned.startsWith("880") && cleaned.length() == 13) {
-            return cleaned.substring(2);
-        }
-        if (cleaned.startsWith("01") && cleaned.length() == 11) {
-            return cleaned;
-        }
-        if (cleaned.length() == 10) {
-            return "0" + cleaned;
-        }
-        return cleaned;
     }
 }

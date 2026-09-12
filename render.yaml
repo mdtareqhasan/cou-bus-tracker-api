@@ -44,6 +44,12 @@ services:
         sync: false
       - key: RESEND_FROM_NAME
         value: CoU Bus Tracker
+      - key: BULKSMSBD_API_KEY
+        sync: false
+      - key: BULKSMSBD_SENDER_ID
+        sync: false
+      - key: SMS_ALLOW_SOFT_FAIL
+        value: "true"
 
   # ----------------------------------------------------------------------------
   # Admin Panel — React SPA hosted as a Render Static Site.

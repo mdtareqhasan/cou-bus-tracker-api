@@ -18,7 +18,28 @@
       "Bash(curl -s -X POST \"https://cou-bus-tracker-api.onrender.com/api/auth/admin/login\" -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"admin@cou.ac.bd\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"Admin@123\"\"\"\"}')",
       "Bash(node -e \":*)",
       "Bash(curl -s \"https://cou-bus-tracker-backend-admin-frontend-1.onrender.com/\" -o \"D:/tmp-idx.html\")",
-      "Bash(curl -s \"https://cou-bus-tracker-backend-admin-frontend-1.onrender.com/\" -o \"D:/tmp-idx2.html\")"
+      "Bash(curl -s \"https://cou-bus-tracker-backend-admin-frontend-1.onrender.com/\" -o \"D:/tmp-idx2.html\")",
+      "Bash(npm --version)",
+      "Bash(ls -la *.js)",
+      "WebFetch(domain:bulksmsbd.net)",
+      "WebSearch",
+      "WebFetch(domain:docs.botble.com)",
+      "Bash(mvn compile:*)",
+      "Bash(curl -s -G \"https://bulksmsbd.net/api/getBalanceApi\" --data-urlencode \"api_key=gp2fwmDalqLiOLqaK3QM\")",
+      "Bash(curl -s -X POST \"https://bulksmsbd.net/api/getBalanceApi\" -H \"Content-Type: application/x-www-form-urlencoded\" -d \"api_key=gp2fwmDalqLiOLqaK3QM\")",
+      "Bash(curl -s -G \"https://bulksmsbd.net/api/smsapi\" --data-urlencode \"api_key=gp2fwmDalqLiOLqaK3QM\" --data-urlencode \"type=text\" --data-urlencode \"number=8801712345678\" --data-urlencode \"senderid=8809648910916\" --data-urlencode \"message=test\")",
+      "Bash(curl -s -G \"http://bulksmsbd.net/api/smsapi\" --data-urlencode \"api_key=gp2fwmDalqLiOLqaK3QM\" --data-urlencode \"type=text\" --data-urlencode \"number=8801712345678\" --data-urlencode \"senderid=8809648910916\" --data-urlencode \"message=test\")",
+      "Bash(curl -s -G \"https://bulksmsbd.net/api/smsapi\" --data-urlencode \"api_key=gp2fwmDalqLiOLqaK3QM\" --data-urlencode \"type=text\" --data-urlencode \"number=8801720416508\" --data-urlencode \"senderid=8809648910916\" --data-urlencode \"message=test from api\")",
+      "Bash(mvn -f Backend/pom.xml compile)",
+      "Bash(timeout 25 mvn spring-boot:run)",
+      "Bash(PGPASSWORD=root1234 psql -h localhost -U postgres -d cou_bus_tracker -c \"DELETE FROM phone_verification_otps WHERE phone IN \\(''01720416508'', ''01799999999''\\);\")",
+      "Bash(curl -s -X POST \"http://localhost:8080/api/auth/phone-verification/resend\" -H \"Content-Type: application/json\" -d '{\"\"phone\"\":\"\"01799999999\"\",\"\"role\"\":\"\"STUDENT\"\"}')",
+      "Bash(curl -s -X POST \"http://localhost:8080/api/auth/phone-verification/init\" -H \"Accept: application/json\")",
+      "Bash(flutter analyze:*)",
+      "Bash(mvn -q test -Dtest=AdminManagementServiceTest)",
+      "Bash(mvn test:*)",
+      "Bash(mvn -q compile)",
+      "Bash(mvn -q test -Dtest=PhoneUtilsTest)"
     ]
   }
 }

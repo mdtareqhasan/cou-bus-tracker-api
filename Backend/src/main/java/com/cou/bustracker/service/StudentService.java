@@ -6,6 +6,7 @@ import com.cou.bustracker.entity.Student;
 import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.security.JwtService;
+import com.cou.bustracker.util.PhoneUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,7 +31,7 @@ public class StudentService {
     private final FileStorageService fileStorageService;
 
     public AuthResponse loginWithPhone(String phone, String password) {
-        String normalized = normalizePhone(phone);
+        String normalized = PhoneUtils.normalizeBd(phone);
         Student student = studentRepository.findByPhone(normalized)
                 .orElseThrow(() -> new RuntimeException("Student not found with this phone number"));
         if (student.getPassword() == null || !passwordEncoder.matches(password, student.getPassword())) {
@@ -113,7 +114,7 @@ public class StudentService {
     }
 
     public Student getStudentByPhone(String phone) {
-        return studentRepository.findByPhone(normalizePhone(phone))
+        return studentRepository.findByPhone(PhoneUtils.normalizeBd(phone))
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
     }
 
@@ -131,20 +132,5 @@ public class StudentService {
                 .isActive(student.getIsActive())
                 .createdAt(student.getCreatedAt())
                 .build();
-    }
-
-    private String normalizePhone(String phone) {
-        if (phone == null) return null;
-        String cleaned = phone.replaceAll("[^0-9]", "");
-        if (cleaned.startsWith("880") && cleaned.length() == 13) {
-            return cleaned.substring(2);
-        }
-        if (cleaned.startsWith("01") && cleaned.length() == 11) {
-            return cleaned;
-        }
-        if (cleaned.length() == 10) {
-            return "0" + cleaned;
-        }
-        return cleaned;
     }
 }

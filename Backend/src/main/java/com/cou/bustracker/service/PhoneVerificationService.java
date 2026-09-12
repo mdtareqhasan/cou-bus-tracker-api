@@ -10,6 +10,7 @@ import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.security.JwtService;
+import com.cou.bustracker.util.PhoneUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +59,7 @@ public class PhoneVerificationService {
     // =========================================================================
     @Transactional
     public void initRegistration(PhoneVerificationInitRequest req, MultipartFile idCard) throws java.io.IOException {
-        String phone = normalize(req.getPhone());
+        String phone = PhoneUtils.normalizeBd(req.getPhone());
         UserRole role = req.getRole();
 
         if (role == null) {
@@ -146,7 +147,7 @@ public class PhoneVerificationService {
     // =========================================================================
     @Transactional
     public AuthResponse verifyOtp(String rawPhone, UserRole role, String otp) {
-        String phone = normalize(rawPhone);
+        String phone = PhoneUtils.normalizeBd(rawPhone);
         PhoneVerificationOtp record = otpRepository.findByPhoneAndUserRole(phone, role)
                 .orElseThrow(() -> new IllegalArgumentException("No OTP found. Please request a new OTP"));
         if (record.getExpiresAt().isBefore(LocalDateTime.now())) {
@@ -189,7 +190,7 @@ public class PhoneVerificationService {
     // =========================================================================
     @Transactional
     public void sendOtp(String rawPhone, UserRole role, boolean isResend) {
-        String phone = normalize(rawPhone);
+        String phone = PhoneUtils.normalizeBd(rawPhone);
         PhoneVerificationOtp existing = otpRepository.findByPhoneAndUserRole(phone, role).orElse(null);
         if (existing == null) {
             // Nothing to resend — caller never went through /init
@@ -371,18 +372,5 @@ public class PhoneVerificationService {
         } catch (Exception e) {
             throw new IllegalStateException("Failed to deserialize pending registration: " + e.getMessage(), e);
         }
-    }
-
-    private String normalize(String phone) {
-        if (phone == null) return null;
-        String cleaned = phone.trim().replaceAll("[^0-9]", "");
-        // Store as 11-digit BD format: 01XXXXXXXXX
-        if (cleaned.startsWith("880") && cleaned.length() == 13) {
-            return cleaned.substring(2);
-        }
-        if (cleaned.startsWith("01") && cleaned.length() == 11) {
-            return cleaned;
-        }
-        return cleaned;
     }
 }
