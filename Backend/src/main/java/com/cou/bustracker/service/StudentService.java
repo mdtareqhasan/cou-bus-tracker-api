@@ -34,7 +34,13 @@ public class StudentService {
 
     @Transactional
     public AuthResponse register(StudentRegisterRequest request, MultipartFile idCard) throws java.io.IOException {
-        if (studentRepository.existsByEmail(request.getEmail())) {
+        // Auto-generate email from phone if not provided
+        String email = (request.getEmail() == null || request.getEmail().isBlank())
+                ? request.getPhone() + "@cou.bus"
+                : request.getEmail();
+        request.setEmail(email);
+
+        if (studentRepository.existsByEmail(email)) {
             throw new RuntimeException("Email already registered");
         }
         if (request.getPhone() != null && studentRepository.existsByPhone(request.getPhone())) {
@@ -45,12 +51,12 @@ public class StudentService {
         }
 
         GoogleTokenService.GoogleIdentity google = resolveGoogleRegistration(
-                request.getEmail(), request.getPassword(), request.getGoogleIdToken());
-        boolean isEduMail = google != null || request.getEmail().endsWith("@" + EDU_MAIL_DOMAIN);
+                email, request.getPassword(), request.getGoogleIdToken());
+        boolean isEduMail = google != null || email.endsWith("@" + EDU_MAIL_DOMAIN);
 
         Student student = Student.builder()
                 .name(request.getName())
-                .email(request.getEmail())
+                .email(email)
                 .password(google == null ? passwordEncoder.encode(request.getPassword()) : null)
                 .googleSubject(google == null ? null : google.subject())
                 .phone(request.getPhone())
