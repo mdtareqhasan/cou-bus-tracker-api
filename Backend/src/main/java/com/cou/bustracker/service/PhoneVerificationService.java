@@ -10,6 +10,7 @@ import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +23,7 @@ import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PhoneVerificationService {
     private static final int MAX_FAILED_ATTEMPTS = 5;
     private final PhoneVerificationOtpRepository otpRepository;
@@ -52,7 +54,12 @@ public class PhoneVerificationService {
         record.setLastSentAt(now);
         record.setFailedAttempts(0);
         otpRepository.save(record);
-        smsService.sendOtpSms(phone, otp);
+        boolean sent = smsService.sendOtpSms(phone, otp);
+        if (!sent) {
+            log.error("Failed to send OTP SMS to {} - check BulkSMSBD Response logs above (balance/senderId/IP)", phone);
+            throw new IllegalStateException("Failed to send OTP SMS. Please check SMS gateway (balance/sender ID/IP whitelist) or try again. Check server logs for BulkSMSBD Response.");
+        }
+        log.info("OTP generated and SMS sent successfully to {} (expires in {} min)", phone, expiryMinutes);
     }
 
     @Transactional

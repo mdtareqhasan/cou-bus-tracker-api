@@ -13,7 +13,8 @@ import java.nio.charset.StandardCharsets;
 @Slf4j
 public class SmsService {
 
-    private static final String SMS_API_URL = "http://bulksmsbd.net/api/smsapi";
+    private static final String SMS_API_URL = "https://bulksmsbd.net/api/smsapi";
+    private static final String BALANCE_API_URL = "https://bulksmsbd.net/api/getBalanceApi";
 
     @Value("${app.sms.api-key}")
     private String apiKey;
@@ -43,34 +44,58 @@ public class SmsService {
                     + "&message=" + encodedMessage;
 
             log.info("Sending OTP SMS to {} (normalized: {})", phoneNumber, normalizedPhone);
-            log.debug("SMS API URL: {}", url);
+            log.debug("SMS API URL: {}", url.replace(apiKey, "****"));
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, null, String.class);
 
             String responseBody = response.getBody();
             log.info("BulkSMSBD Response: HTTP {} | Body: {}", response.getStatusCode(), responseBody);
 
-            // Check response body for BulkSMSBD error codes
+            // Check response body for BulkSMSBD error codes - https://bulksmsbd.net/developers
             if (responseBody != null) {
-                // BulkSMSBD returns error codes like 1001, 1002, etc.
-                if (responseBody.contains("1001")) {
-                    log.error("BulkSMSBD Error: Invalid Number");
+                String body = responseBody.trim();
+                if (body.contains("1001")) {
+                    log.error("BulkSMSBD Error 1001: Invalid Number [{}]", body);
                     return false;
                 }
-                if (responseBody.contains("1002")) {
-                    log.error("BulkSMSBD Error: Sender ID not correct or disabled");
+                if (body.contains("1002")) {
+                    log.error("BulkSMSBD Error 1002: Sender ID not correct or disabled [{}]", body);
                     return false;
                 }
-                if (responseBody.contains("1007")) {
-                    log.error("BulkSMSBD Error: Balance insufficient");
+                if (body.contains("1003")) {
+                    log.error("BulkSMSBD Error 1003: Please provide all required fields [{}]", body);
                     return false;
                 }
-                if (responseBody.contains("1032")) {
-                    log.error("BulkSMSBD Error: IP not whitelisted");
+                if (body.contains("1005") || body.contains("Internal Error")) {
+                    log.error("BulkSMSBD Error 1005: Internal Error [{}]", body);
                     return false;
                 }
-                if (responseBody.contains("202")) {
-                    log.info("BulkSMSBD: SMS Submitted Successfully");
+                if (body.contains("1006")) {
+                    log.error("BulkSMSBD Error 1006: Balance Validity Not Available [{}]", body);
+                    return false;
+                }
+                if (body.contains("1007")) {
+                    log.error("BulkSMSBD Error 1007: Balance Insufficient [{}]", body);
+                    return false;
+                }
+                if (body.contains("1011")) {
+                    log.error("BulkSMSBD Error 1011: User ID not found [{}]", body);
+                    return false;
+                }
+                if (body.contains("1012")) {
+                    log.error("BulkSMSBD Error 1012: Masking SMS must be sent in Bengali [{}]", body);
+                    return false;
+                }
+                if (body.contains("1013")) {
+                    log.error("BulkSMSBD Error 1013: Sender ID has not found Gateway by api key [{}] - API key and Sender ID mismatch!", body);
+                    return false;
+                }
+                if (body.contains("1032")) {
+                    log.error("BulkSMSBD Error 1032: IP not whitelisted [{}] - Disable IP whitelist in BulkSMSBD dashboard", body);
+                    return false;
+                }
+                if (body.contains("202")) {
+                    log.info("BulkSMSBD: SMS Submitted Successfully [{}]", body);
                     return true;
                 }
             }
@@ -86,6 +111,28 @@ public class SmsService {
         } catch (Exception e) {
             log.error("Error sending OTP SMS to {}: {}", phoneNumber, e.getMessage(), e);
             return false;
+        }
+    }
+
+    /**
+     * Check BulkSMSBD account balance - useful for debugging.
+     * Mirrors PHP get_balance() from https://bulksmsbd.net/developers
+     * POST https://bulksmsbd.net/api/getBalanceApi with api_key
+     */
+    public String getBalance() {
+        try {
+            log.info("Checking BulkSMSBD balance for api_key: {}...", apiKey.substring(0, Math.min(4, apiKey.length())) + "****");
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            String body = "api_key=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+            HttpEntity<String> entity = new HttpEntity<>(body, headers);
+            ResponseEntity<String> response = restTemplate.exchange(BALANCE_API_URL, HttpMethod.POST, entity, String.class);
+            String responseBody = response.getBody();
+            log.info("BulkSMSBD Balance Response: HTTP {} | Body: {}", response.getStatusCode(), responseBody);
+            return responseBody;
+        } catch (Exception e) {
+            log.error("Error checking BulkSMSBD balance: {}", e.getMessage(), e);
+            return "Error: " + e.getMessage();
         }
     }
 
