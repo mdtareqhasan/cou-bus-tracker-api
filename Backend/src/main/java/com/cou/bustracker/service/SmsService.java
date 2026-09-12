@@ -116,20 +116,35 @@ public class SmsService {
 
     /**
      * Check BulkSMSBD account balance - useful for debugging.
-     * Mirrors PHP get_balance() from https://bulksmsbd.net/developers
-     * POST https://bulksmsbd.net/api/getBalanceApi with api_key
+     * Tries GET first (most common for BulkSMSBD), then POST as fallback.
+     * https://bulksmsbd.net/developers
      */
     public String getBalance() {
         try {
             log.info("Checking BulkSMSBD balance for api_key: {}...", apiKey.substring(0, Math.min(4, apiKey.length())) + "****");
+
+            // Try GET first - BulkSMSBD supports GET with query param
+            String getUrl = BALANCE_API_URL + "?api_key=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+            try {
+                ResponseEntity<String> getResponse = restTemplate.exchange(getUrl, HttpMethod.GET, null, String.class);
+                String getBody = getResponse.getBody();
+                log.info("BulkSMSBD Balance (GET) Response: HTTP {} | Body: {}", getResponse.getStatusCode(), getBody);
+                if (getResponse.getStatusCode().is2xxSuccessful() && getBody != null && !getBody.isBlank()) {
+                    return getBody;
+                }
+            } catch (Exception getEx) {
+                log.warn("GET balance failed, trying POST: {}", getEx.getMessage());
+            }
+
+            // Fallback: POST with form-encoded body
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             String body = "api_key=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
             HttpEntity<String> entity = new HttpEntity<>(body, headers);
-            ResponseEntity<String> response = restTemplate.exchange(BALANCE_API_URL, HttpMethod.POST, entity, String.class);
-            String responseBody = response.getBody();
-            log.info("BulkSMSBD Balance Response: HTTP {} | Body: {}", response.getStatusCode(), responseBody);
-            return responseBody;
+            ResponseEntity<String> postResponse = restTemplate.exchange(BALANCE_API_URL, HttpMethod.POST, entity, String.class);
+            String postBody = postResponse.getBody();
+            log.info("BulkSMSBD Balance (POST) Response: HTTP {} | Body: {}", postResponse.getStatusCode(), postBody);
+            return postBody != null ? postBody : "null";
         } catch (Exception e) {
             log.error("Error checking BulkSMSBD balance: {}", e.getMessage(), e);
             return "Error: " + e.getMessage();

@@ -54,6 +54,9 @@ public class PhoneVerificationService {
         record.setLastSentAt(now);
         record.setFailedAttempts(0);
         otpRepository.save(record);
+        log.info("=========================================================");
+        log.info("OTP for phone={} role={} -> [DEV ONLY] OTP CODE: {} (expires in {} min)", phone, role, otp, expiryMinutes);
+        log.info("=========================================================");
         boolean sent = smsService.sendOtpSms(phone, otp);
         if (!sent) {
             log.error("Failed to send OTP SMS to {} - check BulkSMSBD Response logs above (balance/senderId/IP)", phone);
