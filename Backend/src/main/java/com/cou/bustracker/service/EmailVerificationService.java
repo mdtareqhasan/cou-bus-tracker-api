@@ -10,7 +10,9 @@ import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -29,15 +31,16 @@ public class EmailVerificationService {
     private final EmailVerificationOtpRepository otpRepository;
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
-    private final JavaMailSender mailSender;
+    @Autowired(required = false)
+    private JavaMailSender mailSender;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    @Value("${app.email-verification.from}") private String from;
-    @Value("${app.email-verification.from-name}") private String fromName;
-    @Value("${app.email-verification.otp-expiry-minutes}") private long expiryMinutes;
-    @Value("${app.email-verification.resend-cooldown-seconds}") private long resendCooldownSeconds;
+    @Value("${app.email-verification.from:}") private String from;
+    @Value("${app.email-verification.from-name:CoU Bus Tracker}") private String fromName;
+    @Value("${app.email-verification.otp-expiry-minutes:5}") private long expiryMinutes;
+    @Value("${app.email-verification.resend-cooldown-seconds:60}") private long resendCooldownSeconds;
 
     @Transactional
     public void sendOtp(String rawEmail, UserRole role, boolean isResend) {
@@ -122,6 +125,7 @@ public class EmailVerificationService {
     }
 
     private void sendEmail(String recipient, String otp) {
+        if (mailSender == null) throw new IllegalStateException("Email service not configured. Use phone verification instead.");
         if (from == null || from.isBlank()) throw new IllegalStateException("MAIL_FROM_EMAIL is not configured");
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromName + " <" + from + ">");
