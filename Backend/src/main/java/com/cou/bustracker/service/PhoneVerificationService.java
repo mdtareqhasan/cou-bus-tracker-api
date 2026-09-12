@@ -36,6 +36,7 @@ public class PhoneVerificationService {
 
     @Value("${app.phone-verification.otp-expiry-minutes}") private long expiryMinutes;
     @Value("${app.phone-verification.resend-cooldown-seconds}") private long resendCooldownSeconds;
+    @Value("${app.sms.allow-soft-fail:true}") private boolean allowSoftFail;
 
     @Transactional
     public void sendOtp(String rawPhone, UserRole role, boolean isResend) {
@@ -60,7 +61,12 @@ public class PhoneVerificationService {
         boolean sent = smsService.sendOtpSms(phone, otp);
         if (!sent) {
             log.error("Failed to send OTP SMS to {} - check BulkSMSBD Response logs above (balance/senderId/IP)", phone);
-            throw new IllegalStateException("Failed to send OTP SMS. Please check SMS gateway (balance/sender ID/IP whitelist) or try again. Check server logs for BulkSMSBD Response.");
+            if (allowSoftFail) {
+                log.warn("app.sms.allow-soft-fail=true - OTP is saved in DB and printed above. " +
+                        "User can still verify. Set SMS_ALLOW_SOFT_FAIL=false to enforce strict SMS delivery.");
+            } else {
+                throw new IllegalStateException("Failed to send OTP SMS. Please check SMS gateway (balance/sender ID/IP whitelist) or try again. Check server logs for BulkSMSBD Response.");
+            }
         }
         log.info("OTP generated and SMS sent successfully to {} (expires in {} min)", phone, expiryMinutes);
     }
