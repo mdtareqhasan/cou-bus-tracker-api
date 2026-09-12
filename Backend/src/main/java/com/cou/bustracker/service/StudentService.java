@@ -75,10 +75,6 @@ public class StudentService {
         student.setIdCardImageUrl(imageUrl);
 
         studentRepository.save(student);
-        if (google == null) {
-            emailVerificationService.sendOtp(student.getEmail(),
-                    com.cou.bustracker.entity.EmailVerificationOtp.UserRole.STUDENT, false);
-        }
 
         return AuthResponse.builder()
                 .accessToken(google == null ? null : jwtService.generateToken(student.getEmail(), "STUDENT"))

@@ -75,10 +75,6 @@ public class TeacherService {
         teacher.setIdCardImageUrl(imageUrl);
 
         teacherRepository.save(teacher);
-        if (google == null) {
-            emailVerificationService.sendOtp(teacher.getEmail(),
-                    com.cou.bustracker.entity.EmailVerificationOtp.UserRole.TEACHER, false);
-        }
 
         return AuthResponse.builder()
                 .accessToken(google == null ? null : jwtService.generateToken(teacher.getEmail(), "TEACHER"))
