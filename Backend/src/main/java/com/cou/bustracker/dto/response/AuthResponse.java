@@ -21,7 +21,5 @@ public class AuthResponse {
     private String email;
     private String phone;
     private Boolean isVerified;
-    private Boolean isEmailVerified;
     private Boolean isPhoneVerified;
-    private Boolean isEduMail;
 }

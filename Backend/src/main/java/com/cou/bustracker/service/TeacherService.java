@@ -131,6 +131,7 @@ public class TeacherService {
                 .phone(teacher.getPhone())
                 .idCardImageUrl(teacher.getIdCardImageUrl())
                 .isVerified(teacher.getIsVerified())
+                .isPhoneVerified(teacher.getIsPhoneVerified())
                 .isActive(teacher.getIsActive())
                 .createdAt(teacher.getCreatedAt())
                 .build();

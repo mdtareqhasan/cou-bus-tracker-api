@@ -21,6 +21,7 @@ public class StudentResponse {
     private String varsityBatch;
     private String idCardImageUrl;
     private Boolean isVerified;
+    private Boolean isPhoneVerified;
     private Boolean isActive;
     private LocalDateTime createdAt;
 }

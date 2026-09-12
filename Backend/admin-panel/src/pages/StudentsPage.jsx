@@ -24,12 +24,13 @@ export default function StudentsPage() {
   };
 
   const filtered = (filter === 'pending' ? students.filter(s => !s.isVerified)
-    : filter === 'edu' ? students.filter(s => s.isEduMail)
-    : filter === 'personal' ? students.filter(s => !s.isEduMail)
+    : filter === 'verified' ? students.filter(s => s.isVerified)
+    : filter === 'phone-verified' ? students.filter(s => s.isPhoneVerified)
+    : filter === 'phone-unverified' ? students.filter(s => !s.isPhoneVerified)
     : students
   ).filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.email.toLowerCase().includes(search.toLowerCase()) ||
+    (s.phone && s.phone.toLowerCase().includes(search.toLowerCase())) ||
     s.studentId.toLowerCase().includes(search.toLowerCase()) ||
     s.department.toLowerCase().includes(search.toLowerCase())
   );
@@ -37,8 +38,8 @@ export default function StudentsPage() {
   const filters = [
     { key: 'all', label: 'All', count: students.length },
     { key: 'pending', label: 'Pending', count: students.filter(s => !s.isVerified).length },
-    { key: 'edu', label: 'Edu Mail', count: students.filter(s => s.isEduMail).length },
-    { key: 'personal', label: 'Personal', count: students.filter(s => !s.isEduMail).length },
+    { key: 'phone-verified', label: 'Phone Verified', count: students.filter(s => s.isPhoneVerified).length },
+    { key: 'phone-unverified', label: 'Phone Unverified', count: students.filter(s => !s.isPhoneVerified).length },
   ];
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-10 w-10 border-4 border-teal-200 border-t-emerald-600" /></div>;
@@ -93,7 +94,7 @@ export default function StudentsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50/80 border-b border-gray-100">
               <tr>
-                {['Student', 'ID', 'Department', 'Batch', 'Mail', 'Status', 'Actions'].map(h => (
+                {['Student', 'ID', 'Department', 'Batch', 'Phone', 'Status', 'Actions'].map(h => (
                   <th key={h} className="text-left px-6 py-4 font-semibold text-gray-600 text-xs uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -110,7 +111,7 @@ export default function StudentsPage() {
                       />
                       <div className="min-w-0">
                         <p className="font-semibold text-gray-900 truncate">{student.name}</p>
-                        <p className="text-xs text-gray-400 truncate">{student.email}</p>
+                        <p className="text-xs text-gray-400 truncate">{student.phone || 'No phone'}</p>
                       </div>
                     </div>
                   </td>
@@ -118,8 +119,11 @@ export default function StudentsPage() {
                   <td className="px-6 py-4 text-gray-600">{student.department}</td>
                   <td className="px-6 py-4 text-gray-600">{student.varsityBatch}</td>
                   <td className="px-6 py-4">
-                    <span className={`badge ${student.isEduMail ? 'badge-green' : 'badge-orange'}`}>
-                      {student.isEduMail ? 'Edu Mail' : 'Personal'}
+                    <span className={`badge ${student.isPhoneVerified ? 'badge-green' : 'badge-orange'}`}>
+                      {student.phone || 'N/A'}
+                    </span>
+                    <span className={`ml-1 text-xs ${student.isPhoneVerified ? 'text-green-600' : 'text-orange-500'}`}>
+                      {student.isPhoneVerified ? '✓ Verified' : '✗ Unverified'}
                     </span>
                   </td>
                   <td className="px-6 py-4">

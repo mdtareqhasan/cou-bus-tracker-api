@@ -21,6 +21,7 @@ public class TeacherResponse {
     private String phone;
     private String idCardImageUrl;
     private Boolean isVerified;
+    private Boolean isPhoneVerified;
     private Boolean isActive;
     private LocalDateTime createdAt;
 }

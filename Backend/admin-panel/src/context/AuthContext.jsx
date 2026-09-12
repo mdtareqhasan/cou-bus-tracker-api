@@ -30,10 +30,10 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const res = await authAPI.login(email, password);
-    const { accessToken, adminName } = res.data;
+    const { accessToken, name } = res.data;
     localStorage.setItem('admin_token', accessToken);
-    localStorage.setItem('admin_name', adminName);
-    setAdmin({ token: accessToken, name: adminName });
+    localStorage.setItem('admin_name', name);
+    setAdmin({ token: accessToken, name });
   };
 
   const logout = () => {

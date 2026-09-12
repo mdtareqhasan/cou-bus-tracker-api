@@ -127,6 +127,7 @@ public class StudentService {
                 .varsityBatch(student.getVarsityBatch())
                 .idCardImageUrl(student.getIdCardImageUrl())
                 .isVerified(student.getIsVerified())
+                .isPhoneVerified(student.getIsPhoneVerified())
                 .isActive(student.getIsActive())
                 .createdAt(student.getCreatedAt())
                 .build();

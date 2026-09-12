@@ -24,18 +24,18 @@ export default function TeachersPage() {
   };
 
   const filtered = (filter === 'pending' ? teachers.filter(t => !t.isVerified)
-    : filter === 'edu' ? teachers.filter(t => t.isEduMail)
+    : filter === 'phone-verified' ? teachers.filter(t => t.isPhoneVerified)
     : teachers
   ).filter(t =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.email.toLowerCase().includes(search.toLowerCase()) ||
+    (t.phone && t.phone.toLowerCase().includes(search.toLowerCase())) ||
     (t.department && t.department.toLowerCase().includes(search.toLowerCase()))
   );
 
   const filters = [
     { key: 'all', label: 'All', count: teachers.length },
     { key: 'pending', label: 'Pending', count: teachers.filter(t => !t.isVerified).length },
-    { key: 'edu', label: 'Edu Mail', count: teachers.filter(t => t.isEduMail).length },
+    { key: 'phone-verified', label: 'Phone Verified', count: teachers.filter(t => t.isPhoneVerified).length },
   ];
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-10 w-10 border-4 border-teal-200 border-t-emerald-600" /></div>;
@@ -71,7 +71,7 @@ export default function TeachersPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50/80 border-b border-gray-100">
               <tr>
-                {['Teacher', 'Teacher ID', 'Designation', 'Department', 'Phone', 'Mail', 'Status', 'Actions'].map(h => (
+                {['Teacher', 'Teacher ID', 'Designation', 'Department', 'Phone', 'Phone Verified', 'Status', 'Actions'].map(h => (
                   <th key={h} className="text-left px-6 py-4 font-semibold text-gray-600 text-xs uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -88,7 +88,7 @@ export default function TeachersPage() {
                       />
                       <div className="min-w-0">
                         <p className="font-semibold text-gray-900 truncate">{teacher.name}</p>
-                        <p className="text-xs text-gray-400 truncate">{teacher.email}</p>
+                        <p className="text-xs text-gray-400 truncate">{teacher.phone || 'No phone'}</p>
                       </div>
                     </div>
                   </td>
@@ -97,8 +97,8 @@ export default function TeachersPage() {
                   <td className="px-6 py-4 text-gray-600">{teacher.department || '-'}</td>
                   <td className="px-6 py-4 text-gray-600">{teacher.phone || '-'}</td>
                   <td className="px-6 py-4">
-                    <span className={`badge ${teacher.isEduMail ? 'badge-green' : 'badge-orange'}`}>
-                      {teacher.isEduMail ? 'Edu Mail' : 'Personal'}
+                    <span className={`badge ${teacher.isPhoneVerified ? 'badge-green' : 'badge-orange'}`}>
+                      {teacher.isPhoneVerified ? 'Verified' : 'Unverified'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
