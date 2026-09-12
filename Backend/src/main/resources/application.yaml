@@ -8,7 +8,7 @@ server:
 app:
   sms:
     api-key: ${BULKSMSBD_API_KEY:gp2fwmDalqLiOLqaK3QM}
-    sender-id: ${BULKSMSBD_SENDER_ID:8809615555201}
+    sender-id: ${BULKSMSBD_SENDER_ID:8809648910916}
   phone-verification:
     otp-expiry-minutes: 2
     resend-cooldown-seconds: 60
