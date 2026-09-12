@@ -41,9 +41,9 @@ public class StudentAuthController {
     }
 
     @PostMapping("/login-phone")
-    @Operation(summary = "Student login with phone number and OTP")
+    @Operation(summary = "Student login with phone number and password")
     public ResponseEntity<AuthResponse> loginWithPhone(@RequestBody Map<String, String> request) {
-        return ResponseEntity.ok(studentService.loginWithPhoneOtp(request.get("phone"), request.get("otp")));
+        return ResponseEntity.ok(studentService.loginWithPhone(request.get("phone"), request.get("password")));
     }
 
     @PostMapping("/upload-id-card")

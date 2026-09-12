@@ -119,9 +119,12 @@ public class TeacherService {
                 .build();
     }
 
-    public AuthResponse loginWithPhoneOtp(String phone, String otp) {
+    public AuthResponse loginWithPhone(String phone, String password) {
         Teacher teacher = teacherRepository.findByPhone(phone)
                 .orElseThrow(() -> new RuntimeException("Teacher not found with this phone number"));
+        if (teacher.getPassword() == null || !passwordEncoder.matches(password, teacher.getPassword())) {
+            throw new BadCredentialsException("Invalid phone number or password");
+        }
         if (!teacher.getIsActive()) {
             throw new BadCredentialsException("Account is deactivated. Please contact admin.");
         }

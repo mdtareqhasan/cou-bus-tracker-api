@@ -1,0 +1,274 @@
+# Flutter Auth Implementation: Phone Registration + Password Login
+
+## CRITICAL REQUIREMENTS
+- **NO email/Gmail authentication** — phone number is the only identifier
+- **Registration**: Phone → OTP verify → Set password → ID card upload
+- **Login**: Phone + Password ONLY (NO OTP)
+- **SMS Provider**: BulkSMSBD (backend handles OTP sending)
+- **Backend URL**: Use `--dart-define=API_BASE_URL=<URL>` (default: `http://10.0.2.2:8080/api`)
+
+---
+
+## AUTH FLOW
+
+```
+REGISTRATION:
+Role Selection → Registration Form → OTP Verification → Login
+
+LOGIN:
+Phone + Password → Home (no OTP needed)
+```
+
+---
+
+## 1. REGISTRATION
+
+### Step 1: Registration Form
+
+Role selector: **Student** or **Teacher**
+
+**Student Fields:**
+- Name (required)
+- Phone Number (required) — Bangladeshi format
+- Student ID (required)
+- Department (required)
+- Varsity Batch (required)
+- Password (required) — user sets this
+- ID Card Image (required)
+
+**Teacher Fields:**
+- Name (required)
+- Phone Number (required) — Bangladeshi format
+- Teacher ID (required)
+- Department (required)
+- Designation (optional)
+- Password (required) — user sets this
+- ID Card Image (required)
+
+### Step 2: Phone Number Normalization
+Accept: `01XXXXXXXXX`, `8801XXXXXXXXX`, `+8801XXXXXXXXX`
+Normalize to: `8801XXXXXXXXX`
+
+### Step 3: Submit Registration
+
+Submit as `multipart/form-data`:
+
+**Student**: `POST /api/auth/student/register`
+- `name`, `email` (use `{phone}@cou.bus`), `password`, `phone`, `studentId`, `department`, `varsityBatch`, `idCard` (file)
+
+**Teacher**: `POST /api/auth/teacher/register`
+- `name`, `email` (use `{phone}@cou.bus`), `password`, `phone`, `teacherId`, `department`, `designation`, `idCard` (file)
+
+**IMPORTANT**: Use phone as email placeholder: `{phone}@cou.bus` (e.g., `8801712345678@cou.bus`)
+
+### Step 4: Auto-Send OTP
+
+After registration success, automatically call:
+`POST /api/auth/phone-verification/send`
+```json
+{ "phone": "8801712345678", "role": "STUDENT" }
+```
+
+---
+
+## 2. OTP VERIFICATION SCREEN
+
+### UI Elements
+1. Masked phone display: `8801****5678`
+2. 6-digit OTP input (numeric keyboard only)
+3. Auto-submit when all 6 digits entered
+4. 2-minute countdown timer (`MM:SS`)
+5. Resend button (disabled during countdown)
+6. Verify button with loading spinner
+7. "Change phone" option to go back
+
+### Verify OTP
+`POST /api/auth/phone-verification/verify`
+```json
+{ "phone": "8801712345678", "role": "STUDENT", "otp": "123456" }
+```
+
+Success returns JWT:
+```json
+{ "accessToken": "...", "tokenType": "Bearer", "role": "STUDENT", "id": 1, "name": "Name", "phone": "8801712345678", "isVerified": true, "isPhoneVerified": true }
+```
+
+### Resend OTP
+`POST /api/auth/phone-verification/resend`
+```json
+{ "phone": "8801712345678", "role": "STUDENT" }
+```
+
+### OTP Rules
+- 6-digit numeric
+- Expires in 2 minutes
+- Max 5 wrong attempts
+- Resend cooldown: 60 seconds
+
+---
+
+## 3. LOGIN (PHONE + PASSWORD)
+
+`POST /api/auth/student/login-phone` (Student)
+`POST /api/auth/teacher/login-phone` (Teacher)
+
+```json
+{ "phone": "8801712345678", "password": "mypassword123" }
+```
+
+Success returns JWT:
+```json
+{ "accessToken": "...", "tokenType": "Bearer", "role": "STUDENT", "id": 1, "name": "Name", "phone": "8801712345678", "isVerified": true, "isPhoneVerified": true }
+```
+
+### Login Errors
+| Error | Bengali Message |
+|-------|-----------------|
+| "Student not found with this phone number" | "এই ফোন নম্বরে কোনো ব্যবহারকারী নেই। প্রথমে রেজিস্ট্রেশন করুন।" |
+| "Invalid phone number or password" | "ভুল ফোন নম্বর বা পাসওয়ার্ড।" |
+| "Please verify your phone number" | Navigate to registration |
+| "Account is deactivated" | "আপনার অ্যাকাউন্ট নিষ্ক্রিয়।" |
+
+---
+
+## 4. TOKEN STORAGE
+
+```dart
+// flutter_secure_storage
+await secureStorage.write(key: 'accessToken', value: response.accessToken);
+await secureStorage.write(key: 'role', value: response.role);
+await secureStorage.write(key: 'userId', value: response.id.toString());
+await secureStorage.write(key: 'userName', value: response.name);
+await secureStorage.write(key: 'userPhone', value: response.phone);
+```
+
+---
+
+## 5. DIO INTERCEPTOR
+
+```dart
+class AuthInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    final token = await secureStorage.read(key: 'accessToken');
+    if (token != null) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+    handler.next(options);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    if (err.response?.statusCode == 401) {
+      secureStorage.deleteAll();
+      // Navigate to login
+    }
+    handler.next(err);
+  }
+}
+```
+
+---
+
+## 6. API ENDPOINTS
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/auth/student/register` | POST | Student registration (multipart) |
+| `/api/auth/teacher/register` | POST | Teacher registration (multipart) |
+| `/api/auth/student/login-phone` | POST | Student login (phone+password) |
+| `/api/auth/teacher/login-phone` | POST | Teacher login (phone+password) |
+| `/api/auth/phone-verification/send` | POST | Send OTP |
+| `/api/auth/phone-verification/verify` | POST | Verify OTP |
+| `/api/auth/phone-verification/resend` | POST | Resend OTP |
+| `/api/auth/student/me` | GET | Student profile |
+| `/api/auth/teacher/me` | GET | Teacher profile |
+| `/api/auth/student/upload-id-card` | POST | Upload ID card |
+| `/api/auth/teacher/upload-id-card` | POST | Upload ID card |
+
+---
+
+## 7. BENGALI STRINGS
+
+### Registration
+- Title: "রেজিস্ট্রেশন"
+- Phone: "ফোন নম্বর" / "01XXXXXXXXX"
+- Student ID: "ছাত্র/ছাত্রী ID"
+- Department: "বিভাগ"
+- Batch: "ব্যাচ"
+- Password: "পাসওয়ার্ড"
+- Confirm Password: "পাসওয়ার্ড নিশ্চিত করুন"
+- Submit: "রেজিস্ট্রেশন করুন"
+- ID Card Warning: "শুধু আপনার বিশ্ববিদ্যালয়ের বৈধ ID card-এর পরিষ্কার ছবি আপলোড করুন। অন্য কোনো ছবি দিলে registration বাতিল হতে পারে।"
+
+### OTP
+- Title: "ফোন যাচাইকরণ"
+- Subtitle: "আপনার ফোন নম্বরে ৬ ডিজিটের OTP পাঠানো হয়েছে"
+- OTP Label: "OTP কোড"
+- Verify: "যাচাই করুন"
+- Resend: "OTP পুনরায় পাঠান"
+- Change Phone: "ফোন নম্বর পরিবর্তন করুন"
+- Timer: "সময় বাকি: MM:SS"
+
+### Login
+- Title: "লগইন"
+- Phone: "ফোন নম্বর"
+- Password: "পাসওয়ার্ড"
+- Login: "লগইন করুন"
+- No Account: "অ্যাকাউন্ট নেই?"
+- Register: "রেজিস্ট্রেশন করুন"
+
+---
+
+## 8. SCREEN STRUCTURE
+
+```
+lib/features/auth/
+  screens/
+    role_selection_screen.dart
+    registration_screen.dart      # Form + password + ID card
+    otp_verification_screen.dart  # OTP input
+    login_screen.dart             # Phone + password
+  services/
+    auth_service.dart
+  providers/
+    auth_provider.dart
+  models/
+    auth_response.dart
+```
+
+---
+
+## 9. NAVIGATION
+
+```
+Splash → Role Selection → Registration Form → OTP → Home
+                         Login → Home
+```
+
+---
+
+## 10. DEPENDENCIES
+
+```yaml
+dependencies:
+  flutter_riverpod: ^2.5.0
+  dio: ^5.4.0
+  go_router: ^14.0.0
+  flutter_secure_storage: ^9.0.0
+  image_picker: ^1.0.0
+  pin_code_fields: ^8.0.0  # For OTP input
+```
+
+---
+
+## 11. IMPORTANT RULES
+
+1. NO email auth — phone only
+2. OTP only for registration verification
+3. Login = phone + password (NO OTP)
+4. Password must be set during registration
+5. Bengali-first UI
+6. Show loading states during API calls
+7. Handle 401 → clear storage → navigate to login
+8. Phone must be normalized before API calls

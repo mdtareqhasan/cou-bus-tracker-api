@@ -140,32 +140,19 @@ Success Response (returns JWT):
 
 ---
 
-## 3. Phone + OTP Login
+## 3. Phone + Password Login (NO OTP)
 
 ### Login Flow
 
-After phone number input, send OTP for login:
+Simple phone + password login. No OTP needed for login.
 
-**Step 1**: Send OTP
-`POST /api/auth/phone-verification/send`
-
-```json
-{
-  "phone": "8801712345678",
-  "role": "STUDENT"
-}
-```
-
-**Step 2**: User enters OTP
-
-**Step 3**: Login with phone + OTP
 `POST /api/auth/student/login-phone` (Student)
 `POST /api/auth/teacher/login-phone` (Teacher)
 
 ```json
 {
   "phone": "8801712345678",
-  "otp": "123456"
+  "password": "mypassword123"
 }
 ```
 
@@ -188,10 +175,9 @@ Success Response:
 | Error | Action |
 |-------|--------|
 | "Student not found with this phone number" | Show: "এই ফোন নম্বরে কোনো ব্যবহারকারী নেই। প্রথমে রেজিস্ট্রেশন করুন।" |
-| "Please verify your phone number before logging in" | Auto-navigate to OTP verification screen |
+| "Invalid phone number or password" | Show: "ভুল ফোন নম্বর বা পাসওয়ার্ড।" |
+| "Please verify your phone number before logging in" | Auto-navigate to registration/OTP verification |
 | "Account is deactivated" | Show: "আপনার অ্যাকাউন্ট নিষ্ক্রিয়। অ্যাডমিনের সাথে যোগাযোগ করুন।" |
-| "Invalid OTP" | Show: "ভুল OTP। আবার চেষ্টা করুন।" |
-| "OTP has expired" | Auto-trigger resend, show: "OTP মেয়াদোত্তীর্ণ হয়েছে। নতুন OTP পাঠানো হয়েছে।" |
 
 ---
 
@@ -262,19 +248,17 @@ Splash Screen
     ↓
 Role Selection (Student/Teacher)
     ↓
-Phone Registration Form
+Phone Registration Form (enter phone + details + set password)
     ↓ (submit)
-Phone OTP Verification Screen
+Phone OTP Verification Screen (verify phone ownership)
     ↓ (verify success)
 Home Screen (Authenticated)
 ```
 
 Login Flow:
 ```
-Phone Login Screen (enter phone)
-    ↓ (request OTP)
-Phone OTP Verification Screen
-    ↓ (verify success)
+Phone Login Screen (enter phone + password)
+    ↓ (login success)
 Home Screen (Authenticated)
 ```
 
@@ -304,8 +288,9 @@ Home Screen (Authenticated)
 ### Login Screen
 - Title: "লগইন"
 - Phone Label: "ফোন নম্বর"
-- Send OTP Button: "OTP পাঠান"
+- Password Label: "পাসওয়ার্ড"
 - Login Button: "লগইন করুন"
+- No OTP for login - just phone + password
 
 ### Error Messages
 - "ভুল OTP। আবার চেষ্টা করুন।"
@@ -322,11 +307,11 @@ Home Screen (Authenticated)
 |----------|--------|---------|
 | `/api/auth/student/register` | POST | Student registration (multipart) |
 | `/api/auth/teacher/register` | POST | Teacher registration (multipart) |
-| `/api/auth/student/login-phone` | POST | Student login with phone+OTP |
-| `/api/auth/teacher/login-phone` | POST | Teacher login with phone+OTP |
-| `/api/auth/phone-verification/send` | POST | Send OTP to phone |
-| `/api/auth/phone-verification/verify` | POST | Verify OTP and get JWT |
-| `/api/auth/phone-verification/resend` | POST | Resend OTP |
+| `/api/auth/student/login-phone` | POST | Student login with phone+password |
+| `/api/auth/teacher/login-phone` | POST | Teacher login with phone+password |
+| `/api/auth/phone-verification/send` | POST | Send OTP (for registration only) |
+| `/api/auth/phone-verification/verify` | POST | Verify OTP (for registration only) |
+| `/api/auth/phone-verification/resend` | POST | Resend OTP (for registration only) |
 | `/api/auth/student/me` | GET | Student profile (JWT required) |
 | `/api/auth/teacher/me` | GET | Teacher profile (JWT required) |
 | `/api/auth/student/upload-id-card` | POST | Upload ID card image |
@@ -386,12 +371,14 @@ dev_dependencies:
 ## 10. Important Notes
 
 1. **No Email/Gmail**: Remove all email-based auth. Phone number is the primary identifier.
-2. **OTP via BulkSMSBD**: Backend sends OTP using BulkSMSBD API. Flutter only needs to call the endpoints.
-3. **Phone Normalization**: Always normalize phone numbers to `8801XXXXXXXXX` format before sending to backend.
-4. **ID Card Upload**: Still required for registration. Use Bengali warning message before camera.
-5. **Image Validation**: Only JPG/PNG allowed. Show preview before upload.
-6. **Error Handling**: Always show Bengali error messages from backend. Parse `message` field from error response.
-7. **Token Storage**: Only store `accessToken`, `role`, `userId`, `userName`, `userPhone` in `flutter_secure_storage`.
-8. **Auto-submit OTP**: When user enters 6 digits, auto-submit for verification.
-9. **Countdown Timer**: Show 2-minute countdown. After expiry, allow resend.
-10. **Change Phone**: Allow user to go back and change phone number from OTP screen.
+2. **OTP only for registration**: Phone OTP is only used during registration to verify phone ownership. Login uses phone + password.
+3. **Password required**: User must set a password during registration. This password is used for login.
+4. **OTP via BulkSMSBD**: Backend sends OTP using BulkSMSBD API. Flutter only needs to call the endpoints.
+5. **Phone Normalization**: Always normalize phone numbers to `8801XXXXXXXXX` format before sending to backend.
+6. **ID Card Upload**: Still required for registration. Use Bengali warning message before camera.
+7. **Image Validation**: Only JPG/PNG allowed. Show preview before upload.
+8. **Error Handling**: Always show Bengali error messages from backend. Parse `message` field from error response.
+9. **Token Storage**: Only store `accessToken`, `role`, `userId`, `userName`, `userPhone` in `flutter_secure_storage`.
+10. **Auto-submit OTP**: When user enters 6 digits, auto-submit for verification.
+11. **Countdown Timer**: Show 2-minute countdown. After expiry, allow resend.
+12. **Change Phone**: Allow user to go back and change phone number from OTP screen.
