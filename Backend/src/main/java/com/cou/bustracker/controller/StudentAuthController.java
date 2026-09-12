@@ -1,6 +1,5 @@
 package com.cou.bustracker.controller;
 
-import com.cou.bustracker.dto.request.StudentRegisterRequest;
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.dto.response.FileUploadResponse;
 import com.cou.bustracker.dto.response.StudentResponse;
@@ -9,7 +8,6 @@ import com.cou.bustracker.service.FileStorageService;
 import com.cou.bustracker.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -18,21 +16,22 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
+/**
+ * Student authentication endpoints.
+ *
+ * <p>Registration has been moved to the OTP-first flow at
+ * {@code POST /api/auth/phone-verification/init} — the Student row is only
+ * created after a successful OTP verification. This controller therefore
+ * exposes login, ID-card replace, and profile only.
+ */
 @RestController
 @RequestMapping("/api/auth/student")
 @RequiredArgsConstructor
-@Tag(name = "Student Auth", description = "Student registration and authentication")
+@Tag(name = "Student Auth", description = "Student login and profile (registration via /api/auth/phone-verification/init)")
 public class StudentAuthController {
 
     private final StudentService studentService;
     private final FileStorageService fileStorageService;
-
-    @PostMapping("/register")
-    @Operation(summary = "Student registration")
-    public ResponseEntity<AuthResponse> register(@Valid @ModelAttribute StudentRegisterRequest request,
-                                                  @RequestParam("idCard") MultipartFile idCard) throws Exception {
-        return ResponseEntity.ok(studentService.register(request, idCard));
-    }
 
     @PostMapping("/login")
     @Operation(summary = "Student login with phone and password")
@@ -41,7 +40,7 @@ public class StudentAuthController {
     }
 
     @PostMapping("/upload-id-card")
-    @Operation(summary = "Upload student ID card image")
+    @Operation(summary = "Replace student ID card image")
     public ResponseEntity<FileUploadResponse> uploadIdCard(
             @RequestParam("file") MultipartFile file,
             Authentication authentication) throws Exception {

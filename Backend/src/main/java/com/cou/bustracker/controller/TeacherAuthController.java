@@ -1,6 +1,5 @@
 package com.cou.bustracker.controller;
 
-import com.cou.bustracker.dto.request.TeacherRegisterRequest;
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.dto.response.TeacherResponse;
 import com.cou.bustracker.dto.response.FileUploadResponse;
@@ -9,7 +8,6 @@ import com.cou.bustracker.service.FileStorageService;
 import com.cou.bustracker.service.TeacherService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -18,21 +16,22 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
+/**
+ * Teacher authentication endpoints.
+ *
+ * <p>Registration has been moved to the OTP-first flow at
+ * {@code POST /api/auth/phone-verification/init} — the Teacher row is only
+ * created after a successful OTP verification. This controller therefore
+ * exposes login, ID-card replace, and profile only.
+ */
 @RestController
 @RequestMapping("/api/auth/teacher")
 @RequiredArgsConstructor
-@Tag(name = "Teacher Auth", description = "Teacher registration and authentication")
+@Tag(name = "Teacher Auth", description = "Teacher login and profile (registration via /api/auth/phone-verification/init)")
 public class TeacherAuthController {
 
     private final TeacherService teacherService;
     private final FileStorageService fileStorageService;
-
-    @PostMapping("/register")
-    @Operation(summary = "Teacher registration")
-    public ResponseEntity<AuthResponse> register(@Valid @ModelAttribute TeacherRegisterRequest request,
-                                                  @RequestParam("idCard") MultipartFile idCard) throws Exception {
-        return ResponseEntity.ok(teacherService.register(request, idCard));
-    }
 
     @PostMapping("/login")
     @Operation(summary = "Teacher login with phone and password")

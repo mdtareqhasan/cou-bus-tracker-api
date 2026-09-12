@@ -27,37 +27,27 @@ Offer a role selector: **Student** or **Teacher**. After role selection, show a 
 
 ### Registration Submission
 
-Submit as `multipart/form-data` (NOT JSON).
+**Single OTP-first endpoint** — submit the full registration form as `multipart/form-data` along with the ID card. **No Student/Teacher row is created at this point**; the row is only inserted after the OTP is successfully verified.
 
-**Student**: `POST /api/auth/student/register`
-- Fields: `name`, `email` (use phone number as email: `phone@cou.bus`), `password` (generate random), `phone`, `studentId`, `department`, `varsityBatch`
-- File field: `idCard`
+`POST /api/auth/phone-verification/init`
 
-**Teacher**: `POST /api/auth/teacher/register`
-- Fields: `name`, `email` (use phone number as email: `phone@cou.bus`), `password` (generate random), `phone`, `teacherId`, `department`, `designation` (optional)
-- File field: `idCard`
+**Student fields**: `role=STUDENT`, `name`, `phone`, `password` (≥6 chars), `studentId`, `department`, `varsityBatch`
+**Teacher fields**: `role=TEACHER`, `name`, `phone`, `password` (≥6 chars), `teacherId`, `department`, `designation` (optional)
+**File field**: `idCard` (JPG/PNG, ≤5 MB, min 300×200 px)
 
-**IMPORTANT**: Since backend requires email field, use phone number as email placeholder: `{phone}@cou.bus` (e.g., `8801712345678@cou.bus`). This is a temporary solution until backend is fully migrated.
+Phone format: accept `01XXXXXXXXX`, `8801XXXXXXXXX`, or `+8801XXXXXXXXX`. Normalize to `8801XXXXXXXXX` before sending. (Backend stores as `01XXXXXXXXX` internally.)
 
 ### Registration Response
 
 ```json
 {
-  "accessToken": null,
-  "tokenType": null,
-  "role": "STUDENT",
-  "id": 1,
-  "name": "Student Name",
-  "email": "8801712345678@cou.bus",
-  "phone": "8801712345678",
-  "isVerified": false,
-  "isEmailVerified": false,
-  "isPhoneVerified": false,
-  "isEduMail": false
+  "message": "OTP sent successfully to 017XXXXXXXX. Please verify within 2 minutes."
 }
 ```
 
-After registration, **automatically send OTP** to the phone number. Navigate to OTP verification screen.
+After this response, **navigate to the OTP verification screen** and call `/verify` with the code that was SMS'd.
+
+> Old endpoints `/api/auth/student/register` and `/api/auth/teacher/register` are removed — calling them now returns 404.
 
 ---
 
@@ -110,6 +100,7 @@ Success Response (returns JWT):
 ```
 
 ### Resend OTP
+`POST /api/auth/phone-verification/resend`
 
 `POST /api/auth/phone-verification/resend`
 

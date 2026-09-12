@@ -28,5 +28,14 @@ public class PhoneVerificationOtp {
     @Builder.Default private Integer failedAttempts = 0;
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+    /** Serialized registration payload (name, password hash, role-specific IDs, etc.).
+     *  Populated by /api/auth/phone-verification/init; consumed by verifyOtp
+     *  to create the Student or Teacher row ONLY on successful OTP entry. */
+    @Column(name = "pending_registration_json", columnDefinition = "TEXT")
+    private String pendingRegistrationJson;
+    /** Cloudinary URL of the ID-card image uploaded at init time.
+     *  Attached to the Student/Teacher row only if OTP verification succeeds. */
+    @Column(name = "pending_id_card_url", columnDefinition = "TEXT")
+    private String pendingIdCardUrl;
     public enum UserRole { STUDENT, TEACHER }
 }

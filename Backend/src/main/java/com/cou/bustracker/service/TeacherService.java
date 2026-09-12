@@ -1,6 +1,5 @@
 package com.cou.bustracker.service;
 
-import com.cou.bustracker.dto.request.TeacherRegisterRequest;
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.dto.response.TeacherResponse;
 import com.cou.bustracker.entity.Teacher;
@@ -12,11 +11,15 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Teacher read/write operations used after the user has been verified by
+ * {@link PhoneVerificationService}. Registration itself lives in the OTP
+ * service — see {@code POST /api/auth/phone-verification/init}.
+ */
 @Service
 @RequiredArgsConstructor
 public class TeacherService {
@@ -25,50 +28,6 @@ public class TeacherService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
-
-    @Transactional
-    public AuthResponse register(TeacherRegisterRequest request, MultipartFile idCard) throws java.io.IOException {
-        String phone = normalizePhone(request.getPhone());
-        request.setPhone(phone);
-
-        if (teacherRepository.existsByPhone(phone)) {
-            throw new RuntimeException("এই ফোন নম্বর ইতিমধ্যে ব্যবহৃত হয়েছে।");
-        }
-        if (teacherRepository.existsByTeacherId(request.getTeacherId())) {
-            throw new RuntimeException("এই শিক্ষক ID ইতিমধ্যে নিবন্ধিত।");
-        }
-        if (request.getPassword() == null || request.getPassword().isBlank()) {
-            throw new IllegalArgumentException("Password is required");
-        }
-
-        Teacher teacher = Teacher.builder()
-                .name(request.getName())
-                .phone(phone)
-                .password(passwordEncoder.encode(request.getPassword()))
-                .teacherId(request.getTeacherId())
-                .designation(request.getDesignation())
-                .department(request.getDepartment())
-                .isVerified(false)
-                .isPhoneVerified(false)
-                .isActive(true)
-                .build();
-
-        String imageUrl = fileStorageService.storeIdCard(idCard, "teacher-id-cards");
-        teacher.setIdCardImageUrl(imageUrl);
-
-        teacherRepository.save(teacher);
-
-        return AuthResponse.builder()
-                .accessToken(null)
-                .tokenType(null)
-                .role("TEACHER")
-                .id(teacher.getId())
-                .name(teacher.getName())
-                .phone(teacher.getPhone())
-                .isVerified(teacher.getIsVerified())
-                .isPhoneVerified(teacher.getIsPhoneVerified())
-                .build();
-    }
 
     public AuthResponse loginWithPhone(String phone, String password) {
         String normalized = normalizePhone(phone);
