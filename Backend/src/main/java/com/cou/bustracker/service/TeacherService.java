@@ -8,7 +8,6 @@ import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.security.JwtService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,105 +23,56 @@ public class TeacherService {
 
     private final TeacherRepository teacherRepository;
     private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
-    private final GoogleTokenService googleTokenService;
     private final FileStorageService fileStorageService;
-    private final EmailVerificationService emailVerificationService;
-
-    private static final String EDU_MAIL_DOMAIN = "cou.ac.bd";
 
     @Transactional
     public AuthResponse register(TeacherRegisterRequest request, MultipartFile idCard) throws java.io.IOException {
-        // Auto-generate email from phone if not provided
-        String email = (request.getEmail() == null || request.getEmail().isBlank())
-                ? request.getPhone() + "@cou.bus"
-                : request.getEmail();
-        request.setEmail(email);
+        String phone = normalizePhone(request.getPhone());
+        request.setPhone(phone);
 
-        if (teacherRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email already registered");
-        }
-        if (request.getPhone() != null && teacherRepository.existsByPhone(request.getPhone())) {
-            throw new RuntimeException("Phone number already registered");
+        if (teacherRepository.existsByPhone(phone)) {
+            throw new RuntimeException("এই ফোন নম্বর ইতিমধ্যে ব্যবহৃত হয়েছে।");
         }
         if (teacherRepository.existsByTeacherId(request.getTeacherId())) {
-            throw new RuntimeException("Teacher ID already registered");
+            throw new RuntimeException("এই শিক্ষক ID ইতিমধ্যে নিবন্ধিত।");
         }
-
-        GoogleTokenService.GoogleIdentity google = resolveGoogleRegistration(
-                email, request.getPassword(), request.getGoogleIdToken());
-        boolean isEduMail = google != null || email.endsWith("@" + EDU_MAIL_DOMAIN);
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Password is required");
+        }
 
         Teacher teacher = Teacher.builder()
                 .name(request.getName())
-                .email(email)
-                .password(google == null ? passwordEncoder.encode(request.getPassword()) : null)
-                .googleSubject(google == null ? null : google.subject())
+                .phone(phone)
+                .password(passwordEncoder.encode(request.getPassword()))
                 .teacherId(request.getTeacherId())
                 .designation(request.getDesignation())
                 .department(request.getDepartment())
-                .phone(request.getPhone())
-                .isEduMail(isEduMail)
-                .isVerified(google != null)
-                .isEmailVerified(google != null)
+                .isVerified(false)
                 .isPhoneVerified(false)
                 .isActive(true)
                 .build();
 
-        // Validate & store ID card image (enforced by FileStorageService)
         String imageUrl = fileStorageService.storeIdCard(idCard, "teacher-id-cards");
         teacher.setIdCardImageUrl(imageUrl);
 
         teacherRepository.save(teacher);
 
         return AuthResponse.builder()
-                .accessToken(google == null ? null : jwtService.generateToken(teacher.getEmail(), "TEACHER"))
-                .tokenType(google == null ? null : "Bearer")
+                .accessToken(null)
+                .tokenType(null)
                 .role("TEACHER")
                 .id(teacher.getId())
                 .name(teacher.getName())
-                .email(teacher.getEmail())
                 .phone(teacher.getPhone())
                 .isVerified(teacher.getIsVerified())
-                .isEmailVerified(teacher.getIsEmailVerified())
                 .isPhoneVerified(teacher.getIsPhoneVerified())
-                .isEduMail(teacher.getIsEduMail())
-                .build();
-    }
-
-    public AuthResponse login(String email, String password) {
-        Teacher teacher = teacherRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Teacher not found"));
-        if (teacher.getPassword() == null || !passwordEncoder.matches(password, teacher.getPassword())) {
-            throw new BadCredentialsException("Invalid email or password");
-        }
-        if (!teacher.getIsActive()) {
-            throw new BadCredentialsException("Account is deactivated. Please contact admin.");
-        }
-        if (!teacher.getIsEmailVerified()) {
-            throw new BadCredentialsException("Please verify your email before logging in");
-        }
-
-        String token = jwtService.generateToken(teacher.getEmail(), "TEACHER");
-
-        return AuthResponse.builder()
-                .accessToken(token)
-                .tokenType("Bearer")
-                .role("TEACHER")
-                .id(teacher.getId())
-                .name(teacher.getName())
-                .email(teacher.getEmail())
-                .phone(teacher.getPhone())
-                .isVerified(teacher.getIsVerified())
-                .isEmailVerified(teacher.getIsEmailVerified())
-                .isPhoneVerified(teacher.getIsPhoneVerified())
-                .isEduMail(teacher.getIsEduMail())
                 .build();
     }
 
     public AuthResponse loginWithPhone(String phone, String password) {
-        Teacher teacher = teacherRepository.findByPhone(phone)
+        String normalized = normalizePhone(phone);
+        Teacher teacher = teacherRepository.findByPhone(normalized)
                 .orElseThrow(() -> new RuntimeException("Teacher not found with this phone number"));
         if (teacher.getPassword() == null || !passwordEncoder.matches(password, teacher.getPassword())) {
             throw new BadCredentialsException("Invalid phone number or password");
@@ -142,59 +92,10 @@ public class TeacherService {
                 .role("TEACHER")
                 .id(teacher.getId())
                 .name(teacher.getName())
-                .email(teacher.getEmail())
                 .phone(teacher.getPhone())
                 .isVerified(teacher.getIsVerified())
-                .isEmailVerified(teacher.getIsEmailVerified())
                 .isPhoneVerified(teacher.getIsPhoneVerified())
-                .isEduMail(teacher.getIsEduMail())
                 .build();
-    }
-
-    public AuthResponse loginWithGoogle(String idToken) {
-        GoogleTokenService.GoogleIdentity identity = googleTokenService.verify(idToken);
-        Teacher teacher = teacherRepository.findByEmail(identity.email())
-                .orElseThrow(() -> new BadCredentialsException(
-                        "No teacher registration found. Please register first and upload your ID card."));
-        if (!identity.subject().equals(teacher.getGoogleSubject())) {
-            throw new BadCredentialsException(
-                    "This Google account is not linked to any teacher profile. Please register first.");
-        }
-        if (!teacher.getIsActive()) {
-            throw new BadCredentialsException("Account is deactivated. Please contact admin.");
-        }
-        if (!teacher.getIsEmailVerified()) {
-            throw new BadCredentialsException("Please verify your email before logging in");
-        }
-
-        return AuthResponse.builder()
-                .accessToken(jwtService.generateToken(teacher.getEmail(), "TEACHER"))
-                .tokenType("Bearer")
-                .role("TEACHER")
-                .id(teacher.getId())
-                .name(teacher.getName())
-                .email(teacher.getEmail())
-                .isVerified(teacher.getIsVerified())
-                .isEmailVerified(teacher.getIsEmailVerified())
-                .isEduMail(teacher.getIsEduMail())
-                .build();
-    }
-
-    private GoogleTokenService.GoogleIdentity resolveGoogleRegistration(
-            String email, String password, String googleIdToken) {
-        if (googleIdToken == null || googleIdToken.isBlank()) {
-            if (password == null || password.isBlank()) {
-                throw new IllegalArgumentException(
-                        "Password is required when not registering with Google");
-            }
-            return null;
-        }
-        GoogleTokenService.GoogleIdentity identity = googleTokenService.verify(googleIdToken);
-        if (!identity.email().equalsIgnoreCase(email)) {
-            throw new IllegalArgumentException(
-                    "Registration email must match the Google account email");
-        }
-        return identity;
     }
 
     @Transactional
@@ -208,24 +109,24 @@ public class TeacherService {
     public List<TeacherResponse> getAllTeachers() {
         return teacherRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(teacher -> Boolean.TRUE.equals(teacher.getIsEmailVerified()))
+                .filter(teacher -> Boolean.TRUE.equals(teacher.getIsPhoneVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    public Teacher getTeacherByEmail(String email) {
-        return teacherRepository.findByEmail(email)
+    public Teacher getTeacherByPhone(String phone) {
+        return teacherRepository.findByPhone(normalizePhone(phone))
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found"));
     }
 
-    public TeacherResponse getProfile(String email) {
-        return mapToResponse(getTeacherByEmail(email));
+    public TeacherResponse getProfile(String phone) {
+        return mapToResponse(getTeacherByPhone(phone));
     }
 
     public List<TeacherResponse> getPendingTeachers() {
         return teacherRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(teacher -> Boolean.TRUE.equals(teacher.getIsEmailVerified()))
+                .filter(teacher -> Boolean.TRUE.equals(teacher.getIsPhoneVerified()))
                 .filter(teacher -> !Boolean.TRUE.equals(teacher.getIsVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -251,7 +152,6 @@ public class TeacherService {
     public void deleteTeacher(Long teacherId) {
         Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found"));
-        // Delete ID card image from filesystem if exists
         if (teacher.getIdCardImageUrl() != null) {
             deleteIdCardFile(teacher.getIdCardImageUrl());
         }
@@ -259,7 +159,6 @@ public class TeacherService {
     }
 
     private void deleteIdCardFile(String imageUrl) {
-        // Delete ID card image from Cloudinary (no-op for already-deleted/null images)
         fileStorageService.deleteFile(imageUrl);
     }
 
@@ -267,16 +166,29 @@ public class TeacherService {
         return TeacherResponse.builder()
                 .id(teacher.getId())
                 .name(teacher.getName())
-                .email(teacher.getEmail())
                 .teacherId(teacher.getTeacherId())
                 .designation(teacher.getDesignation())
                 .department(teacher.getDepartment())
                 .phone(teacher.getPhone())
                 .idCardImageUrl(teacher.getIdCardImageUrl())
-                .isEduMail(teacher.getIsEduMail())
                 .isVerified(teacher.getIsVerified())
                 .isActive(teacher.getIsActive())
                 .createdAt(teacher.getCreatedAt())
                 .build();
+    }
+
+    private String normalizePhone(String phone) {
+        if (phone == null) return null;
+        String cleaned = phone.replaceAll("[^0-9]", "");
+        if (cleaned.startsWith("880") && cleaned.length() == 13) {
+            return cleaned.substring(2);
+        }
+        if (cleaned.startsWith("01") && cleaned.length() == 11) {
+            return cleaned;
+        }
+        if (cleaned.length() == 10) {
+            return "0" + cleaned;
+        }
+        return cleaned;
     }
 }

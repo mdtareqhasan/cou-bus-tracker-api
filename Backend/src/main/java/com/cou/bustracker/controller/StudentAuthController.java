@@ -35,14 +35,8 @@ public class StudentAuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Student login")
+    @Operation(summary = "Student login with phone and password")
     public ResponseEntity<AuthResponse> login(@RequestBody Map<String, String> request) {
-        return ResponseEntity.ok(studentService.login(request.get("email"), request.get("password")));
-    }
-
-    @PostMapping("/login-phone")
-    @Operation(summary = "Student login with phone number and password")
-    public ResponseEntity<AuthResponse> loginWithPhone(@RequestBody Map<String, String> request) {
         return ResponseEntity.ok(studentService.loginWithPhone(request.get("phone"), request.get("password")));
     }
 
@@ -52,7 +46,7 @@ public class StudentAuthController {
             @RequestParam("file") MultipartFile file,
             Authentication authentication) throws Exception {
 
-        Student student = studentService.getStudentByEmail(authentication.getName());
+        Student student = studentService.getStudentByPhone(authentication.getName());
         String filePath = fileStorageService.storeIdCard(file, "student-id-cards");
         studentService.uploadIdCard(student.getId(), filePath);
 
@@ -65,17 +59,15 @@ public class StudentAuthController {
     @GetMapping("/me")
     @Operation(summary = "Get current student profile")
     public ResponseEntity<StudentResponse> getProfile(Authentication authentication) {
-        Student student = studentService.getStudentByEmail(authentication.getName());
+        Student student = studentService.getStudentByPhone(authentication.getName());
         return ResponseEntity.ok(StudentResponse.builder()
                 .id(student.getId())
                 .name(student.getName())
-                .email(student.getEmail())
                 .phone(student.getPhone())
                 .studentId(student.getStudentId())
                 .department(student.getDepartment())
                 .varsityBatch(student.getVarsityBatch())
                 .idCardImageUrl(student.getIdCardImageUrl())
-                .isEduMail(student.getIsEduMail())
                 .isVerified(student.getIsVerified())
                 .isActive(student.getIsActive())
                 .createdAt(student.getCreatedAt())

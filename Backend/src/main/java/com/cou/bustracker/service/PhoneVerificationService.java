@@ -102,5 +102,16 @@ public class PhoneVerificationService {
                 .isPhoneVerified(true).build();
     }
 
-    private String normalize(String phone) { return phone.trim().replaceAll("\\s+", "").toLowerCase(Locale.ROOT); }
+    private String normalize(String phone) {
+        if (phone == null) return null;
+        String cleaned = phone.trim().replaceAll("[^0-9]", "");
+        // Store as 11-digit BD format: 01XXXXXXXXX
+        if (cleaned.startsWith("880") && cleaned.length() == 13) {
+            return cleaned.substring(2);
+        }
+        if (cleaned.startsWith("01") && cleaned.length() == 11) {
+            return cleaned;
+        }
+        return cleaned;
+    }
 }

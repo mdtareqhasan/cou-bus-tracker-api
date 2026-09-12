@@ -1,6 +1,5 @@
 package com.cou.bustracker.dto.request;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -17,8 +16,9 @@ public class TeacherRegisterRequest {
     @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
     private String name;
 
-    @Email(message = "Please provide a valid email")
-    private String email;
+    @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Please provide a valid phone number")
+    private String phone;
 
     @Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
     private String password;
@@ -37,6 +37,5 @@ public class TeacherRegisterRequest {
     @Size(min = 2, max = 100, message = "Department must be between 2 and 100 characters")
     private String department;
 
-    @Pattern(regexp = "^[0-9+\\-\\s]{7,20}$", message = "Phone must be 7-20 digits (may include +, -, spaces)")
-    private String phone;
+
 }

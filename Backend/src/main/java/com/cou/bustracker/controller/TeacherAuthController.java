@@ -35,14 +35,8 @@ public class TeacherAuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Teacher login")
+    @Operation(summary = "Teacher login with phone and password")
     public ResponseEntity<AuthResponse> login(@RequestBody Map<String, String> request) {
-        return ResponseEntity.ok(teacherService.login(request.get("email"), request.get("password")));
-    }
-
-    @PostMapping("/login-phone")
-    @Operation(summary = "Teacher login with phone number and password")
-    public ResponseEntity<AuthResponse> loginWithPhone(@RequestBody Map<String, String> request) {
         return ResponseEntity.ok(teacherService.loginWithPhone(request.get("phone"), request.get("password")));
     }
 
@@ -50,7 +44,7 @@ public class TeacherAuthController {
     @Operation(summary = "Replace teacher ID card image")
     public ResponseEntity<FileUploadResponse> uploadIdCard(@RequestParam("file") MultipartFile file,
                                                             Authentication authentication) throws Exception {
-        Teacher teacher = teacherService.getTeacherByEmail(authentication.getName());
+        Teacher teacher = teacherService.getTeacherByPhone(authentication.getName());
         String filePath = fileStorageService.storeIdCard(file, "teacher-id-cards");
         teacherService.uploadIdCard(teacher.getId(), filePath);
         return ResponseEntity.ok(FileUploadResponse.builder().message("ID card uploaded successfully").filePath(filePath).build());

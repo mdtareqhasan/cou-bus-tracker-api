@@ -24,8 +24,8 @@ public class Teacher {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String email;
+    @Column(nullable = false, unique = true, length = 20)
+    private String phone;
 
     @Column(nullable = false)
     private String password;
@@ -45,20 +45,9 @@ public class Teacher {
     @Column(name = "department", length = 100)
     private String department;
 
-    @Column(name = "phone", length = 20)
-    private String phone;
-
-    @Column(name = "is_edu_mail")
-    @Builder.Default
-    private Boolean isEduMail = false;
-
     @Column(name = "is_verified")
     @Builder.Default
     private Boolean isVerified = false;
-
-    @Column(name = "is_email_verified", nullable = false)
-    @Builder.Default
-    private Boolean isEmailVerified = false;
 
     @Column(name = "is_phone_verified")
     @Builder.Default

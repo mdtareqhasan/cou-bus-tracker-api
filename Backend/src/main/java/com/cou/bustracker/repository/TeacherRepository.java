@@ -10,11 +10,7 @@ import java.util.Optional;
 @Repository
 public interface TeacherRepository extends JpaRepository<Teacher, Long> {
 
-    Optional<Teacher> findByEmail(String email);
-
     Optional<Teacher> findByPhone(String phone);
-
-    boolean existsByEmail(String email);
 
     boolean existsByPhone(String phone);
 
@@ -28,7 +24,7 @@ public interface TeacherRepository extends JpaRepository<Teacher, Long> {
 
     long countByIsVerifiedFalse();
 
-    long countByIsEmailVerifiedTrue();
+    long countByIsPhoneVerifiedTrue();
 
-    long countByIsEmailVerifiedTrueAndIsVerifiedFalse();
+    long countByIsPhoneVerifiedTrueAndIsVerifiedFalse();
 }

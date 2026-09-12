@@ -15,13 +15,11 @@ public class StudentResponse {
 
     private Long id;
     private String name;
-    private String email;
     private String phone;
     private String studentId;
     private String department;
     private String varsityBatch;
     private String idCardImageUrl;
-    private Boolean isEduMail;
     private Boolean isVerified;
     private Boolean isActive;
     private LocalDateTime createdAt;

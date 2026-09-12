@@ -8,7 +8,6 @@ import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.security.JwtService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,105 +23,56 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
-    private final GoogleTokenService googleTokenService;
     private final FileStorageService fileStorageService;
-    private final EmailVerificationService emailVerificationService;
-
-    private static final String EDU_MAIL_DOMAIN = "cou.ac.bd";
 
     @Transactional
     public AuthResponse register(StudentRegisterRequest request, MultipartFile idCard) throws java.io.IOException {
-        // Auto-generate email from phone if not provided
-        String email = (request.getEmail() == null || request.getEmail().isBlank())
-                ? request.getPhone() + "@cou.bus"
-                : request.getEmail();
-        request.setEmail(email);
+        String phone = normalizePhone(request.getPhone());
+        request.setPhone(phone);
 
-        if (studentRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email already registered");
-        }
-        if (request.getPhone() != null && studentRepository.existsByPhone(request.getPhone())) {
-            throw new RuntimeException("Phone number already registered");
+        if (studentRepository.existsByPhone(phone)) {
+            throw new RuntimeException("এই ফোন নম্বর ইতিমধ্যে ব্যবহৃত হয়েছে।");
         }
         if (studentRepository.existsByStudentId(request.getStudentId())) {
-            throw new RuntimeException("Student ID already registered");
+            throw new RuntimeException("এই শিক্ষার্থী ID ইতিমধ্যে নিবন্ধিত।");
         }
-
-        GoogleTokenService.GoogleIdentity google = resolveGoogleRegistration(
-                email, request.getPassword(), request.getGoogleIdToken());
-        boolean isEduMail = google != null || email.endsWith("@" + EDU_MAIL_DOMAIN);
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Password is required");
+        }
 
         Student student = Student.builder()
                 .name(request.getName())
-                .email(email)
-                .password(google == null ? passwordEncoder.encode(request.getPassword()) : null)
-                .googleSubject(google == null ? null : google.subject())
-                .phone(request.getPhone())
+                .phone(phone)
+                .password(passwordEncoder.encode(request.getPassword()))
                 .studentId(request.getStudentId())
                 .department(request.getDepartment())
                 .varsityBatch(request.getVarsityBatch())
-                .isEduMail(isEduMail)
-                .isVerified(google != null)
-                .isEmailVerified(google != null)
+                .isVerified(false)
                 .isPhoneVerified(false)
                 .isActive(true)
                 .build();
 
-        // Validate & store ID card image (enforced by FileStorageService)
         String imageUrl = fileStorageService.storeIdCard(idCard, "student-id-cards");
         student.setIdCardImageUrl(imageUrl);
 
         studentRepository.save(student);
 
         return AuthResponse.builder()
-                .accessToken(google == null ? null : jwtService.generateToken(student.getEmail(), "STUDENT"))
-                .tokenType(google == null ? null : "Bearer")
+                .accessToken(null)
+                .tokenType(null)
                 .role("STUDENT")
                 .id(student.getId())
                 .name(student.getName())
-                .email(student.getEmail())
                 .phone(student.getPhone())
                 .isVerified(student.getIsVerified())
-                .isEmailVerified(student.getIsEmailVerified())
                 .isPhoneVerified(student.getIsPhoneVerified())
-                .isEduMail(student.getIsEduMail())
-                .build();
-    }
-
-    public AuthResponse login(String email, String password) {
-        Student student = studentRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-        if (student.getPassword() == null || !passwordEncoder.matches(password, student.getPassword())) {
-            throw new BadCredentialsException("Invalid email or password");
-        }
-        if (!student.getIsActive()) {
-            throw new BadCredentialsException("Account is deactivated. Please contact admin.");
-        }
-        if (!student.getIsEmailVerified()) {
-            throw new BadCredentialsException("Please verify your email before logging in");
-        }
-
-        String token = jwtService.generateToken(student.getEmail(), "STUDENT");
-
-        return AuthResponse.builder()
-                .accessToken(token)
-                .tokenType("Bearer")
-                .role("STUDENT")
-                .id(student.getId())
-                .name(student.getName())
-                .email(student.getEmail())
-                .phone(student.getPhone())
-                .isVerified(student.getIsVerified())
-                .isEmailVerified(student.getIsEmailVerified())
-                .isPhoneVerified(student.getIsPhoneVerified())
-                .isEduMail(student.getIsEduMail())
                 .build();
     }
 
     public AuthResponse loginWithPhone(String phone, String password) {
-        Student student = studentRepository.findByPhone(phone)
+        String normalized = normalizePhone(phone);
+        Student student = studentRepository.findByPhone(normalized)
                 .orElseThrow(() -> new RuntimeException("Student not found with this phone number"));
         if (student.getPassword() == null || !passwordEncoder.matches(password, student.getPassword())) {
             throw new BadCredentialsException("Invalid phone number or password");
@@ -142,59 +92,10 @@ public class StudentService {
                 .role("STUDENT")
                 .id(student.getId())
                 .name(student.getName())
-                .email(student.getEmail())
                 .phone(student.getPhone())
                 .isVerified(student.getIsVerified())
-                .isEmailVerified(student.getIsEmailVerified())
                 .isPhoneVerified(student.getIsPhoneVerified())
-                .isEduMail(student.getIsEduMail())
                 .build();
-    }
-
-    public AuthResponse loginWithGoogle(String idToken) {
-        GoogleTokenService.GoogleIdentity identity = googleTokenService.verify(idToken);
-        Student student = studentRepository.findByEmail(identity.email())
-                .orElseThrow(() -> new BadCredentialsException(
-                        "No student registration found. Please register first and upload your ID card."));
-        if (!identity.subject().equals(student.getGoogleSubject())) {
-            throw new BadCredentialsException(
-                    "This Google account is not linked to any student profile. Please register first.");
-        }
-        if (!student.getIsActive()) {
-            throw new BadCredentialsException("Account is deactivated. Please contact admin.");
-        }
-        if (!student.getIsEmailVerified()) {
-            throw new BadCredentialsException("Please verify your email before logging in");
-        }
-
-        return AuthResponse.builder()
-                .accessToken(jwtService.generateToken(student.getEmail(), "STUDENT"))
-                .tokenType("Bearer")
-                .role("STUDENT")
-                .id(student.getId())
-                .name(student.getName())
-                .email(student.getEmail())
-                .isVerified(student.getIsVerified())
-                .isEmailVerified(student.getIsEmailVerified())
-                .isEduMail(student.getIsEduMail())
-                .build();
-    }
-
-    private GoogleTokenService.GoogleIdentity resolveGoogleRegistration(
-            String email, String password, String googleIdToken) {
-        if (googleIdToken == null || googleIdToken.isBlank()) {
-            if (password == null || password.isBlank()) {
-                throw new IllegalArgumentException(
-                        "Password is required when not registering with Google");
-            }
-            return null;
-        }
-        GoogleTokenService.GoogleIdentity identity = googleTokenService.verify(googleIdToken);
-        if (!identity.email().equalsIgnoreCase(email)) {
-            throw new IllegalArgumentException(
-                    "Registration email must match the Google account email");
-        }
-        return identity;
     }
 
     @Transactional
@@ -208,7 +109,7 @@ public class StudentService {
     public List<StudentResponse> getAllStudents() {
         return studentRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(student -> Boolean.TRUE.equals(student.getIsEmailVerified()))
+                .filter(student -> Boolean.TRUE.equals(student.getIsPhoneVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -216,7 +117,7 @@ public class StudentService {
     public List<StudentResponse> getPendingStudents() {
         return studentRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(student -> Boolean.TRUE.equals(student.getIsEmailVerified()))
+                .filter(student -> Boolean.TRUE.equals(student.getIsPhoneVerified()))
                 .filter(student -> !Boolean.TRUE.equals(student.getIsVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -242,7 +143,6 @@ public class StudentService {
     public void deleteStudent(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
-        // Delete ID card image from filesystem if exists
         if (student.getIdCardImageUrl() != null) {
             deleteIdCardFile(student.getIdCardImageUrl());
         }
@@ -250,12 +150,11 @@ public class StudentService {
     }
 
     private void deleteIdCardFile(String imageUrl) {
-        // Delete ID card image from Cloudinary (no-op for already-deleted/null images)
         fileStorageService.deleteFile(imageUrl);
     }
 
-    public Student getStudentByEmail(String email) {
-        return studentRepository.findByEmail(email)
+    public Student getStudentByPhone(String phone) {
+        return studentRepository.findByPhone(normalizePhone(phone))
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
     }
 
@@ -263,15 +162,29 @@ public class StudentService {
         return StudentResponse.builder()
                 .id(student.getId())
                 .name(student.getName())
-                .email(student.getEmail())
+                .phone(student.getPhone())
                 .studentId(student.getStudentId())
                 .department(student.getDepartment())
                 .varsityBatch(student.getVarsityBatch())
                 .idCardImageUrl(student.getIdCardImageUrl())
-                .isEduMail(student.getIsEduMail())
                 .isVerified(student.getIsVerified())
                 .isActive(student.getIsActive())
                 .createdAt(student.getCreatedAt())
                 .build();
+    }
+
+    private String normalizePhone(String phone) {
+        if (phone == null) return null;
+        String cleaned = phone.replaceAll("[^0-9]", "");
+        if (cleaned.startsWith("880") && cleaned.length() == 13) {
+            return cleaned.substring(2);
+        }
+        if (cleaned.startsWith("01") && cleaned.length() == 11) {
+            return cleaned;
+        }
+        if (cleaned.length() == 10) {
+            return "0" + cleaned;
+        }
+        return cleaned;
     }
 }

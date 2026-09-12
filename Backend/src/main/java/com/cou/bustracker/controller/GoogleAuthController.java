@@ -1,29 +1,23 @@
 package com.cou.bustracker.controller;
 
-import com.cou.bustracker.dto.request.GoogleLoginRequest;
-import com.cou.bustracker.dto.response.AuthResponse;
-import com.cou.bustracker.service.StudentService;
-import com.cou.bustracker.service.TeacherService;
-import jakarta.validation.Valid;
+import com.cou.bustracker.dto.response.MessageResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth/google")
 @RequiredArgsConstructor
+@Tag(name = "Google Auth (Deprecated)", description = "Google Sign-In removed. Use phone auth.")
 public class GoogleAuthController {
-    private final StudentService studentService;
-    private final TeacherService teacherService;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody GoogleLoginRequest request) {
-        AuthResponse response = request.getRole() == GoogleLoginRequest.UserRole.STUDENT
-                ? studentService.loginWithGoogle(request.getIdToken())
-                : teacherService.loginWithGoogle(request.getIdToken());
-        return ResponseEntity.ok(response);
+    public ResponseEntity<MessageResponse> login() {
+        return ResponseEntity.status(410).body(MessageResponse.builder()
+                .message("Google Sign-In is deprecated. Please use phone number registration and login.")
+                .build());
     }
 }

@@ -1,6 +1,5 @@
 package com.cou.bustracker.dto.request;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -17,17 +16,15 @@ public class StudentRegisterRequest {
     @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
     private String name;
 
-    @Email(message = "Please provide a valid email")
-    private String email;
+    @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Please provide a valid phone number")
+    private String phone;
 
     @Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
     private String password;
 
     /** Google ID token for Google Sign-In registrations. Password is required when this is absent. */
     private String googleIdToken;
-
-    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Please provide a valid phone number")
-    private String phone;
 
     @NotBlank(message = "Student ID is required")
     @Pattern(regexp = "^[A-Za-z0-9\\-]{2,50}$", message = "Student ID must be 2-50 alphanumeric characters")

@@ -90,18 +90,19 @@ public class SmsService {
     }
 
     /**
-     * Normalize phone number to 8801XXXXXXXXX format.
-     * Input: 01XXXXXXXXX or 8801XXXXXXXXX or +8801XXXXXXXXX
-     * Output: 8801XXXXXXXXX
+     * Normalize phone number to 8801XXXXXXXXX format for BulkSMSBD API.
+     * Input: 01XXXXXXXXX (11 digit BD format)
+     * Output: 8801XXXXXXXXX (13 digit with country code)
      */
     private String normalizePhone(String phone) {
         if (phone == null) return phone;
         String cleaned = phone.replaceAll("[^0-9]", "");
-        if (cleaned.startsWith("880") && cleaned.length() == 13) {
-            return cleaned;
-        }
+        // BD numbers start with 01 - add 88 country code
         if (cleaned.startsWith("01") && cleaned.length() == 11) {
             return "88" + cleaned;
+        }
+        if (cleaned.startsWith("880") && cleaned.length() == 13) {
+            return cleaned;
         }
         return cleaned;
     }
