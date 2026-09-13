@@ -1,0 +1,48 @@
+# =====================================================================
+# MetroVPS - Spring Boot app only
+# ---------------------------------------------------------------------
+# Postgres lives in its own stack (docker-compose.postgres.yml).
+# This file is re-deployed on every git pull and only restarts the API.
+# =====================================================================
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cou-bus-tracker-app
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      # Force these even if .env.production is missing them on first deploy
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID}
+      TZ: ${TZ}
+    # Nginx reverse-proxy listens on host:8080 -> app:8080.
+    # Bind to localhost only so the public can only reach Spring via Nginx.
+    ports:
+      - "127.0.0.1:8080:8080"
+    # host.docker.internal lets the app container reach the Postgres
+    # container that is running on the host network namespace.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Persist student ID cards across container rebuilds.
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/api/buses || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1536M

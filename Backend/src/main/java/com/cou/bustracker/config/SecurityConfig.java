@@ -112,7 +112,21 @@ public class SecurityConfig {
                 "https://co-u-bus-tracker-flutter-chi.vercel.app",
                 // TODO: Replace with actual Vercel deployment URL of super-admin panel
                 "https://cou-bus-tracker-super-admin.vercel.app",
-                "https://cou-super-admin.vercel.app"));
+                "https://cou-super-admin.vercel.app",
+                // MetroVPS deployment (add more subdomains as you wire them up)
+                "https://kubijatra.com",
+                "https://www.kubijatra.com",
+                "https://api.kubijatra.com",
+                "https://admin.kubijatra.com",
+                "https://super.kubijatra.com",
+                "https://app.kubijatra.com",
+                // Keep http fallback only while you test before TLS is issued
+                "http://kubijatra.com",
+                "http://www.kubijatra.com",
+                "http://api.kubijatra.com",
+                "http://admin.kubijatra.com",
+                "http://super.kubijatra.com",
+                "http://app.kubijatra.com"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));

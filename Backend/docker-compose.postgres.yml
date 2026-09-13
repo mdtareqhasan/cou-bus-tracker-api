@@ -1,0 +1,44 @@
+# =====================================================================
+# MetroVPS - Postgres only
+# ---------------------------------------------------------------------
+# Run on the host (NOT inside the app stack) so:
+#   1. Database persists across app redeploys.
+#   2. App containers can be rebuilt without touching data.
+#   3. You can attach admin tools (pgAdmin, psql) directly to host:5432.
+# =====================================================================
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cou-bus-tracker-postgres
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: ${TZ}
+    # Publish on host's 127.0.0.1 ONLY - the app reaches it via
+    # host.docker.internal:5432 (set in SPRING_DATASOURCE_URL).
+    # This avoids exposing Postgres to the public internet.
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # Hardening: cap memory so a runaway query cannot OOM the VPS.
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+volumes:
+  postgres_data:
+    driver: local
