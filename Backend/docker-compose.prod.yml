@@ -13,14 +13,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
-    # Nginx reverse-proxy listens on host:8080 -> app:8080.
-    # Bind to localhost only so the public can only reach Spring via Nginx.
-    ports:
-      - "127.0.0.1:8080:8080"
-    # host.docker.internal lets the app container reach the Postgres
-    # container that is running on the host network namespace.
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    network_mode: host
     volumes:
       # Persist student ID cards across container rebuilds.
       - ./uploads:/app/uploads
