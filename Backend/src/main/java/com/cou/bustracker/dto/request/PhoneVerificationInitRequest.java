@@ -14,7 +14,7 @@ import lombok.AllArgsConstructor;
  * "idCard" file. The student/teacher row is NOT created until the matching
  * OTP is verified — see {@code PhoneVerificationService.verifyOtp}.
  *
- * Fields are role-discriminated: {@code studentId} is required when
+ * Fields are role-discriminated: {@code rollNumber} is required when
  * {@code role=STUDENT}, {@code teacherId} when {@code role=TEACHER}.
  * Validation is enforced again at service time so we don't waste an OTP on
  * bad input.
@@ -43,12 +43,12 @@ public class PhoneVerificationInitRequest {
 
     // ---- Student-only fields (ignored when role=TEACHER) ----
     @Pattern(regexp = "^[A-Za-z0-9\\-]{2,50}$",
-             message = "Student ID must be 2-50 alphanumeric characters")
-    private String studentId;
+             message = "Roll number must be 2-50 alphanumeric characters")
+    private String rollNumber;
 
     @Pattern(regexp = "^([0-9]{1,2}|[0-9]{4}(-[0-9]{4})?)$",
-             message = "Batch must be a number such as 16, 2020, or 2020-2024")
-    private String varsityBatch;
+             message = "Session must be a number such as 16, 2020, or 2020-2024")
+    private String session;
 
     // ---- Teacher-only fields (ignored when role=STUDENT) ----
     @Pattern(regexp = "^[A-Za-z0-9\\-]{2,50}$",

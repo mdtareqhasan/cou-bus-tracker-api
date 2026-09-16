@@ -16,9 +16,9 @@ public class StudentResponse {
     private Long id;
     private String name;
     private String phone;
-    private String studentId;
+    private String rollNumber;
     private String department;
-    private String varsityBatch;
+    private String session;
     private String idCardImageUrl;
     private Boolean isVerified;
     private Boolean isPhoneVerified;

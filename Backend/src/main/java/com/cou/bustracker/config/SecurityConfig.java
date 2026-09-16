@@ -49,6 +49,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/google/**").permitAll()
                         .requestMatchers("/api/auth/email-verification/**").permitAll()
                         .requestMatchers("/api/auth/phone-verification/**").permitAll()
+                        .requestMatchers("/api/auth/forgot-password/**").permitAll()
                         .requestMatchers("/api/debug/**").permitAll()
                         .requestMatchers("/api/auth/admin/login").permitAll()
                         // Public Flutter runtime config

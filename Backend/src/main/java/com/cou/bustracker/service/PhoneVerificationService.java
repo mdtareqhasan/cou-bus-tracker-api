@@ -68,17 +68,17 @@ public class PhoneVerificationService {
 
         // ----- role-specific field + uniqueness validation (BEFORE sending OTP) -----
         if (role == UserRole.STUDENT) {
-            if (req.getStudentId() == null || req.getStudentId().isBlank()) {
-                throw new IllegalArgumentException("Student ID is required");
+            if (req.getRollNumber() == null || req.getRollNumber().isBlank()) {
+                throw new IllegalArgumentException("Roll number is required");
             }
-            if (req.getVarsityBatch() == null || req.getVarsityBatch().isBlank()) {
-                throw new IllegalArgumentException("Varsity batch is required");
+            if (req.getSession() == null || req.getSession().isBlank()) {
+                throw new IllegalArgumentException("Session is required");
             }
             if (studentRepository.existsByPhone(phone)) {
                 throw new IllegalStateException("এই ফোন নম্বর ইতিমধ্যে ব্যবহৃত হয়েছে।");
             }
-            if (studentRepository.existsByStudentId(req.getStudentId())) {
-                throw new IllegalStateException("এই শিক্ষার্থী ID ইতিমধ্যে নিবন্ধিত।");
+            if (studentRepository.existsByRollNumber(req.getRollNumber())) {
+                throw new IllegalStateException("এই রোল নম্বর ইতিমধ্যে নিবন্ধিত।");
             }
         } else {
             if (req.getTeacherId() == null || req.getTeacherId().isBlank()) {
@@ -118,8 +118,8 @@ public class PhoneVerificationService {
         payload.put("googleIdToken", req.getGoogleIdToken());
         payload.put("department", req.getDepartment());
         if (role == UserRole.STUDENT) {
-            payload.put("studentId", req.getStudentId());
-            payload.put("varsityBatch", req.getVarsityBatch());
+            payload.put("rollNumber", req.getRollNumber());
+            payload.put("session", req.getSession());
         } else {
             payload.put("teacherId", req.getTeacherId());
             payload.put("designation", req.getDesignation());
@@ -265,9 +265,9 @@ public class PhoneVerificationService {
                 .name((String) p.get("name"))
                 .phone((String) p.get("phone"))
                 .password((String) p.get("passwordHash"))
-                .studentId((String) p.get("studentId"))
+                .rollNumber((String) p.get("rollNumber"))
                 .department((String) p.get("department"))
-                .varsityBatch((String) p.get("varsityBatch"))
+                .session((String) p.get("session"))
                 .idCardImageUrl(idCardUrl)
                 .isVerified(true)        // phone verification auto-grants full verification (legacy behaviour)
                 .isPhoneVerified(true)
