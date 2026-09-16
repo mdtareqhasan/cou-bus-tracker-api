@@ -46,8 +46,8 @@ public class PhoneVerificationInitRequest {
              message = "Roll number must be 2-50 alphanumeric characters")
     private String rollNumber;
 
-    @Pattern(regexp = "^([0-9]{1,2}|[0-9]{4}(-[0-9]{4})?)$",
-             message = "Session must be a number such as 16, 2020, or 2020-2024")
+    @Pattern(regexp = "^([0-9]{1,2}|[0-9]{4}(-[0-9]{2,4})?)$",
+             message = "Session must be a number such as 16, 2020, 2021-22, or 2020-2024")
     private String session;
 
     // ---- Teacher-only fields (ignored when role=STUDENT) ----
