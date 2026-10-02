@@ -28,5 +28,5 @@ public class EmailVerificationOtp {
     @Builder.Default private Integer failedAttempts = 0;
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-    public enum UserRole { STUDENT, TEACHER }
+    public enum UserRole { STUDENT, EMPLOYEE }
 }

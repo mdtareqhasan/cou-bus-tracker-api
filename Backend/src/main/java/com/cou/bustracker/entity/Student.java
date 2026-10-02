@@ -24,7 +24,7 @@ public class Student {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(unique = true, length = 20)
     private String phone;
 
     @Column(nullable = false)
@@ -41,6 +41,13 @@ public class Student {
 
     @Column(name = "session", nullable = false, length = 20)
     private String session;
+
+    @Column(length = 150)
+    private String email;
+
+    @Column(name = "is_email_verified")
+    @Builder.Default
+    private Boolean isEmailVerified = false;
 
     @Column(name = "id_card_image_url", columnDefinition = "TEXT")
     private String idCardImageUrl;
