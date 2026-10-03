@@ -120,7 +120,7 @@ public class EmailVerificationControllerTest {
         boolean initCalled;
 
         StubEmailVerificationService() {
-            super(null, null, null);
+            super(null, null, null, null);
         }
 
         @Override

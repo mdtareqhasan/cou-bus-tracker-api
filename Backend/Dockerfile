@@ -8,7 +8,7 @@ RUN mvn dependency:go-offline -B
 
 # Copy source and build the fat JAR
 COPY src ./src
-RUN mvn package -DskipTests -B
+RUN mvn package -Dmaven.test.skip=true -B
 
 # ---- Stage 2: Run with JRE ----
 FROM eclipse-temurin:21-jre-alpine

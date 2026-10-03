@@ -7,6 +7,7 @@ import com.cou.bustracker.entity.Student;
 import com.cou.bustracker.entity.Teacher;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
+import com.cou.bustracker.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +28,7 @@ public class EmailVerificationService {
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     // Simple in-memory staging for the placeholder flow.
     private final Map<String, EmailVerificationInitRequest> pendingRegistrations = new ConcurrentHashMap<>();
@@ -120,9 +122,9 @@ public class EmailVerificationService {
 
         student = studentRepository.save(student);
         return AuthResponse.builder()
-                .accessToken("dummy-email-access-token")
+                .accessToken(jwtService.generateToken(student.getEmail(), "STUDENT"))
                 .tokenType("Bearer")
-                .role(UserRole.STUDENT.name())
+                .role("STUDENT")
                 .id(student.getId())
                 .name(student.getName())
                 .email(student.getEmail())
@@ -147,9 +149,9 @@ public class EmailVerificationService {
 
         teacher = teacherRepository.save(teacher);
         return AuthResponse.builder()
-                .accessToken("dummy-email-access-token")
+                .accessToken(jwtService.generateToken(teacher.getEmail(), "TEACHER"))
                 .tokenType("Bearer")
-                .role(UserRole.EMPLOYEE.name())
+                .role("TEACHER")
                 .id(teacher.getId())
                 .name(teacher.getName())
                 .email(teacher.getEmail())
