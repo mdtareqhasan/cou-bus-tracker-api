@@ -58,6 +58,35 @@ public class StudentService {
                 .build();
     }
 
+    public AuthResponse loginWithEmail(String email, String password) {
+        String normalizedEmail = email.trim().toLowerCase();
+        Student student = studentRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found with this email"));
+        if (student.getPassword() == null || !passwordEncoder.matches(password, student.getPassword())) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+        if (!student.getIsActive()) {
+            throw new BadCredentialsException("Account is deactivated. Please contact admin.");
+        }
+        if (!Boolean.TRUE.equals(student.getIsEmailVerified())) {
+            throw new BadCredentialsException("Please verify your email before logging in");
+        }
+
+        String token = jwtService.generateToken(student.getEmail(), "STUDENT");
+
+        return AuthResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .role("STUDENT")
+                .id(student.getId())
+                .name(student.getName())
+                .email(student.getEmail())
+                .phone(student.getPhone())
+                .isVerified(student.getIsVerified())
+                .isPhoneVerified(student.getIsPhoneVerified())
+                .build();
+    }
+
     @Transactional
     public void uploadIdCard(Long studentId, String imageUrl) {
         Student student = studentRepository.findById(studentId)

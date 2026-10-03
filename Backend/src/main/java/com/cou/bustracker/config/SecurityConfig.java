@@ -48,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/teacher/register", "/api/auth/teacher/login").permitAll()
                         .requestMatchers("/api/auth/google/**").permitAll()
                         .requestMatchers("/api/auth/email-verification/**").permitAll()
+                        .requestMatchers("/api/auth/email-login").permitAll()
                         .requestMatchers("/api/auth/phone-verification/**").permitAll()
                         .requestMatchers("/api/auth/forgot-password/**").permitAll()
                         .requestMatchers("/api/debug/**").permitAll()

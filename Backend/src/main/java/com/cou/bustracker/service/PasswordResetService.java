@@ -144,12 +144,12 @@ public class PasswordResetService {
 
     private UserRole parseRole(String role) {
         if (role == null || role.isBlank()) {
-            throw new IllegalArgumentException("Role is required");
+            throw new IllegalArgumentException("রোল নির্বাচন করুন");
         }
         try {
             return UserRole.valueOf(role.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid role. Must be STUDENT or TEACHER");
+            throw new IllegalArgumentException("অবৈধ রোল। শুধু STUDENT বা TEACHER হতে পারবে");
         }
     }
 }

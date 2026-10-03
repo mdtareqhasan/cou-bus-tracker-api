@@ -11,17 +11,17 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateScheduleRequest {
 
-    @NotNull(message = "Bus ID is required")
+    @NotNull(message = "বাস আইডি দিন")
     private Long busId;
 
     private String busName;
 
-    @NotBlank(message = "Departure time is required")
+    @NotBlank(message = "প্রস্থান সময় দিন")
     private String departureTime;
 
     private String arrivalTime;
 
-    @NotBlank(message = "Direction is required")
+    @NotBlank(message = "দিক নির্দেশনা দিন")
     private String direction;
 
     private String startPoint;

@@ -31,7 +31,7 @@ public class AdminManagementService {
     public AdminProfileResponse createAdmin(CreateAdminRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         if (adminRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("An admin with this email already exists");
+            throw new IllegalArgumentException("এই ইমেইল দিয়ে আগে থেকে একজন অ্যাডমিন আছে");
         }
 
         Admin admin = Admin.builder()
@@ -62,7 +62,7 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
 
         if (currentAdmin.getId().equals(adminId)) {
-            throw new IllegalArgumentException("You cannot delete your own account");
+            throw new IllegalArgumentException("আপনি আপনার নিজের অ্যাকাউন্ট ডিলেট করতে পারবেন না");
         }
 
         Admin adminToDelete = adminRepository.findById(adminId)

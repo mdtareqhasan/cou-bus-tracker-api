@@ -6,6 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
-public record VerifyEmailOtpRequest(@Email(message = "Please provide a valid email") String email,
-                                    @NotNull(message = "Role is required") UserRole role,
-                                    @NotBlank(message = "OTP is required") @Pattern(regexp = "\\d{6}", message = "OTP must be 6 digits") String otp) { }
+public record VerifyEmailOtpRequest(@Email(message = "সঠিক ইমেইল দিন") String email,
+                                    @NotNull(message = "রোল নির্বাচন করুন") UserRole role,
+                                    @NotBlank(message = "OTP দিন") @Pattern(regexp = "\\d{6}", message = "OTP অবশ্যই ৬ সংখ্যার হতে হবে") String otp) { }

@@ -49,13 +49,13 @@ public class EmailVerificationService {
 
     public AuthResponse verifyOtp(String rawEmail, UserRole role, String otp) {
         if (otp == null || !otp.matches("\\d{6}")) {
-            throw new IllegalArgumentException("OTP must be 6 digits");
+            throw new IllegalArgumentException("OTP অবশ্যই ৬ সংখ্যার হতে হবে");
         }
 
         String key = key(rawEmail, role);
         EmailVerificationInitRequest request = pendingRegistrations.remove(key);
         if (request == null) {
-            throw new IllegalArgumentException("No pending registration found. Please submit the registration form first.");
+            throw new IllegalArgumentException("রেজিস্ট্রেশন খুঁজছে পাওয়া যায়নি। প্রথমে রেজিস্ট্রেশন ফর্ম জমা দিন");
         }
 
         // Dummy verification: any 6-digit OTP is accepted.
@@ -68,26 +68,32 @@ public class EmailVerificationService {
 
     private void validateRequest(EmailVerificationInitRequest request) {
         if (request.getRole() == null) {
-            throw new IllegalArgumentException("Role is required");
+            throw new IllegalArgumentException("রোল নির্বাচন করুন");
         }
         if (request.getEmail() == null || request.getEmail().isBlank()) {
-            throw new IllegalArgumentException("Email is required");
+            throw new IllegalArgumentException("ইমেইল দিন");
+        }
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        boolean isAllowedEmailDomain = normalizedEmail.endsWith("@stud.cou.ac.bd")
+                || normalizedEmail.endsWith("@cou.ac.bd");
+        if (!isAllowedEmailDomain) {
+            throw new IllegalArgumentException("শুধুমাত্র @stud.cou.ac.bd অথবা @cou.ac.bd ইমেইল ব্যবহার করা যাবে");
         }
         if (request.getDepartment() == null || request.getDepartment().isBlank()) {
-            throw new IllegalArgumentException("Department is required");
+            throw new IllegalArgumentException("বিভাগ দিন");
         }
         if (request.getPassword() == null || request.getPassword().isBlank()) {
-            throw new IllegalArgumentException("Password is required");
+            throw new IllegalArgumentException("পাসওয়ার্ড দিন");
         }
 
         if (request.getRole() == UserRole.STUDENT) {
             if (request.getRollNumber() == null || request.getRollNumber().isBlank()) {
-                throw new IllegalArgumentException("Roll number is required");
+                throw new IllegalArgumentException("রোল নম্বর দিন");
             }
             if (request.getSession() == null || request.getSession().isBlank()) {
-                throw new IllegalArgumentException("Session is required");
+                throw new IllegalArgumentException("সেশন দিন");
             }
-            if (studentRepository.existsByEmail(request.getEmail().toLowerCase())) {
+            if (studentRepository.existsByEmail(normalizedEmail)) {
                 throw new IllegalStateException("A student with this email already exists");
             }
             if (studentRepository.existsByRollNumber(request.getRollNumber())) {
@@ -95,9 +101,9 @@ public class EmailVerificationService {
             }
         } else {
             if (request.getEmployeeId() == null || request.getEmployeeId().isBlank()) {
-                throw new IllegalArgumentException("Employee ID is required");
+                throw new IllegalArgumentException("কর্মচারী আইডি দিন");
             }
-            if (teacherRepository.existsByEmail(request.getEmail().toLowerCase())) {
+            if (teacherRepository.existsByEmail(normalizedEmail)) {
                 throw new IllegalStateException("An employee with this email already exists");
             }
             if (teacherRepository.existsByTeacherId(request.getEmployeeId())) {

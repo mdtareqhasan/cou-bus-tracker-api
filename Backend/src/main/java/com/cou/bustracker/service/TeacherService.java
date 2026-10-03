@@ -58,6 +58,35 @@ public class TeacherService {
                 .build();
     }
 
+    public AuthResponse loginWithEmail(String email, String password) {
+        String normalizedEmail = email.trim().toLowerCase();
+        Teacher teacher = teacherRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new RuntimeException("Teacher not found with this email"));
+        if (teacher.getPassword() == null || !passwordEncoder.matches(password, teacher.getPassword())) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+        if (!teacher.getIsActive()) {
+            throw new BadCredentialsException("Account is deactivated. Please contact admin.");
+        }
+        if (!Boolean.TRUE.equals(teacher.getIsEmailVerified())) {
+            throw new BadCredentialsException("Please verify your email before logging in");
+        }
+
+        String token = jwtService.generateToken(teacher.getEmail(), "TEACHER");
+
+        return AuthResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .role("TEACHER")
+                .id(teacher.getId())
+                .name(teacher.getName())
+                .email(teacher.getEmail())
+                .phone(teacher.getPhone())
+                .isVerified(teacher.getIsVerified())
+                .isPhoneVerified(teacher.getIsPhoneVerified())
+                .build();
+    }
+
     @Transactional
     public void uploadIdCard(Long teacherId, String imageUrl) {
         Teacher teacher = teacherRepository.findById(teacherId)

@@ -63,16 +63,16 @@ public class PhoneVerificationService {
         UserRole role = req.getRole();
 
         if (role == null) {
-            throw new IllegalArgumentException("Role is required");
+            throw new IllegalArgumentException("রোল নির্বাচন করুন");
         }
 
         // ----- role-specific field + uniqueness validation (BEFORE sending OTP) -----
         if (role == UserRole.STUDENT) {
             if (req.getRollNumber() == null || req.getRollNumber().isBlank()) {
-                throw new IllegalArgumentException("Roll number is required");
+                throw new IllegalArgumentException("রোল নম্বর দিন");
             }
             if (req.getSession() == null || req.getSession().isBlank()) {
-                throw new IllegalArgumentException("Session is required");
+                throw new IllegalArgumentException("সেশন দিন");
             }
             if (studentRepository.existsByPhone(phone)) {
                 throw new IllegalStateException("এই ফোন নম্বর ইতিমধ্যে ব্যবহৃত হয়েছে।");
@@ -82,7 +82,7 @@ public class PhoneVerificationService {
             }
         } else {
             if (req.getTeacherId() == null || req.getTeacherId().isBlank()) {
-                throw new IllegalArgumentException("Teacher ID is required");
+                throw new IllegalArgumentException("শিক্ষক আইডি দিন");
             }
             if (teacherRepository.existsByPhone(phone)) {
                 throw new IllegalStateException("এই ফোন নম্বর ইতিমধ্যে ব্যবহৃত হয়েছে।");
@@ -98,10 +98,10 @@ public class PhoneVerificationService {
         String passwordHash = null;
         if (!hasGoogle) {
             if (req.getPassword() == null || req.getPassword().isBlank()) {
-                throw new IllegalArgumentException("Password is required");
+                throw new IllegalArgumentException("পাসওয়ার্ড দিন");
             }
             if (req.getPassword().length() < 6) {
-                throw new IllegalArgumentException("Password must be at least 6 characters");
+                throw new IllegalArgumentException("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে");
             }
             passwordHash = passwordEncoder.encode(req.getPassword());
         }
@@ -152,11 +152,11 @@ public class PhoneVerificationService {
                 .orElseThrow(() -> new IllegalArgumentException("No OTP found. Please request a new OTP"));
         if (record.getExpiresAt().isBefore(LocalDateTime.now())) {
             cleanupSingleRecord(record);
-            throw new IllegalArgumentException("OTP has expired. Please request a new OTP");
+            throw new IllegalArgumentException("OTP মেয়াদ শেষ। নতুন OTP অনুরোধ করুন");
         }
         if (record.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
             cleanupSingleRecord(record);
-            throw new IllegalArgumentException("Too many incorrect attempts. Please request a new OTP");
+            throw new IllegalArgumentException("ভুল চেষ্টা বেশি হয়ে গেছে। নতুন OTP অনুরোধ করুন");
         }
         if (!passwordEncoder.matches(otp, record.getOtpHash())) {
             record.setFailedAttempts(record.getFailedAttempts() + 1);
@@ -199,7 +199,7 @@ public class PhoneVerificationService {
         }
         LocalDateTime now = LocalDateTime.now();
         if (isResend && existing.getLastSentAt().plusSeconds(resendCooldownSeconds).isAfter(now)) {
-            throw new IllegalArgumentException("Please wait before requesting another OTP");
+            throw new IllegalArgumentException("আরেকটি OTP অনুরোধের আগে অপেক্ষা করুন");
         }
         internalSendOtp(phone, role,
                 existing.getPendingRegistrationJson(),
