@@ -61,7 +61,7 @@ public class TeacherService {
     public AuthResponse loginWithEmail(String email, String password) {
         String normalizedEmail = email.trim().toLowerCase();
         Teacher teacher = teacherRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new RuntimeException("Teacher not found with this email"));
+                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
         if (teacher.getPassword() == null || !passwordEncoder.matches(password, teacher.getPassword())) {
             throw new BadCredentialsException("Invalid email or password");
         }

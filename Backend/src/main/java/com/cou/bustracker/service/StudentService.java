@@ -61,7 +61,7 @@ public class StudentService {
     public AuthResponse loginWithEmail(String email, String password) {
         String normalizedEmail = email.trim().toLowerCase();
         Student student = studentRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new RuntimeException("Student not found with this email"));
+                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
         if (student.getPassword() == null || !passwordEncoder.matches(password, student.getPassword())) {
             throw new BadCredentialsException("Invalid email or password");
         }
