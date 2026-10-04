@@ -1,9 +1,11 @@
 package com.cou.bustracker.service;
 
 import com.cou.bustracker.entity.PhoneVerificationOtp.UserRole;
+import com.cou.bustracker.entity.EmailVerificationOtp;
 import com.cou.bustracker.entity.Student;
 import com.cou.bustracker.entity.Teacher;
 import com.cou.bustracker.repository.PhoneVerificationOtpRepository;
+import com.cou.bustracker.repository.EmailVerificationOtpRepository;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.util.PhoneUtils;
@@ -27,6 +29,7 @@ public class PasswordResetService {
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
     private final PhoneVerificationOtpRepository otpRepository;
+    private final EmailVerificationOtpRepository emailOtpRepository;
     private final SmsService smsService;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
@@ -140,6 +143,102 @@ public class PasswordResetService {
         otpRepository.delete(record);
 
         log.info("Password reset successful for phone={} role={}", phone, userRole);
+    }
+
+    public void sendResetEmailOtp(String rawEmail, String role) {
+        String email = rawEmail.trim().toLowerCase();
+        EmailVerificationOtp.UserRole emailRole = parseEmailRole(role);
+
+        if (emailRole == EmailVerificationOtp.UserRole.STUDENT) {
+            if (!studentRepository.existsByEmail(email)) {
+                throw new IllegalArgumentException("এই ইমেইল দিয়ে কোনো শিক্ষার্থী পাওয়া যায়নি।");
+            }
+        } else {
+            if (!teacherRepository.existsByEmail(email)) {
+                throw new IllegalArgumentException("এই ইমেইল দিয়ে কোনো শিক্ষক বা কর্মকর্তা পাওয়া যায়নি।");
+            }
+        }
+
+        String otp = "%06d".formatted(secureRandom.nextInt(1_000_000));
+        var existing = emailOtpRepository.findByEmailAndUserRole(email, emailRole).orElse(null);
+
+        var record = existing == null
+                ? com.cou.bustracker.entity.EmailVerificationOtp.builder()
+                        .email(email)
+                        .userRole(emailRole)
+                        .failedAttempts(0)
+                        .createdAt(LocalDateTime.now())
+                        .build()
+                : existing;
+
+        record.setOtpHash(passwordEncoder.encode(otp));
+        record.setExpiresAt(LocalDateTime.now().plusMinutes(expiryMinutes));
+        record.setLastSentAt(LocalDateTime.now());
+        record.setFailedAttempts(0);
+        emailOtpRepository.save(record);
+
+        // Placeholder: wire email sending provider later.
+        log.info("Password reset email OTP for email={} role={} -> [DEV] OTP: {}", email, emailRole, otp);
+    }
+
+    @Transactional
+    public void verifyAndResetEmailPassword(String rawEmail, String role, String otp, String newPassword) {
+        String email = rawEmail.trim().toLowerCase();
+        EmailVerificationOtp.UserRole emailRole = parseEmailRole(role);
+
+        var record = emailOtpRepository.findByEmailAndUserRole(email, emailRole)
+                .orElseThrow(() -> new IllegalArgumentException("OTP পাওয়া যায়নি। নতুন করে অনুরোধ করুন।"));
+
+        if (record.getExpiresAt().isBefore(LocalDateTime.now())) {
+            emailOtpRepository.delete(record);
+            throw new IllegalArgumentException("OTP মেয়াদ শেষ হয়েছে। নতুন করে অনুরোধ করুন।");
+        }
+
+        if (record.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
+            emailOtpRepository.delete(record);
+            throw new IllegalArgumentException("অনেক বার ভুল চেষ্টা হয়েছে। নতুন করে অনুরোধ করুন।");
+        }
+
+        if (!passwordEncoder.matches(otp, record.getOtpHash())) {
+            record.setFailedAttempts(record.getFailedAttempts() + 1);
+            emailOtpRepository.save(record);
+            throw new BadCredentialsException("ভুল OTP। আবার চেষ্টা করুন।");
+        }
+
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new IllegalArgumentException("নতুন পাসওয়ার্ড প্রয়োজন।");
+        }
+        if (newPassword.length() < 6) {
+            throw new IllegalArgumentException("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।");
+        }
+
+        String encodedPassword = passwordEncoder.encode(newPassword);
+
+        if (emailRole == EmailVerificationOtp.UserRole.STUDENT) {
+            Student student = studentRepository.findByEmail(email)
+                    .orElseThrow(() -> new IllegalArgumentException("শিক্ষার্থী পাওয়া যায়নি।"));
+            student.setPassword(encodedPassword);
+            studentRepository.save(student);
+        } else {
+            Teacher teacher = teacherRepository.findByEmail(email)
+                    .orElseThrow(() -> new IllegalArgumentException("শিক্ষক পাওয়া যায়নি।"));
+            teacher.setPassword(encodedPassword);
+            teacherRepository.save(teacher);
+        }
+
+        emailOtpRepository.delete(record);
+        log.info("Password reset successful for email={} role={}", email, emailRole);
+    }
+
+    private EmailVerificationOtp.UserRole parseEmailRole(String role) {
+        if (role == null || role.isBlank()) {
+            throw new IllegalArgumentException("Role is required");
+        }
+        try {
+            return EmailVerificationOtp.UserRole.valueOf(role.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid role. Must be STUDENT or EMPLOYEE");
+        }
     }
 
     private UserRole parseRole(String role) {

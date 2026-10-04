@@ -33,6 +33,13 @@ public class Teacher {
     @Column(name = "teacher_id", unique = true, length = 50)
     private String teacherId;
 
+    @Column(length = 150)
+    private String email;
+
+    @Column(name = "is_email_verified")
+    @Builder.Default
+    private Boolean isEmailVerified = false;
+
     @Column(name = "id_card_image_url", columnDefinition = "TEXT")
     private String idCardImageUrl;
 

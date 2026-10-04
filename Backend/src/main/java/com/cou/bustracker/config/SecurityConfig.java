@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/email-login").permitAll()
                         .requestMatchers("/api/auth/phone-verification/**").permitAll()
                         .requestMatchers("/api/auth/forgot-password/**").permitAll()
+                        .requestMatchers("/api/auth/forgot-password-email/**").permitAll()
                         .requestMatchers("/api/debug/**").permitAll()
                         .requestMatchers("/api/auth/admin/login").permitAll()
                         // Public Flutter runtime config
