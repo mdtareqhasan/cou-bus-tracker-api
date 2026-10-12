@@ -46,13 +46,6 @@ public class Teacher {
     @Column(name = "google_subject", unique = true, length = 255)
     private String googleSubject;
 
-    @Column(length = 150)
-    private String email;
-
-    @Column(name = "is_email_verified")
-    @Builder.Default
-    private Boolean isEmailVerified = false;
-
     @Column(name = "designation", length = 100)
     private String designation;
 

@@ -1,14 +1,16 @@
+# syntax=docker/dockerfile:1
+
 # ---- Stage 1: Build with Maven ----
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
 
-# Cache dependencies first (layer caching)
+# Cache Maven dependencies across builds
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
 
 # Copy source and build the fat JAR
 COPY src ./src
-RUN mvn package -Dmaven.test.skip=true -B
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn package -Dmaven.test.skip=true -B
 
 # ---- Stage 2: Run with JRE ----
 FROM eclipse-temurin:21-jre-alpine
@@ -23,15 +25,12 @@ RUN apk add --no-cache curl
 # Copy the built JAR from the build stage
 COPY --from=build /build/target/*.jar app.jar
 
-# Uploaded images are stored in Cloudinary, not in the container filesystem.
 RUN chown -R appuser:appgroup /app
 
 USER appuser
 
 EXPOSE 8080
 
-# Default to the Render/Railway profile so the app does not try to connect to a
-# non-existent local PostgreSQL instance when no profile env var is provided.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -fsS http://localhost:${PORT:-8080}/api/buses || exit 1
 
