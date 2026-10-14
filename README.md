@@ -104,15 +104,15 @@ Built with a Flutter mobile client, a Spring Boot REST API, and a web-based admi
 
 The diagrams are shown after the app and admin screenshots. Original image files are in [`kubi_jatra_images_api/`](kubi_jatra_images_api/).
 
-<p align="center"><strong>System Context Diagram</strong><br><img src="kubi_jatra_images_api/context_diagram.jpeg" width="680" alt="CoU Jatra system context diagram"></p>
+<p align="center"><strong>System Context Diagram</strong><br><img src="kubi_jatra_images_api/context_diagram.jpeg" width="540" alt="CoU Jatra system context diagram"></p>
 
-<p align="center"><strong>Container Diagram</strong><br><img src="kubi_jatra_images_api/container%20diagram.jpeg" width="680" alt="CoU Jatra container diagram"></p>
+<p align="center"><strong>Container Diagram</strong><br><img src="kubi_jatra_images_api/container%20diagram.jpeg" width="540" alt="CoU Jatra container diagram"></p>
 
-<p align="center"><strong>Component Diagram</strong><br><img src="kubi_jatra_images_api/component_diagram.jpeg" width="680" alt="CoU Jatra component diagram"></p>
+<p align="center"><strong>Component Diagram</strong><br><img src="kubi_jatra_images_api/component_diagram.jpeg" width="540" alt="CoU Jatra component diagram"></p>
 
-<p align="center"><strong>Backend Architecture</strong><br><img src="kubi_jatra_images_api/backend_architecture.jpeg" width="680" alt="CoU Jatra backend architecture"></p>
+<p align="center"><strong>Backend Architecture</strong><br><img src="kubi_jatra_images_api/backend_architecture.jpeg" width="540" alt="CoU Jatra backend architecture"></p>
 
-<p align="center"><strong>Data Flow Diagram</strong><br><img src="kubi_jatra_images_api/data_flow_diagram.jpeg" width="680" alt="CoU Jatra data flow diagram"></p>
+<p align="center"><strong>Data Flow Diagram</strong><br><img src="kubi_jatra_images_api/data_flow_diagram.jpeg" width="540" alt="CoU Jatra data flow diagram"></p>
 
 ---
 
