@@ -3,7 +3,6 @@ package com.cou.bustracker.controller;
 import com.cou.bustracker.entity.Student;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.service.SmsService;
-import com.cou.bustracker.util.PhoneUtils;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -72,8 +71,10 @@ public class SmsDebugController {
     @GetMapping("/test-login")
     public ResponseEntity<Map<String, Object>> testLogin(@RequestParam String phone, @RequestParam String password) {
         Map<String, Object> result = new LinkedHashMap<>();
-        // Normalize phone the same way login + registration do (see PhoneUtils.normalizeBd)
-        String cleaned = PhoneUtils.normalizeBd(phone);
+        // Normalize phone same as StudentService
+        String cleaned = phone.replaceAll("[^0-9]", "");
+        if (cleaned.startsWith("880") && cleaned.length() == 13) cleaned = cleaned.substring(2);
+        if (cleaned.length() == 10) cleaned = "0" + cleaned;
         result.put("normalizedPhone", cleaned);
 
         Student student = studentRepository.findByPhone(cleaned).orElse(null);

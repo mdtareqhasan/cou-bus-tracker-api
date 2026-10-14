@@ -33,14 +33,14 @@ public class Student {
     @Column(name = "google_subject", unique = true, length = 255)
     private String googleSubject;
 
-    @Column(name = "roll_number", nullable = false, length = 50)
-    private String rollNumber;
+    @Column(name = "student_id", nullable = false, length = 50)
+    private String studentId;
 
     @Column(nullable = false, length = 100)
     private String department;
 
-    @Column(name = "session", nullable = false, length = 20)
-    private String session;
+    @Column(name = "varsity_batch", nullable = false, length = 20)
+    private String varsityBatch;
 
     @Column(name = "id_card_image_url", columnDefinition = "TEXT")
     private String idCardImageUrl;

@@ -223,24 +223,6 @@ When running with Docker Compose, settings are overridden via `.env` (copy `.env
 
 > ⚠️ **Security warning:** Do not reuse the default JWT secret in production; a leaked secret lets anyone forge admin tokens.
 
-### 🔑 JWT & default admin
-
-The app also needs `admin` initialization data. The default admin (created by migration `V6__seed_initial_data.sql`) is:
-
-| Field | Value |
-|---|---|
-| Email | `admin@cou.ac.bd` |
-| Password | `Admin@123` |
-
-> 🚨 **Change this password before any public deployment.**
-
-The default **super admin** (seeded by `SuperAdminDataInitializer` at startup) is:
-
-| Field | Value |
-|---|---|
-| Email | `superadmincou@gmail.com` |
-| Password | `Admin@123` |
-
 ## Run locally
 
 ### 1️⃣ Backend only
