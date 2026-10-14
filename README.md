@@ -1,175 +1,211 @@
-# CoU Bus Tracker API
+<div align="center">
 
-The production backend for **Kubi Jatra**, Comilla University's bus information and management platform. This repository contains the Spring Boot API, PostgreSQL migrations, Docker deployment files, and the app/admin screenshots used to document the project.
+# 🚌 CoU Bus Tracker (CoU Jatra)
 
-## Production deployment
+### 🎓 Comilla University Transport Management System
 
-The API is hosted on the VPS at **[api.kubijatra.com](https://api.kubijatra.com)**. Nginx proxies the public hostnames to the Spring Boot service at `127.0.0.1:8080`.
+**A real-time bus tracking and transport management platform for Comilla University students, teachers, and staff.**
 
-| Hostname | Purpose |
-|---|---|
-| [api.kubijatra.com](https://api.kubijatra.com) | REST API |
-| [admin.kubijatra.com](https://admin.kubijatra.com) | Admin panel hostname |
-| [super.kubijatra.com](https://super.kubijatra.com) | Super-admin hostname |
-| [app.kubijatra.com](https://app.kubijatra.com) | App hostname |
-| [kubijatra.com](https://kubijatra.com) | Main domain |
+Built with a Flutter mobile client, a Spring Boot REST API, and a web-based admin panel.
 
-According to the deployed Nginx configuration, these hosts proxy to the API on port `8080`. The admin panel source code is in `admin-panel/`; panel hosting/build configuration is maintained separately from this API container.
+![Flutter](https://img.shields.io/badge/Flutter-3.24%2B-02569B?logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-3.8%2B-0175C2?logo=dart&logoColor=white)
+![State management](https://img.shields.io/badge/State-Riverpod-40BFA5)
+![Backend](https://img.shields.io/badge/Backend-Spring%20Boot%203-6DB33F?logo=springboot&logoColor=white)
+![Database](https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white)
 
-### VPS services
+</div>
 
-- `docker-compose.prod.yml` builds and runs the Spring Boot API with host networking, so Nginx can reach `127.0.0.1:8080`.
-- `docker-compose.postgres.yml` runs PostgreSQL as a separate service, bound to `127.0.0.1:5432` and backed by a named Docker volume.
-- Flyway applies SQL migrations when the API starts. The API deployment does not recreate the PostgreSQL service or its data volume.
-- `uploads/` is mounted into the API container. Image uploads use Cloudinary when configured.
+---
 
-### Deploy the API
+## 📱 App Screenshots
 
-Run these commands on the VPS. The production environment file must already exist at `.env.production` and contain the correct production secrets.
+<table>
+  <tr>
+    <th>🚀 Splash &amp; Cold-Launch</th>
+    <th>🏠 Home Dashboard</th>
+    <th>🗓️ Bus Schedules</th>
+    <th>🚌 Bus Details</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="kubi_jatra_images_api/splash_page.jpeg" width="150" alt="CoU Jatra splash screen"></td>
+    <td align="center"><img src="kubi_jatra_images_api/home_page.jpeg" width="150" alt="CoU Jatra home dashboard"></td>
+    <td align="center"><img src="kubi_jatra_images_api/bus_schedule_page.jpeg" width="150" alt="Bus schedules"></td>
+    <td align="center"><img src="kubi_jatra_images_api/bus_details_page.jpeg" width="150" alt="Bus details"></td>
+  </tr>
+  <tr>
+    <td align="center">Splash screen &amp; server warmup</td>
+    <td align="center">Live dashboard</td>
+    <td align="center">Daily bus schedules</td>
+    <td align="center">Route and bus information</td>
+  </tr>
+</table>
 
-```bash
-ssh root@kubijatra
-cd /opt/cou-bus-tracker
-git pull origin main
-docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml ps
-docker logs --tail 100 -f cou-bus-tracker-app
-```
+<table>
+  <tr>
+    <th>📍 Live GPS Tracking</th>
+    <th>🔐 Phone OTP Verification</th>
+    <th>👤 User Profile</th>
+    <th>ℹ️ About &amp; Credits</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="kubi_jatra_images_api/bus_location_view.jpeg" width="150" alt="Live bus location"></td>
+    <td align="center"><img src="kubi_jatra_images_api/otp_page.jpeg" width="150" alt="Phone OTP verification"></td>
+    <td align="center"><img src="kubi_jatra_images_api/profile_page.jpeg" width="150" alt="User profile"></td>
+    <td align="center"><img src="kubi_jatra_images_api/about_us_page.jpeg" width="150" alt="About CoU Jatra"></td>
+  </tr>
+  <tr>
+    <td align="center">Track buses on the map</td>
+    <td align="center">Verify a phone number securely</td>
+    <td align="center">Manage account details</td>
+    <td align="center">Project team and credits</td>
+  </tr>
+</table>
 
-PostgreSQL is managed separately; start or inspect it from the repository root with:
+## 🖥️ Admin Panel Screenshots
 
-```bash
-docker compose -f docker-compose.postgres.yml up -d
-docker compose -f docker-compose.postgres.yml ps
-docker logs --tail 100 cou-bus-tracker-postgres
-```
+<table>
+  <tr>
+    <th>📊 Dashboard</th>
+    <th>🚌 Bus Management</th>
+    <th>📢 Notice Management</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="kubi_jatra_images_api/admin_dashboard.png" width="210" alt="Admin dashboard"></td>
+    <td align="center"><img src="kubi_jatra_images_api/admin_bus_list.png" width="210" alt="Admin bus list"></td>
+    <td align="center"><img src="kubi_jatra_images_api/admin_notice_page.png" width="210" alt="Admin notices"></td>
+  </tr>
+  <tr>
+    <td align="center">Transport overview and statistics</td>
+    <td align="center">Manage buses and tracker links</td>
+    <td align="center">Publish service notices</td>
+  </tr>
+</table>
 
-Check the API directly and through Nginx:
+<table>
+  <tr>
+    <th>🗓️ Schedule List</th>
+    <th>🕒 Schedule Details</th>
+    <th>✏️ Update Schedule</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="kubi_jatra_images_api/admin_schedule_page_1.png" width="210" alt="Admin schedule list"></td>
+    <td align="center"><img src="kubi_jatra_images_api/admin_schedule_page_2.png" width="210" alt="Admin schedule details"></td>
+    <td align="center"><img src="kubi_jatra_images_api/admin_schedule_update.png" width="210" alt="Update bus schedule"></td>
+  </tr>
+  <tr>
+    <td align="center">Browse and filter schedules</td>
+    <td align="center">Review route timings</td>
+    <td align="center">Edit route and departure details</td>
+  </tr>
+</table>
 
-```bash
-curl -fsS http://127.0.0.1:8080/api/buses
-curl -fsS https://api.kubijatra.com/api/buses
-```
+## 🧭 System Diagrams
 
-### Production configuration
+The diagrams are shown after the app and admin screenshots. Original image files are in [`kubi_jatra_images_api/`](kubi_jatra_images_api/).
 
-`docker-compose.prod.yml` reads `.env.production`. Keep this file private and out of version control. The important settings include:
+<p align="center"><strong>System Context Diagram</strong><br><img src="kubi_jatra_images_api/context_diagram.jpeg" width="680" alt="CoU Jatra system context diagram"></p>
 
-| Variable | Purpose |
-|---|---|
-| `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL container initialization |
-| `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` | API database connection; credentials must match PostgreSQL |
-| `SPRING_PROFILES_ACTIVE=prod` | Activates production Spring configuration |
-| `JWT_SECRET`, `JWT_EXPIRATION` | JWT signing and token lifetime |
-| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Image storage |
-| `BULKSMSBD_API_KEY`, `BULKSMSBD_SENDER_ID`, `SMS_ALLOW_SOFT_FAIL` | OTP SMS delivery behavior |
-| `GOOGLE_OAUTH_CLIENT_ID` | Google sign-in token verification |
-| `MAILERSEND_FROM_EMAIL` and SMTP settings | Transactional email |
-| `TZ` | Container timezone, normally `Asia/Dhaka` |
+<p align="center"><strong>Container Diagram</strong><br><img src="kubi_jatra_images_api/container%20diagram.jpeg" width="680" alt="CoU Jatra container diagram"></p>
 
-Set a unique, high-entropy production JWT secret. Keep the PostgreSQL port private; the Compose file binds it to localhost. On Linux, ensure the API container can resolve `host.docker.internal` to the VPS host because the production datasource URL uses that hostname.
+<p align="center"><strong>Component Diagram</strong><br><img src="kubi_jatra_images_api/component_diagram.jpeg" width="680" alt="CoU Jatra component diagram"></p>
 
-### Database backup
+<p align="center"><strong>Backend Architecture</strong><br><img src="kubi_jatra_images_api/backend_architecture.jpeg" width="680" alt="CoU Jatra backend architecture"></p>
 
-Create the backup directory and run `pg_dump` using the PostgreSQL container's configured credentials:
+<p align="center"><strong>Data Flow Diagram</strong><br><img src="kubi_jatra_images_api/data_flow_diagram.jpeg" width="680" alt="CoU Jatra data flow diagram"></p>
 
-```bash
-mkdir -p /opt/cou-bus-tracker/backups
-docker exec cou-bus-tracker-postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
-  > "/opt/cou-bus-tracker/backups/cou-bus-tracker-$(date +%Y%m%d-%H%M%S).sql"
-```
+---
 
-Protect backups, copy them off the VPS, and verify restore procedures periodically. Back up before deploying schema-changing migrations.
+## 📖 Contents
 
-## Project structure
+- [✨ Features](#-features)
+- [🧩 System overview](#-system-overview)
+- [🗂️ Project structure](#️-project-structure)
+- [⚙️ Technology stack](#️-technology-stack)
+- [🚀 Run locally](#-run-locally)
+- [🌐 Production deployment](#-production-deployment)
+- [🔌 API overview](#-api-overview)
+- [🔐 Security](#-security)
+
+## ✨ Features
+
+### 📱 Mobile app
+
+- Browse buses, routes, schedules, and university transport notices.
+- View live bus tracking links and bus details.
+- Student and teacher accounts with phone OTP verification.
+- Profile management and app configuration/version checks.
+- Bengali-first interface for the Comilla University community.
+
+### 🖥️ Admin panel
+
+- Dashboard with transport and account statistics.
+- Manage buses, tracker links, schedules, and notices.
+- Review student and teacher accounts and verification status.
+- Manage administrator accounts and profiles.
+
+### ⚙️ Backend platform
+
+- Spring Boot REST API with public and authenticated endpoints.
+- JWT authentication with role-based access for students, teachers, admins, and super admins.
+- PostgreSQL persistence with versioned Flyway migrations.
+- Cloudinary image storage, BulkSMSBD OTP delivery, and SMTP email integration.
+- OpenAPI documentation through Springdoc.
+
+## 🧩 System overview
+
+| Component | Technology | Local address | Production address |
+|---|---|---|---|
+| REST API | Java 21 · Spring Boot · Spring Security · JPA · PostgreSQL | `http://localhost:8080` (source) / `http://localhost:8081` (Docker) | [api.kubijatra.com](https://api.kubijatra.com) |
+| Admin panel | React · Vite · Tailwind CSS | `http://localhost:5173` | [admin.kubijatra.com](https://admin.kubijatra.com) |
+| Super-admin routes | Spring Boot API | API route under `/api/super-admin` | [super.kubijatra.com](https://super.kubijatra.com) |
+| Mobile app | Flutter · Dart · Riverpod | Android/iOS client | [app.kubijatra.com](https://app.kubijatra.com) |
+| Main domain | Nginx reverse proxy | — | [kubijatra.com](https://kubijatra.com) |
+
+The current Nginx configuration proxies the listed public hosts to the API at `127.0.0.1:8080`. The app client is maintained separately; this repository includes its API integration and screenshots.
+
+## 🗂️ Project structure
 
 ```text
 .
+├── admin-panel/                         # React + Vite administrator interface
+├── kubi_jatra_images_api/                # App, admin, and architecture images for this README
+│   ├── splash_page.jpeg
+│   ├── home_page.jpeg
+│   ├── bus_schedule_page.jpeg
+│   ├── bus_details_page.jpeg
+│   ├── bus_location_view.jpeg
+│   ├── otp_page.jpeg
+│   ├── profile_page.jpeg
+│   ├── about_us_page.jpeg
+│   ├── admin_*.png
+│   └── *_diagram.jpeg / backend_architecture.jpeg
 ├── src/
-│   ├── main/
-│   │   ├── java/com/cou/bustracker/    # Controllers, services, entities, security, repositories
-│   │   └── resources/
-│   │       ├── application*.yaml       # Local, Docker, production, and hosted profiles
-│   │       └── db/migration/           # PostgreSQL Flyway migrations
-│   ├── test/                           # Backend tests
-│   └── kubi_jatra_images_api/          # App and admin UI screenshots for this README
-│       ├── about_us_page.jpeg
-│       ├── admin_bus_list.png
-│       ├── admin_dashboard.png
-│       ├── admin_notice_page.png
-│       ├── admin_schedule_page_1.png
-│       ├── admin_schedule_page_2.png
-│       ├── admin_schedule_update.png
-│       ├── bus_details_page.jpeg
-│       ├── bus_location_view.jpeg
-│       ├── bus_schedule_page.jpeg
-│       ├── home_page.jpeg
-│       ├── otp_page.jpeg
-│       ├── profile_page.jpeg
-│       ├── splash_page.jpeg
-│       └── kubi_jatra_images_api/      # Nested copy of the image set
-├── admin-panel/                        # React + Vite admin panel
-├── docker-compose.yml                  # Local API + PostgreSQL
-├── docker-compose.prod.yml             # Production API service
-├── docker-compose.postgres.yml         # Production PostgreSQL service
+│   ├── main/java/com/cou/bustracker/     # Controllers, services, entities, repositories, security
+│   ├── main/resources/                   # Spring profiles and application configuration
+│   ├── main/resources/db/migration/      # PostgreSQL Flyway migrations
+│   └── test/                             # Backend tests
+├── docker-compose.yml                    # Local API + PostgreSQL
+├── docker-compose.prod.yml               # Production API service
+├── docker-compose.postgres.yml           # Separate production PostgreSQL service
 ├── Dockerfile
-├── .env.example                        # Local environment template
 └── pom.xml
 ```
 
-The nested `src/kubi_jatra_images_api/kubi_jatra_images_api/` directory currently contains a second copy of the screenshots. The gallery below uses the files directly inside `src/kubi_jatra_images_api/`.
-
-## App and panel screenshots
-
-These screenshots are stored in `src/kubi_jatra_images_api/` and render directly on GitHub:
-
-### Mobile app
-
-| Home | Bus schedules |
-|---|---|
-| ![Kubi Jatra app home screen](src/kubi_jatra_images_api/home_page.jpeg) | ![Bus schedule screen](src/kubi_jatra_images_api/bus_schedule_page.jpeg) |
-
-| Bus details | Bus location |
-|---|---|
-| ![Bus details screen](src/kubi_jatra_images_api/bus_details_page.jpeg) | ![Bus location screen](src/kubi_jatra_images_api/bus_location_view.jpeg) |
-
-| Phone OTP | User profile |
-|---|---|
-| ![Phone OTP screen](src/kubi_jatra_images_api/otp_page.jpeg) | ![Profile screen](src/kubi_jatra_images_api/profile_page.jpeg) |
-
-| Splash screen | About the app |
-|---|---|
-| ![App splash screen](src/kubi_jatra_images_api/splash_page.jpeg) | ![About page](src/kubi_jatra_images_api/about_us_page.jpeg) |
-
-### Admin panel
-
-| Dashboard | Bus list |
-|---|---|
-| ![Admin dashboard](src/kubi_jatra_images_api/admin_dashboard.png) | ![Admin bus list](src/kubi_jatra_images_api/admin_bus_list.png) |
-
-| Notices | Schedule list |
-|---|---|
-| ![Admin notices](src/kubi_jatra_images_api/admin_notice_page.png) | ![Admin schedules](src/kubi_jatra_images_api/admin_schedule_page_1.png) |
-
-| Schedule details | Update schedule |
-|---|---|
-| ![Admin schedule page](src/kubi_jatra_images_api/admin_schedule_page_2.png) | ![Admin schedule update](src/kubi_jatra_images_api/admin_schedule_update.png) |
-
-## Technology stack
+## ⚙️ Technology stack
 
 | Area | Technologies |
 |---|---|
-| Backend | Java 21, Spring Boot 3.3.2, Spring Web, Spring Security, Spring Data JPA, Bean Validation |
-| Authentication | JWT (JJWT), BCrypt password hashing |
+| API | Java 21, Spring Boot 3.3, Spring Web, Spring Security, Spring Data JPA, Bean Validation |
+| Auth | JWT (JJWT), BCrypt password hashing |
 | Database | PostgreSQL 16, Flyway, HikariCP |
+| Admin UI | React, Vite, React Router, Tailwind CSS |
 | API docs | Springdoc OpenAPI / Swagger UI |
-| Image storage | Cloudinary |
-| OTP and email | BulkSMSBD, Spring Mail / MailerSend SMTP |
-| Admin UI | React, Vite, Tailwind CSS |
+| Integrations | Cloudinary, BulkSMSBD, MailerSend SMTP, Google sign-in token verification |
 
-## Run locally
+## 🚀 Run locally
 
-Requirements: Docker with Compose. For a source-based backend run, install JDK 21, Maven 3.8+, and PostgreSQL. For the web panel, install Node.js and npm.
+Requirements: Docker with Compose. To run the API directly, install JDK 21, Maven 3.8+, and PostgreSQL. The admin UI requires Node.js and npm.
 
 ### Start API and PostgreSQL with Docker
 
@@ -179,7 +215,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-The API is available at `http://localhost:8081`; the local Compose database is exposed at `localhost:5433`. This local stack uses a persistent named volume. `docker compose down` preserves it; `docker compose down -v` removes it.
+The API is available at `http://localhost:8081`; the local database is exposed at `localhost:5433`. Flyway applies migrations at startup.
 
 ```bash
 docker compose logs -f app
@@ -194,7 +230,7 @@ Configure PostgreSQL for the `dev` profile, then run:
 mvn spring-boot:run
 ```
 
-The source-run API listens on `http://localhost:8080` by default. Flyway applies migrations when the application starts.
+The source-run API listens at `http://localhost:8080` by default.
 
 ### Run the admin panel
 
@@ -204,35 +240,64 @@ npm install
 npm run dev:local
 ```
 
-The `dev:local` script configures the panel for a locally running backend. Build the panel with `npm run build`.
+Build the admin panel with `npm run build` from `admin-panel/`.
 
-## Configuration and migrations
+## 🌐 Production deployment
 
-Spring configuration is in `src/main/resources/application*.yaml`. Local development uses `application-dev.yaml`; local Docker uses `application-docker.yaml`; the VPS API uses `application-prod.yaml`.
+The API runs on the VPS behind Nginx. The production Compose file runs the API with host networking on port `8080`; PostgreSQL is a separate Compose service bound to `127.0.0.1:5432` with a persistent Docker volume.
 
-For local Docker, copy `.env.example` to `.env` and set database credentials and a long JWT secret. Do not commit real credentials. Production secrets belong in `.env.production` on the VPS.
+### Deploy the API
 
-Flyway migration files are in `src/main/resources/db/migration/`. Add a new versioned SQL migration for schema changes. Production disables Hibernate schema generation and applies migrations during API startup.
+The production `.env.production` file must be present at the repository root on the server. Keep it private and out of version control.
 
-## API overview
+```bash
+ssh root@kubijatra
+cd /opt/cou-bus-tracker
+git pull origin main
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml ps
+docker logs --tail 100 -f cou-bus-tracker-app
+```
 
-The public API base URL is `https://api.kubijatra.com`. API groups include:
+The VPS previously stored the checkout under `/opt/cou-bus-tracker/Backend`. Before deploying this root-level repository layout, move the production `.env.production` file to `/opt/cou-bus-tracker/.env.production` and preserve any local `uploads/` data. Keep the existing PostgreSQL Compose project name/volume when operating the database so an update does not create a new empty volume.
 
-- Public bus, schedule, notice, app version, and public configuration endpoints.
-- Student and teacher registration, OTP verification, login, and profile endpoints.
-- JWT-protected admin management for buses, tracker links, schedules, notices, students, teachers, and admin users.
-- Separate super-admin authentication and management endpoints.
+### Database backup
 
-OpenAPI JSON is configured at `/api-docs`; Swagger UI is configured at `/swagger-ui.html`. Whether these routes are accessible depends on the active Spring Security configuration.
+Create backups on the VPS and keep a protected copy off-server:
 
-## Security notes
+```bash
+mkdir -p /opt/cou-bus-tracker/backups
+docker exec cou-bus-tracker-postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+  > "/opt/cou-bus-tracker/backups/cou-bus-tracker-$(date +%Y%m%d-%H%M%S).sql"
+```
 
-- Never commit `.env`, `.env.production`, private keys, or database backups.
-- Use strong, unique production values for `JWT_SECRET`, database passwords, and external-service credentials.
-- Set `SMS_ALLOW_SOFT_FAIL=false` in production if an OTP must not be accepted when SMS delivery fails.
-- PostgreSQL should stay bound to localhost; only expose the required HTTPS web traffic through Nginx.
-- Review database migrations and create a backup before a schema-changing production release.
+Flyway migrations run at application startup. Back up the database before schema-changing releases.
 
-## Related documentation
+## 🔌 API overview
 
-- [Admin panel README](admin-panel/README.md)
+Production API base URL: **`https://api.kubijatra.com`**.
+
+| API group | Examples |
+|---|---|
+| Public data | Buses, schedules, notices, app version, public configuration |
+| Student/teacher auth | Registration, phone OTP verification, login, profile |
+| Admin | Buses, tracker links, schedules, notices, students, teachers, admin accounts |
+| Super admin | Super-admin authentication, app configuration, management routes |
+
+Springdoc is configured to serve OpenAPI JSON at `/api-docs` and Swagger UI at `/swagger-ui.html`. Access depends on the active Spring Security configuration.
+
+## 🔐 Security
+
+- Keep `.env`, `.env.production`, database backups, and private credentials out of Git.
+- Use unique production values for `JWT_SECRET`, database passwords, and external-service keys.
+- Set `SMS_ALLOW_SOFT_FAIL=false` in production when OTP delivery must be enforced.
+- Keep PostgreSQL bound to localhost and expose web traffic through HTTPS/Nginx.
+- Do not use `docker compose down -v` on the production database stack; it removes its named data volume.
+
+---
+
+<div align="center">
+
+Made for **Comilla University** 🎓 · **Kubi Jatra** 🚌
+
+</div>
