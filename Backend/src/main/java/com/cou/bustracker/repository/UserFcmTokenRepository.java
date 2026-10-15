@@ -4,6 +4,7 @@ import com.cou.bustracker.entity.UserFcmToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +23,15 @@ public interface UserFcmTokenRepository extends JpaRepository<UserFcmToken, Long
 
     /** Active tokens for a user — what you'd use when sending a push. */
     List<UserFcmToken> findByUserTypeAndUserIdAndIsActiveTrue(String userType, Long userId);
+
+    /**
+     * Every active token for a whole user type — the broadcast audience used
+     * when a schedule changes (e.g. all students, all teachers).
+     */
+    List<UserFcmToken> findByUserTypeAndIsActiveTrue(String userType);
+
+    /** Bulk delete by token — used to prune tokens FCM reports as unregistered. */
+    long deleteByTokenIn(Collection<String> tokens);
 
     /** Ownership-checked delete by token; returns the number of rows removed. */
     long deleteByUserTypeAndUserIdAndToken(String userType, Long userId, String token);

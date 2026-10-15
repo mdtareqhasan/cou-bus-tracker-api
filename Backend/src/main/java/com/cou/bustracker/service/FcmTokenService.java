@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -110,6 +111,42 @@ public class FcmTokenService {
     @Transactional(readOnly = true)
     public List<UserFcmToken> getActiveTokens(String userType, Long userId) {
         return userFcmTokenRepository.findByUserTypeAndUserIdAndIsActiveTrue(userType, userId);
+    }
+
+    /**
+     * Every active registration token of a user type — the broadcast audience
+     * for schedule notifications (all students / all teachers).
+     *
+     * @return the raw tokens, in storage order
+     */
+    @Transactional(readOnly = true)
+    public List<String> getActiveTokensForRole(String userType) {
+        if (!SUPPORTED_ROLES.contains(userType)) {
+            throw new IllegalArgumentException("Unsupported FCM audience: " + userType);
+        }
+        return userFcmTokenRepository.findByUserTypeAndIsActiveTrue(userType)
+                .stream()
+                .map(UserFcmToken::getToken)
+                .toList();
+    }
+
+    /**
+     * Removes tokens FCM has permanently rejected as unregistered, so the
+     * audience stays clean instead of accumulating undeliverable devices.
+     * Called from the FCM result callback; safe to invoke from any thread.
+     *
+     * @return number of rows deleted
+     */
+    @Transactional
+    public long pruneUnregisteredTokens(Collection<String> tokens) {
+        if (tokens == null || tokens.isEmpty()) {
+            return 0L;
+        }
+        long removed = userFcmTokenRepository.deleteByTokenIn(tokens);
+        if (removed > 0) {
+            log.info("Pruned {} unregistered FCM token(s)", removed);
+        }
+        return removed;
     }
 
     private java.util.Optional<UserFcmToken> findByDevice(CurrentUser user, String deviceId) {

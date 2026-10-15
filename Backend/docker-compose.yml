@@ -45,7 +45,13 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
       RESEND_FROM_NAME: ${RESEND_FROM_NAME:-CoU Bus Tracker}
+      # Path INSIDE the container — the JSON sits next to this compose file and
+      # is bind-mounted below, because the host path does not exist in the
+      # container's filesystem.
+      FIREBASE_SERVICE_ACCOUNT_PATH: /app/firebase/service-account.json
       TZ: Asia/Dhaka
+    volumes:
+      - ./cou-bus-tracker-flutter-firebase-adminsdk-fbsvc-d51d2fe708.json:/app/firebase/service-account.json:ro
     networks:
       - cou-bus-network
     depends_on:

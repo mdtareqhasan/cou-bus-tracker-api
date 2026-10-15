@@ -54,3 +54,8 @@ uploads/
 ### Frontend build/dist ###
 admin-panel/dist/
 admin-panel/node_modules/
+
+
+### Firebase credentials
+cou-bus-tracker-flutter-firebase-adminsdk-fbsvc-d51d2fe708.json
+*firebase-adminsdk*.json
