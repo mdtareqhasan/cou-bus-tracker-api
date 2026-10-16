@@ -27,19 +27,21 @@ public class Student {
     @Column(unique = true, length = 20)
     private String phone;
 
-    @Column(nullable = false)
+    /** Null for Google-only accounts; set for OTP-registered accounts. */
+    @Column
     private String password;
 
     @Column(name = "google_subject", unique = true, length = 255)
     private String googleSubject;
 
-    @Column(name = "roll_number", nullable = false, length = 50)
+    /** Filled in after a Google account is verified by the admin; null until then. */
+    @Column(name = "roll_number", length = 50)
     private String rollNumber;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String department;
 
-    @Column(name = "session", nullable = false, length = 20)
+    @Column(name = "session", length = 20)
     private String session;
 
     @Column(length = 150)

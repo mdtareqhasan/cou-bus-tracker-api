@@ -19,7 +19,8 @@ import java.util.stream.Collectors;
 /**
  * Student read/write operations used after the user has been verified by
  * {@link PhoneVerificationService}. Registration itself lives in the OTP
- * service — see {@code POST /api/auth/phone-verification/init}.
+ * service — see {@code POST /api/auth/phone-verification/init}. Google
+ * sign-in may also create a pending profile — see {@link #loginWithGoogle}.
  */
 @Service
 @RequiredArgsConstructor
@@ -28,6 +29,7 @@ public class StudentService {
     private final StudentRepository studentRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final GoogleTokenService googleTokenService;
     private final FileStorageService fileStorageService;
 
     public AuthResponse loginWithPhone(String phone, String password) {
@@ -70,6 +72,62 @@ public class StudentService {
         }
         if (!Boolean.TRUE.equals(student.getIsEmailVerified())) {
             throw new BadCredentialsException("Please verify your email before logging in");
+        }
+
+        String token = jwtService.generateToken(student.getEmail(), "STUDENT");
+
+        return AuthResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .role("STUDENT")
+                .id(student.getId())
+                .name(student.getName())
+                .email(student.getEmail())
+                .phone(student.getPhone())
+                .isVerified(student.getIsVerified())
+                .isPhoneVerified(student.getIsPhoneVerified())
+                .build();
+    }
+
+    /**
+     * Google Sign-In. Verifies the ID token and signs the student in. If no
+     * student row exists for the (verified) institutional email, a pending
+     * profile is created — academic details and a password are filled in later.
+     */
+    @Transactional
+    public AuthResponse loginWithGoogle(String idToken) {
+        GoogleTokenService.GoogleIdentity identity = googleTokenService.verify(idToken);
+        String email = identity.email();
+
+        Student student = studentRepository.findByEmail(email).orElse(null);
+        if (student == null) {
+            student = studentRepository.save(Student.builder()
+                    .name(identity.displayName())
+                    .email(email)
+                    .googleSubject(identity.subject())
+                    .isEmailVerified(true)
+                    .isVerified(false)
+                    .isPhoneVerified(false)
+                    .isActive(true)
+                    .build());
+        } else {
+            if (!Boolean.TRUE.equals(student.getIsActive())) {
+                throw new BadCredentialsException(
+                        "আপনার অ্যাকাউন্ট নিষ্ক্রিয়। অ্যাডমিনের সাথে যোগাযোগ করুন।");
+            }
+            boolean changed = false;
+            if (student.getGoogleSubject() == null) {
+                student.setGoogleSubject(identity.subject());
+                changed = true;
+            }
+            // Google has already verified this address.
+            if (!Boolean.TRUE.equals(student.getIsEmailVerified())) {
+                student.setIsEmailVerified(true);
+                changed = true;
+            }
+            if (changed) {
+                studentRepository.save(student);
+            }
         }
 
         String token = jwtService.generateToken(student.getEmail(), "STUDENT");
@@ -147,11 +205,21 @@ public class StudentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
     }
 
+    /**
+     * Resolves a student from the JWT subject, which is a phone number for
+     * phone logins and an email for email/Google logins.
+     */
+    public Student getStudentByPrincipal(String principal) {
+        return studentRepository.findByPhoneOrEmail(principal)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+    }
+
     private StudentResponse mapToResponse(Student student) {
         return StudentResponse.builder()
                 .id(student.getId())
                 .name(student.getName())
                 .phone(student.getPhone())
+                .email(student.getEmail())
                 .rollNumber(student.getRollNumber())
                 .department(student.getDepartment())
                 .session(student.getSession())

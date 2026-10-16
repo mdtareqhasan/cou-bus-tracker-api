@@ -34,6 +34,7 @@ public class EmailLoginControllerTest {
     void login_student_shouldReturnAuthResponse() throws Exception {
         mockMvc.perform(post("/api/auth/email-login")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"STUDENT\",\"email\":\"student@example.com\",\"password\":\"secret123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.role").value("STUDENT"))
@@ -45,6 +46,7 @@ public class EmailLoginControllerTest {
     void login_teacher_shouldReturnAuthResponse() throws Exception {
         mockMvc.perform(post("/api/auth/email-login")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"TEACHER\",\"email\":\"teacher@example.com\",\"password\":\"secret123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.role").value("TEACHER"))
@@ -56,6 +58,7 @@ public class EmailLoginControllerTest {
     void login_employee_shouldUseTeacherService() throws Exception {
         mockMvc.perform(post("/api/auth/email-login")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"EMPLOYEE\",\"email\":\"employee@example.com\",\"password\":\"secret123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.role").value("TEACHER"))
@@ -66,6 +69,7 @@ public class EmailLoginControllerTest {
     void login_missingEmail_shouldReturnBadRequest() throws Exception {
         mockMvc.perform(post("/api/auth/email-login")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"STUDENT\",\"password\":\"secret123\"}"))
                 .andExpect(status().isBadRequest());
     }
@@ -74,13 +78,14 @@ public class EmailLoginControllerTest {
     void login_invalidRole_shouldReturnBadRequest() throws Exception {
         mockMvc.perform(post("/api/auth/email-login")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"ADMIN\",\"email\":\"admin@example.com\",\"password\":\"secret123\"}"))
                 .andExpect(status().isBadRequest());
     }
 
     static class StubStudentService extends StudentService {
         StubStudentService() {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
         }
 
         @Override
@@ -98,7 +103,7 @@ public class EmailLoginControllerTest {
 
     static class StubTeacherService extends TeacherService {
         StubTeacherService() {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
         }
 
         @Override

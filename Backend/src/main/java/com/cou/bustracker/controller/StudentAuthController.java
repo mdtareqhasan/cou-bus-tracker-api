@@ -45,7 +45,7 @@ public class StudentAuthController {
             @RequestParam("file") MultipartFile file,
             Authentication authentication) throws Exception {
 
-        Student student = studentService.getStudentByPhone(authentication.getName());
+        Student student = studentService.getStudentByPrincipal(authentication.getName());
         String filePath = fileStorageService.storeIdCard(file, "student-id-cards");
         studentService.uploadIdCard(student.getId(), filePath);
 
@@ -58,11 +58,12 @@ public class StudentAuthController {
     @GetMapping("/me")
     @Operation(summary = "Get current student profile")
     public ResponseEntity<StudentResponse> getProfile(Authentication authentication) {
-        Student student = studentService.getStudentByPhone(authentication.getName());
+        Student student = studentService.getStudentByPrincipal(authentication.getName());
         return ResponseEntity.ok(StudentResponse.builder()
                 .id(student.getId())
                 .name(student.getName())
                 .phone(student.getPhone())
+                .email(student.getEmail())
                 .rollNumber(student.getRollNumber())
                 .department(student.getDepartment())
                 .session(student.getSession())

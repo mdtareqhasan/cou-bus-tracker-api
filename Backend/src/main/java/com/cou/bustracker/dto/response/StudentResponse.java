@@ -16,6 +16,7 @@ public class StudentResponse {
     private Long id;
     private String name;
     private String phone;
+    private String email;
     private String rollNumber;
     private String department;
     private String session;

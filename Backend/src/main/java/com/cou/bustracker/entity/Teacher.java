@@ -27,7 +27,8 @@ public class Teacher {
     @Column(unique = true, length = 20)
     private String phone;
 
-    @Column(nullable = false)
+    /** Null for Google-only accounts; set for OTP-registered accounts. */
+    @Column
     private String password;
 
     @Column(name = "teacher_id", unique = true, length = 50)

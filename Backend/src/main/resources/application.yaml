@@ -32,8 +32,9 @@ cloudinary:
 
 google:
   oauth2:
-    # Web OAuth client ID used as the audience for Google ID tokens from the Flutter app.
-    client-id: ${GOOGLE_OAUTH_CLIENT_ID:111634412431-th7l3d7cqtmrpqhrn16hvs55j2f6f9qa.apps.googleusercontent.com}
+    # Web OAuth client ID used as the audience for Google ID tokens from the
+    # Flutter app. Must match the client_type 3 entry in google-services.json.
+    client-id: ${GOOGLE_OAUTH_CLIENT_ID:601520130344-b0s8fni9k71ktjhbcvtqbi74k4itpkps.apps.googleusercontent.com}
 
 springdoc:
   api-docs:
