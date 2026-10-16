@@ -72,12 +72,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private boolean isUserValid(String principal, String role) {
         return switch (role) {
             case "ADMIN" -> adminRepository.findByEmail(principal).isPresent();
-            case "STUDENT" -> studentRepository.findByPhone(principal)
-                    .map(student -> Boolean.TRUE.equals(student.getIsActive()))
-                    .orElse(false);
-            case "TEACHER" -> teacherRepository.findByPhone(principal)
-                    .map(teacher -> Boolean.TRUE.equals(teacher.getIsActive()))
-                    .orElse(false);
+            case "STUDENT" -> {
+                var student = principal.contains("@")
+                        ? studentRepository.findByEmail(principal)
+                        : studentRepository.findByPhone(principal);
+                yield student.map(s -> Boolean.TRUE.equals(s.getIsActive())).orElse(false);
+            }
+            case "TEACHER" -> {
+                var teacher = principal.contains("@")
+                        ? teacherRepository.findByEmail(principal)
+                        : teacherRepository.findByPhone(principal);
+                yield teacher.map(t -> Boolean.TRUE.equals(t.getIsActive())).orElse(false);
+            }
             case "SUPER_ADMIN" -> superAdminRepository.findByEmail(principal)
                     .map(superAdmin -> Boolean.TRUE.equals(superAdmin.getIsActive()))
                     .orElse(false);

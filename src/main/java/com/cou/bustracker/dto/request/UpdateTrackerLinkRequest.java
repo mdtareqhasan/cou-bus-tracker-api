@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class UpdateTrackerLinkRequest {
 
-    @NotBlank(message = "Tracker URL is required")
+    @NotBlank(message = "ট্র্যাকার লিংক দিন")
     private String trackerUrl;
 
     private LocalDateTime expiresAt;

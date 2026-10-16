@@ -19,6 +19,7 @@ public class TeacherResponse {
     private String designation;
     private String department;
     private String phone;
+    private String email;
     private String idCardImageUrl;
     private Boolean isVerified;
     private Boolean isPhoneVerified;

@@ -31,7 +31,7 @@ export default function StudentsPage() {
   ).filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
     (s.phone && s.phone.toLowerCase().includes(search.toLowerCase())) ||
-    s.studentId.toLowerCase().includes(search.toLowerCase()) ||
+    (s.rollNumber && s.rollNumber.toLowerCase().includes(search.toLowerCase())) ||
     s.department.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -94,7 +94,7 @@ export default function StudentsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50/80 border-b border-gray-100">
               <tr>
-                {['Student', 'ID', 'Department', 'Batch', 'Phone', 'Status', 'Actions'].map(h => (
+                {['Student', 'Roll No', 'Department', 'Session', 'Phone', 'Status', 'Actions'].map(h => (
                   <th key={h} className="text-left px-6 py-4 font-semibold text-gray-600 text-xs uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -115,9 +115,9 @@ export default function StudentsPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-mono text-sm text-gray-700">{student.studentId}</td>
+                  <td className="px-6 py-4 font-mono text-sm text-gray-700">{student.rollNumber || '—'}</td>
                   <td className="px-6 py-4 text-gray-600">{student.department}</td>
-                  <td className="px-6 py-4 text-gray-600">{student.varsityBatch}</td>
+                  <td className="px-6 py-4 text-gray-600">{student.session || '—'}</td>
                   <td className="px-6 py-4">
                     <span className={`badge ${student.isPhoneVerified ? 'badge-green' : 'badge-orange'}`}>
                       {student.phone || 'N/A'}

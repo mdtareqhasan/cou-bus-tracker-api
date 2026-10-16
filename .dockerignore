@@ -8,4 +8,5 @@ uploads/
 *.md
 .env
 .env.example
+*firebase-adminsdk*.json
 .dockerignore

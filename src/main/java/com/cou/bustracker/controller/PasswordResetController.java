@@ -25,10 +25,10 @@ public class PasswordResetController {
         String role = request.get("role");
 
         if (phone == null || phone.isBlank()) {
-            throw new IllegalArgumentException("Phone number is required");
+            throw new IllegalArgumentException("ফোন নম্বর দিন");
         }
         if (role == null || role.isBlank()) {
-            throw new IllegalArgumentException("Role is required (STUDENT or TEACHER)");
+            throw new IllegalArgumentException("রোল নির্বাচন করুন (STUDENT বা TEACHER)");
         }
 
         passwordResetService.sendResetOtp(phone, role);
@@ -46,16 +46,16 @@ public class PasswordResetController {
         String newPassword = request.get("newPassword");
 
         if (phone == null || phone.isBlank()) {
-            throw new IllegalArgumentException("Phone number is required");
+            throw new IllegalArgumentException("ফোন নম্বর দিন");
         }
         if (role == null || role.isBlank()) {
-            throw new IllegalArgumentException("Role is required");
+            throw new IllegalArgumentException("রোল নির্বাচন করুন");
         }
         if (otp == null || otp.isBlank()) {
-            throw new IllegalArgumentException("OTP is required");
+            throw new IllegalArgumentException("OTP দিন");
         }
         if (newPassword == null || newPassword.isBlank()) {
-            throw new IllegalArgumentException("New password is required");
+            throw new IllegalArgumentException("নতুন পাসওয়ার্ড দিন");
         }
 
         passwordResetService.verifyAndResetPassword(phone, role, otp, newPassword);

@@ -38,14 +38,20 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-cou_bus_tracker}
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-root1234}
-      JWT_SECRET: ${JWT_SECRET:-YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnough2024!}
+      JWT_SECRET: ${JWT_SECRET:-ZkvRbN8t383OyWGjM0UxAhL2Yz93d/j+LAcyM+AhKTVS7qVWTver7VcT1CBK1f5W}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
       RESEND_FROM_NAME: ${RESEND_FROM_NAME:-CoU Bus Tracker}
+      # Path INSIDE the container — the JSON sits next to this compose file and
+      # is bind-mounted below, because the host path does not exist in the
+      # container's filesystem.
+      FIREBASE_SERVICE_ACCOUNT_PATH: /app/firebase/service-account.json
       TZ: Asia/Dhaka
+    volumes:
+      - ./cou-bus-tracker-flutter-firebase-adminsdk-fbsvc-d51d2fe708.json:/app/firebase/service-account.json:ro
     networks:
       - cou-bus-network
     depends_on:

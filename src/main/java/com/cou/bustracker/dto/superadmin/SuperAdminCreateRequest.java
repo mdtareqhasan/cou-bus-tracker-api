@@ -12,11 +12,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SuperAdminCreateRequest {
 
-    @NotBlank(message = "Email is required")
+    @NotBlank(message = "ইমেইল দিন")
     @Email(message = "Invalid email format")
     private String email;
 
-    @NotBlank(message = "Password is required")
+    @NotBlank(message = "পাসওয়ার্ড দিন")
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
 

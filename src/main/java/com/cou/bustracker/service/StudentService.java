@@ -6,6 +6,7 @@ import com.cou.bustracker.entity.Student;
 import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.security.JwtService;
+import com.cou.bustracker.util.PhoneUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,7 +19,8 @@ import java.util.stream.Collectors;
 /**
  * Student read/write operations used after the user has been verified by
  * {@link PhoneVerificationService}. Registration itself lives in the OTP
- * service — see {@code POST /api/auth/phone-verification/init}.
+ * service — see {@code POST /api/auth/phone-verification/init}. Google
+ * sign-in may also create a pending profile — see {@link #loginWithGoogle}.
  */
 @Service
 @RequiredArgsConstructor
@@ -27,10 +29,11 @@ public class StudentService {
     private final StudentRepository studentRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final GoogleTokenService googleTokenService;
     private final FileStorageService fileStorageService;
 
     public AuthResponse loginWithPhone(String phone, String password) {
-        String normalized = normalizePhone(phone);
+        String normalized = PhoneUtils.normalizeBd(phone);
         Student student = studentRepository.findByPhone(normalized)
                 .orElseThrow(() -> new RuntimeException("Student not found with this phone number"));
         if (student.getPassword() == null || !passwordEncoder.matches(password, student.getPassword())) {
@@ -51,6 +54,91 @@ public class StudentService {
                 .role("STUDENT")
                 .id(student.getId())
                 .name(student.getName())
+                .phone(student.getPhone())
+                .isVerified(student.getIsVerified())
+                .isPhoneVerified(student.getIsPhoneVerified())
+                .build();
+    }
+
+    public AuthResponse loginWithEmail(String email, String password) {
+        String normalizedEmail = email.trim().toLowerCase();
+        Student student = studentRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+        if (student.getPassword() == null || !passwordEncoder.matches(password, student.getPassword())) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+        if (!student.getIsActive()) {
+            throw new BadCredentialsException("Account is deactivated. Please contact admin.");
+        }
+        if (!Boolean.TRUE.equals(student.getIsEmailVerified())) {
+            throw new BadCredentialsException("Please verify your email before logging in");
+        }
+
+        String token = jwtService.generateToken(student.getEmail(), "STUDENT");
+
+        return AuthResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .role("STUDENT")
+                .id(student.getId())
+                .name(student.getName())
+                .email(student.getEmail())
+                .phone(student.getPhone())
+                .isVerified(student.getIsVerified())
+                .isPhoneVerified(student.getIsPhoneVerified())
+                .build();
+    }
+
+    /**
+     * Google Sign-In. Verifies the ID token and signs the student in. If no
+     * student row exists for the (verified) institutional email, a pending
+     * profile is created — academic details and a password are filled in later.
+     */
+    @Transactional
+    public AuthResponse loginWithGoogle(String idToken) {
+        GoogleTokenService.GoogleIdentity identity = googleTokenService.verify(idToken);
+        String email = identity.email();
+
+        Student student = studentRepository.findByEmail(email).orElse(null);
+        if (student == null) {
+            student = studentRepository.save(Student.builder()
+                    .name(identity.displayName())
+                    .email(email)
+                    .googleSubject(identity.subject())
+                    .isEmailVerified(true)
+                    .isVerified(false)
+                    .isPhoneVerified(false)
+                    .isActive(true)
+                    .build());
+        } else {
+            if (!Boolean.TRUE.equals(student.getIsActive())) {
+                throw new BadCredentialsException(
+                        "আপনার অ্যাকাউন্ট নিষ্ক্রিয়। অ্যাডমিনের সাথে যোগাযোগ করুন।");
+            }
+            boolean changed = false;
+            if (student.getGoogleSubject() == null) {
+                student.setGoogleSubject(identity.subject());
+                changed = true;
+            }
+            // Google has already verified this address.
+            if (!Boolean.TRUE.equals(student.getIsEmailVerified())) {
+                student.setIsEmailVerified(true);
+                changed = true;
+            }
+            if (changed) {
+                studentRepository.save(student);
+            }
+        }
+
+        String token = jwtService.generateToken(student.getEmail(), "STUDENT");
+
+        return AuthResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .role("STUDENT")
+                .id(student.getId())
+                .name(student.getName())
+                .email(student.getEmail())
                 .phone(student.getPhone())
                 .isVerified(student.getIsVerified())
                 .isPhoneVerified(student.getIsPhoneVerified())
@@ -113,7 +201,16 @@ public class StudentService {
     }
 
     public Student getStudentByPhone(String phone) {
-        return studentRepository.findByPhone(normalizePhone(phone))
+        return studentRepository.findByPhone(PhoneUtils.normalizeBd(phone))
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+    }
+
+    /**
+     * Resolves a student from the JWT subject, which is a phone number for
+     * phone logins and an email for email/Google logins.
+     */
+    public Student getStudentByPrincipal(String principal) {
+        return studentRepository.findByPhoneOrEmail(principal)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
     }
 
@@ -122,29 +219,15 @@ public class StudentService {
                 .id(student.getId())
                 .name(student.getName())
                 .phone(student.getPhone())
-                .studentId(student.getStudentId())
+                .email(student.getEmail())
+                .rollNumber(student.getRollNumber())
                 .department(student.getDepartment())
-                .varsityBatch(student.getVarsityBatch())
+                .session(student.getSession())
                 .idCardImageUrl(student.getIdCardImageUrl())
                 .isVerified(student.getIsVerified())
                 .isPhoneVerified(student.getIsPhoneVerified())
                 .isActive(student.getIsActive())
                 .createdAt(student.getCreatedAt())
                 .build();
-    }
-
-    private String normalizePhone(String phone) {
-        if (phone == null) return null;
-        String cleaned = phone.replaceAll("[^0-9]", "");
-        if (cleaned.startsWith("880") && cleaned.length() == 13) {
-            return cleaned.substring(2);
-        }
-        if (cleaned.startsWith("01") && cleaned.length() == 11) {
-            return cleaned;
-        }
-        if (cleaned.length() == 10) {
-            return "0" + cleaned;
-        }
-        return cleaned;
     }
 }

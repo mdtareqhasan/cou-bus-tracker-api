@@ -133,6 +133,16 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+
+        <!-- Firebase (For FCM (notification))-->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.11.0</version>
+        </dependency>
+
+
     </dependencies>
 
     <build>

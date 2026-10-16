@@ -68,7 +68,7 @@ public class SuperAdminService {
     public SuperAdminResponse createSuperAdmin(SuperAdminCreateRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         if (superAdminRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("A super admin with this email already exists");
+            throw new IllegalArgumentException("এই ইমেইল দিয়ে আগে থেকে একজন সুপার অ্যাডমিন আছে");
         }
 
         SuperAdmin superAdmin = SuperAdmin.builder()
@@ -105,7 +105,7 @@ public class SuperAdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Super admin not found"));
 
         if (current.getId().equals(id)) {
-            throw new IllegalArgumentException("You cannot delete your own account");
+            throw new IllegalArgumentException("আপনি আপনার নিজের অ্যাকাউন্ট ডিলেট করতে পারবেন না");
         }
 
         SuperAdmin toDelete = superAdminRepository.findById(id)

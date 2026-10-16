@@ -11,10 +11,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SuperAdminLoginRequest {
 
-    @NotBlank(message = "Email is required")
+    @NotBlank(message = "ইমেইল দিন")
     @Email(message = "Invalid email format")
     private String email;
 
-    @NotBlank(message = "Password is required")
+    @NotBlank(message = "পাসওয়ার্ড দিন")
     private String password;
 }

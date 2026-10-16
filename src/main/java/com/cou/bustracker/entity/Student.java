@@ -24,23 +24,32 @@ public class Student {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(unique = true, length = 20)
     private String phone;
 
-    @Column(nullable = false)
+    /** Null for Google-only accounts; set for OTP-registered accounts. */
+    @Column
     private String password;
 
     @Column(name = "google_subject", unique = true, length = 255)
     private String googleSubject;
 
-    @Column(name = "student_id", nullable = false, length = 50)
-    private String studentId;
+    /** Filled in after a Google account is verified by the admin; null until then. */
+    @Column(name = "roll_number", length = 50)
+    private String rollNumber;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String department;
 
-    @Column(name = "varsity_batch", nullable = false, length = 20)
-    private String varsityBatch;
+    @Column(name = "session", length = 20)
+    private String session;
+
+    @Column(length = 150)
+    private String email;
+
+    @Column(name = "is_email_verified")
+    @Builder.Default
+    private Boolean isEmailVerified = false;
 
     @Column(name = "id_card_image_url", columnDefinition = "TEXT")
     private String idCardImageUrl;
