@@ -9,6 +9,8 @@ import com.cou.bustracker.repository.PhoneVerificationOtpRepository;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.dto.response.AuthResponse;
+import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.security.JwtService;
 import com.cou.bustracker.util.PhoneUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,33 +64,33 @@ public class PhoneVerificationService {
         UserRole role = req.getRole();
 
         if (role == null) {
-            throw new IllegalArgumentException("রোল নির্বাচন করুন");
+            throw new ApiException(ErrorCode.ROLE_REQUIRED);
         }
 
         // ----- role-specific field + uniqueness validation (BEFORE sending OTP) -----
         if (role == UserRole.STUDENT) {
             if (req.getRollNumber() == null || req.getRollNumber().isBlank()) {
-                throw new IllegalArgumentException("রোল নম্বর দিন");
+                throw new ApiException(ErrorCode.ROLL_NUMBER_REQUIRED);
             }
             if (req.getSession() == null || req.getSession().isBlank()) {
-                throw new IllegalArgumentException("সেশন দিন");
+                throw new ApiException(ErrorCode.SESSION_REQUIRED);
             }
             if (studentRepository.existsByPhone(phone)) {
-                throw new IllegalStateException("এই ফোন নম্বর ইতিমধ্যে ব্যবহৃত হয়েছে।");
+                throw new ApiException(ErrorCode.PHONE_ALREADY_USED);
             }
             if (studentRepository.existsByRollNumber(req.getRollNumber())) {
-                throw new IllegalStateException("এই রোল নম্বর ইতিমধ্যে নিবন্ধিত।");
+                throw new ApiException(ErrorCode.ROLL_ALREADY_REGISTERED);
             }
         } else {
             if (req.getTeacherId() == null || req.getTeacherId().isBlank()) {
-                throw new IllegalArgumentException("শিক্ষক আইডি দিন");
+                throw new ApiException(ErrorCode.TEACHER_ID_REQUIRED);
             }
             if (teacherRepository.existsByPhone(phone)) {
-                throw new IllegalStateException("এই ফোন নম্বর ইতিমধ্যে ব্যবহৃত হয়েছে।");
+                throw new ApiException(ErrorCode.PHONE_ALREADY_USED);
             }
             if (req.getTeacherId() != null && !req.getTeacherId().isBlank()
                     && teacherRepository.existsByTeacherId(req.getTeacherId())) {
-                throw new IllegalStateException("এই শিক্ষক ID ইতিমধ্যে নিবন্ধিত।");
+                throw new ApiException(ErrorCode.TEACHER_ID_ALREADY_REGISTERED);
             }
         }
 
@@ -98,10 +99,10 @@ public class PhoneVerificationService {
         String passwordHash = null;
         if (!hasGoogle) {
             if (req.getPassword() == null || req.getPassword().isBlank()) {
-                throw new IllegalArgumentException("পাসওয়ার্ড দিন");
+                throw new ApiException(ErrorCode.PASSWORD_REQUIRED);
             }
             if (req.getPassword().length() < 6) {
-                throw new IllegalArgumentException("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে");
+                throw new ApiException(ErrorCode.PASSWORD_TOO_SHORT);
             }
             passwordHash = passwordEncoder.encode(req.getPassword());
         }
@@ -149,19 +150,19 @@ public class PhoneVerificationService {
     public AuthResponse verifyOtp(String rawPhone, UserRole role, String otp) {
         String phone = PhoneUtils.normalizeBd(rawPhone);
         PhoneVerificationOtp record = otpRepository.findByPhoneAndUserRole(phone, role)
-                .orElseThrow(() -> new IllegalArgumentException("No OTP found. Please request a new OTP"));
+                .orElseThrow(() -> new ApiException(ErrorCode.OTP_NOT_FOUND));
         if (record.getExpiresAt().isBefore(LocalDateTime.now())) {
             cleanupSingleRecord(record);
-            throw new IllegalArgumentException("OTP মেয়াদ শেষ। নতুন OTP অনুরোধ করুন");
+            throw new ApiException(ErrorCode.OTP_EXPIRED);
         }
         if (record.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
             cleanupSingleRecord(record);
-            throw new IllegalArgumentException("ভুল চেষ্টা বেশি হয়ে গেছে। নতুন OTP অনুরোধ করুন");
+            throw new ApiException(ErrorCode.OTP_TOO_MANY_ATTEMPTS);
         }
         if (!passwordEncoder.matches(otp, record.getOtpHash())) {
             record.setFailedAttempts(record.getFailedAttempts() + 1);
             otpRepository.save(record);
-            throw new BadCredentialsException("Invalid OTP");
+            throw new ApiException(ErrorCode.OTP_INVALID);
         }
 
         // OTP matched — decide path based on whether pending data exists.
@@ -194,12 +195,12 @@ public class PhoneVerificationService {
         PhoneVerificationOtp existing = otpRepository.findByPhoneAndUserRole(phone, role).orElse(null);
         if (existing == null) {
             // Nothing to resend — caller never went through /init
-            throw new IllegalStateException(
+            throw new ApiException(ErrorCode.PENDING_REGISTRATION_NOT_FOUND,
                     "No pending registration found for this phone. Please submit the registration form first.");
         }
         LocalDateTime now = LocalDateTime.now();
         if (isResend && existing.getLastSentAt().plusSeconds(resendCooldownSeconds).isAfter(now)) {
-            throw new IllegalArgumentException("আরেকটি OTP অনুরোধের আগে অপেক্ষা করুন");
+            throw new ApiException(ErrorCode.OTP_RESEND_COOLDOWN);
         }
         internalSendOtp(phone, role,
                 existing.getPendingRegistrationJson(),

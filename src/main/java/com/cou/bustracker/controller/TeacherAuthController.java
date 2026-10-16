@@ -1,5 +1,6 @@
 package com.cou.bustracker.controller;
 
+import com.cou.bustracker.dto.request.TeacherAcademicDetailsRequest;
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.dto.response.TeacherResponse;
 import com.cou.bustracker.dto.response.FileUploadResponse;
@@ -8,6 +9,7 @@ import com.cou.bustracker.service.FileStorageService;
 import com.cou.bustracker.service.TeacherService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -22,7 +24,7 @@ import java.util.Map;
  * <p>Registration has been moved to the OTP-first flow at
  * {@code POST /api/auth/phone-verification/init} — the Teacher row is only
  * created after a successful OTP verification. This controller therefore
- * exposes login, ID-card replace, and profile only.
+ * exposes login, ID-card replace, academic details, and profile only.
  */
 @RestController
 @RequestMapping("/api/auth/teacher")
@@ -47,6 +49,15 @@ public class TeacherAuthController {
         String filePath = fileStorageService.storeIdCard(file, "teacher-id-cards");
         teacherService.uploadIdCard(teacher.getId(), filePath);
         return ResponseEntity.ok(FileUploadResponse.builder().message("ID card uploaded successfully").filePath(filePath).build());
+    }
+
+    @PutMapping("/academic")
+    @Operation(summary = "Set department, employee ID and designation (write-once, used after Google Sign-In)")
+    public ResponseEntity<TeacherResponse> updateAcademicDetails(
+            @Valid @RequestBody TeacherAcademicDetailsRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(
+                teacherService.updateAcademicDetails(authentication.getName(), request));
     }
 
     @GetMapping("/me")

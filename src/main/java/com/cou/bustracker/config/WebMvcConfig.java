@@ -1,11 +1,29 @@
 package com.cou.bustracker.config;
 
+import com.cou.bustracker.security.ProfileCompletionInterceptor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
+@RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
+
+    private final ProfileCompletionInterceptor profileCompletionInterceptor;
+
+    /**
+     * Enforces the "complete your department/roll/session (or employee
+     * ID/department/designation) before using the app" policy for student and
+     * teacher JWTs. Registered here — rather than as a servlet filter — so it
+     * always runs after {@code JwtAuthFilter} has filled the SecurityContext.
+     */
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(profileCompletionInterceptor)
+                .addPathPatterns("/api/**");
+    }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {

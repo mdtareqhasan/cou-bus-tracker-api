@@ -1,8 +1,11 @@
 package com.cou.bustracker.service;
 
+import com.cou.bustracker.dto.request.StudentAcademicDetailsRequest;
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.dto.response.StudentResponse;
 import com.cou.bustracker.entity.Student;
+import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.security.JwtService;
@@ -112,8 +115,7 @@ public class StudentService {
                     .build());
         } else {
             if (!Boolean.TRUE.equals(student.getIsActive())) {
-                throw new BadCredentialsException(
-                        "আপনার অ্যাকাউন্ট নিষ্ক্রিয়। অ্যাডমিনের সাথে যোগাযোগ করুন।");
+                throw new ApiException(ErrorCode.ACCOUNT_DEACTIVATED);
             }
             boolean changed = false;
             if (student.getGoogleSubject() == null) {
@@ -151,6 +153,80 @@ public class StudentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
         student.setIdCardImageUrl(imageUrl);
         studentRepository.save(student);
+    }
+
+    /**
+     * Fills in the academic details a Google Sign-In account is created
+     * without: department, roll number and session. The app policy requires all
+     * three before a student may use the system.
+     *
+     * <p>Every value is write-once — once a field holds a value it can only be
+     * re-sent unchanged, so a roll number registered during sign-up can never
+     * be swapped for another one. A roll number that already belongs to a
+     * different account is rejected.
+     *
+     * @param principal JWT subject (email for Google/email logins, phone otherwise)
+     * @return the updated profile
+     */
+    @Transactional
+    public StudentResponse updateAcademicDetails(String principal, StudentAcademicDetailsRequest request) {
+        Student student = getStudentByPrincipal(principal);
+
+        String department = trimToNull(request.getDepartment());
+        String rollNumber = trimToNull(request.getRollNumber());
+        String session = trimToNull(request.getSession());
+
+        requireValue(ErrorCode.DEPARTMENT_REQUIRED, department);
+        requireValue(ErrorCode.ROLL_NUMBER_REQUIRED, rollNumber);
+        requireValue(ErrorCode.SESSION_REQUIRED, session);
+
+        requireUnchanged(ErrorCode.DEPARTMENT_IMMUTABLE, student.getDepartment(), department);
+        requireUnchanged(ErrorCode.ROLL_NUMBER_IMMUTABLE, student.getRollNumber(), rollNumber);
+        requireUnchanged(ErrorCode.SESSION_IMMUTABLE, student.getSession(), session);
+
+        boolean changed = false;
+        if (isBlank(student.getDepartment())) {
+            student.setDepartment(department);
+            changed = true;
+        }
+        if (isBlank(student.getRollNumber())) {
+            if (studentRepository.existsByRollNumber(rollNumber)) {
+                throw new ApiException(ErrorCode.ROLL_ALREADY_REGISTERED);
+            }
+            student.setRollNumber(rollNumber);
+            changed = true;
+        }
+        if (isBlank(student.getSession())) {
+            student.setSession(session);
+            changed = true;
+        }
+
+        return mapToResponse(changed ? studentRepository.save(student) : student);
+    }
+
+    /** Write-once rule: a populated value may only be re-sent unchanged. */
+    private void requireUnchanged(ErrorCode errorCode, String current, String incoming) {
+        if (!isBlank(current) && !current.trim().equals(incoming)) {
+            throw new ApiException(errorCode);
+        }
+    }
+
+    private void requireValue(ErrorCode errorCode, String value) {
+        if (value == null) {
+            throw new ApiException(errorCode);
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     public List<StudentResponse> getAllStudents() {

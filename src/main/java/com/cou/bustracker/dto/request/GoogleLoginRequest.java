@@ -6,10 +6,10 @@ import lombok.Data;
 
 @Data
 public class GoogleLoginRequest {
-    @NotBlank(message = "গুগল আইডি টোকেন দিন")
+    @NotBlank(message = "Google ID token is required")
     private String idToken;
 
-    @NotNull(message = "রোল নির্বাচন করুন")
+    @NotNull(message = "Select a role")
     private UserRole role;
 
     public enum UserRole { STUDENT, TEACHER }

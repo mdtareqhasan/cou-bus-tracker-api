@@ -1,10 +1,10 @@
 package com.cou.bustracker.service;
 
 import com.cou.bustracker.dto.response.AuthResponse;
+import com.cou.bustracker.exception.ApiException;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.security.JwtService;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.authentication.BadCredentialsException;
 
 import java.lang.reflect.Proxy;
 import java.util.Optional;
@@ -47,8 +47,8 @@ public class TeacherServiceGoogleLoginTest {
     void studentDomainEmail_isRejected() {
         TeacherService service = serviceFor("someone@stud.cou.ac.bd");
 
-        BadCredentialsException exception = assertThrows(
-                BadCredentialsException.class, () -> service.loginWithGoogle("google-token"));
+        ApiException exception = assertThrows(
+                ApiException.class, () -> service.loginWithGoogle("google-token"));
         assertTrue(exception.getMessage().contains("name@cou.ac.bd"));
     }
 

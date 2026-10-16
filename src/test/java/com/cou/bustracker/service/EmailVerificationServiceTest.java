@@ -2,6 +2,7 @@ package com.cou.bustracker.service;
 
 import com.cou.bustracker.dto.request.EmailVerificationInitRequest;
 import com.cou.bustracker.entity.EmailVerificationOtp.UserRole;
+import com.cou.bustracker.exception.ApiException;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
 import org.junit.jupiter.api.Test;
@@ -75,8 +76,8 @@ public class EmailVerificationServiceTest {
     @Test
     void initRegistration_rejectsOtherDomainForStudent() {
         newService();
-        IllegalArgumentException ex = assertThrows(
-                IllegalArgumentException.class,
+        ApiException ex = assertThrows(
+                ApiException.class,
                 () -> service.initRegistration(studentRequest("student@gmail.com")));
         assertTrue(ex.getMessage().contains("@stud.cou.ac.bd or @cou.ac.bd"));
     }
@@ -84,8 +85,8 @@ public class EmailVerificationServiceTest {
     @Test
     void initRegistration_rejectsOtherDomainForEmployee() {
         newService();
-        IllegalArgumentException ex = assertThrows(
-                IllegalArgumentException.class,
+        ApiException ex = assertThrows(
+                ApiException.class,
                 () -> service.initRegistration(employeeRequest("employee@yahoo.com")));
         assertTrue(ex.getMessage().contains("@stud.cou.ac.bd or @cou.ac.bd"));
     }

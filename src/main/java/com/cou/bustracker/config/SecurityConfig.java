@@ -58,9 +58,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/config", "/api/config/**").permitAll()
                         // Public super-admin login only; everything else under /api/super-admin requires SUPER_ADMIN
                         .requestMatchers("/api/super-admin/auth/login").permitAll()
-                        // Protected auth endpoints (profile, upload-id-card) - require JWT
-                        .requestMatchers("/api/auth/student/me", "/api/auth/student/upload-id-card").authenticated()
-                        .requestMatchers("/api/auth/teacher/me", "/api/auth/teacher/upload-id-card").authenticated()
+                        // Protected auth endpoints (profile, academic details,
+                        // upload-id-card) - require JWT
+                        .requestMatchers("/api/auth/student/me", "/api/auth/student/upload-id-card",
+                                "/api/auth/student/academic").authenticated()
+                        .requestMatchers("/api/auth/teacher/me", "/api/auth/teacher/upload-id-card",
+                                "/api/auth/teacher/academic").authenticated()
                         // FCM push-token registration - any authenticated student/teacher
                         .requestMatchers("/api/notifications/**").authenticated()
                         .requestMatchers("/api/super-admin/**").hasRole("SUPER_ADMIN")

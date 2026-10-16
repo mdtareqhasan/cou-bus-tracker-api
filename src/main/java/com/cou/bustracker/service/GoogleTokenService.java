@@ -4,8 +4,9 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -49,20 +50,17 @@ public class GoogleTokenService {
         try {
             token = verifier.verify(idToken);
         } catch (Exception exception) {
-            throw new BadCredentialsException(
-                    "গুগল সাইন-ইন টোকেন যাচাই করা যায়নি। আবার চেষ্টা করুন।", exception);
+            throw new ApiException(ErrorCode.GOOGLE_TOKEN_VERIFICATION_FAILED,
+                    ErrorCode.GOOGLE_TOKEN_VERIFICATION_FAILED.getDefaultMessage(), exception);
         }
 
         if (token == null || !Boolean.TRUE.equals(token.getPayload().getEmailVerified())) {
-            throw new BadCredentialsException(
-                    "গুগল সাইন-ইন টোকেন সঠিক নয় অথবা ইমেইল যাচাইকৃত নয়।");
+            throw new ApiException(ErrorCode.GOOGLE_TOKEN_INVALID);
         }
 
         String email = token.getPayload().getEmail();
         if (email == null || !isAllowedInstitutionalEmail(email)) {
-            throw new BadCredentialsException(
-                    "শুধুমাত্র কুমিল্লা বিশ্ববিদ্যালয়ের প্রাতিষ্ঠানিক ইমেইল "
-                            + "(name@cou.ac.bd অথবা name@stud.cou.ac.bd) দিয়ে প্রবেশ করা যাবে।");
+            throw new ApiException(ErrorCode.GOOGLE_EMAIL_NOT_ALLOWED);
         }
 
         // GoogleIdToken.Payload exposes typed getters only for standard claims

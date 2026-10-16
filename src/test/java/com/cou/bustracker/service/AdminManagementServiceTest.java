@@ -1,6 +1,8 @@
 package com.cou.bustracker.service;
 
 import com.cou.bustracker.entity.Admin;
+import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.repository.AdminRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,10 +40,11 @@ class AdminManagementServiceTest {
 
         when(adminRepository.findByEmail("me@example.com")).thenReturn(Optional.of(currentAdmin));
 
-        IllegalArgumentException ex = assertThrows(
-                IllegalArgumentException.class,
+        ApiException ex = assertThrows(
+                ApiException.class,
                 () -> adminManagementService.deleteAdmin("me@example.com", 1L));
 
+        assertEquals(ErrorCode.CANNOT_DELETE_SELF, ex.getErrorCode());
         assertEquals("You cannot delete your own account", ex.getMessage());
     }
 }

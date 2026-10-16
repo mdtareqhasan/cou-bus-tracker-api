@@ -4,6 +4,8 @@ import com.cou.bustracker.entity.PhoneVerificationOtp.UserRole;
 import com.cou.bustracker.entity.EmailVerificationOtp;
 import com.cou.bustracker.entity.Student;
 import com.cou.bustracker.entity.Teacher;
+import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.repository.PhoneVerificationOtpRepository;
 import com.cou.bustracker.repository.EmailVerificationOtpRepository;
 import com.cou.bustracker.repository.StudentRepository;
@@ -12,7 +14,6 @@ import com.cou.bustracker.util.PhoneUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,11 +52,11 @@ public class PasswordResetService {
         // Check if user exists
         if (userRole == UserRole.STUDENT) {
             if (!studentRepository.existsByPhone(phone)) {
-                throw new IllegalArgumentException("এই ফোন নম্বর দিয়ে কোনো শিক্ষার্থী পাওয়া যায়নি।");
+                throw new ApiException(ErrorCode.NO_STUDENT_WITH_PHONE);
             }
         } else {
             if (!teacherRepository.existsByPhone(phone)) {
-                throw new IllegalArgumentException("এই ফোন নম্বর দিয়ে কোনো শিক্ষক পাওয়া যায়নি।");
+                throw new ApiException(ErrorCode.NO_TEACHER_WITH_PHONE);
             }
         }
 
@@ -99,42 +100,42 @@ public class PasswordResetService {
         UserRole userRole = parseRole(role);
 
         var record = otpRepository.findByPhoneAndUserRole(phone, userRole)
-                .orElseThrow(() -> new IllegalArgumentException("OTP পাওয়া যায়নি। নতুন করে অনুরোধ করুন।"));
+                .orElseThrow(() -> new ApiException(ErrorCode.OTP_NOT_FOUND));
 
         if (record.getExpiresAt().isBefore(LocalDateTime.now())) {
             otpRepository.delete(record);
-            throw new IllegalArgumentException("OTP মেয়াদ শেষ হয়েছে। নতুন করে অনুরোধ করুন।");
+            throw new ApiException(ErrorCode.OTP_EXPIRED);
         }
 
         if (record.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
             otpRepository.delete(record);
-            throw new IllegalArgumentException("অনেক বার ভুল চেষ্টা হয়েছে। নতুন করে অনুরোধ করুন।");
+            throw new ApiException(ErrorCode.OTP_TOO_MANY_ATTEMPTS);
         }
 
         if (!passwordEncoder.matches(otp, record.getOtpHash())) {
             record.setFailedAttempts(record.getFailedAttempts() + 1);
             otpRepository.save(record);
-            throw new BadCredentialsException("ভুল OTP। আবার চেষ্টা করুন।");
+            throw new ApiException(ErrorCode.OTP_INVALID);
         }
 
         // OTP verified — reset password
         if (newPassword == null || newPassword.isBlank()) {
-            throw new IllegalArgumentException("নতুন পাসওয়ার্ড প্রয়োজন।");
+            throw new ApiException(ErrorCode.NEW_PASSWORD_REQUIRED);
         }
         if (newPassword.length() < 6) {
-            throw new IllegalArgumentException("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।");
+            throw new ApiException(ErrorCode.PASSWORD_TOO_SHORT);
         }
 
         String encodedPassword = passwordEncoder.encode(newPassword);
 
         if (userRole == UserRole.STUDENT) {
             Student student = studentRepository.findByPhone(phone)
-                    .orElseThrow(() -> new IllegalArgumentException("শিক্ষার্থী পাওয়া যায়নি।"));
+                    .orElseThrow(() -> new ApiException(ErrorCode.STUDENT_NOT_FOUND));
             student.setPassword(encodedPassword);
             studentRepository.save(student);
         } else {
             Teacher teacher = teacherRepository.findByPhone(phone)
-                    .orElseThrow(() -> new IllegalArgumentException("শিক্ষক পাওয়া যায়নি।"));
+                    .orElseThrow(() -> new ApiException(ErrorCode.TEACHER_NOT_FOUND));
             teacher.setPassword(encodedPassword);
             teacherRepository.save(teacher);
         }
@@ -151,11 +152,11 @@ public class PasswordResetService {
 
         if (emailRole == EmailVerificationOtp.UserRole.STUDENT) {
             if (!studentRepository.existsByEmail(email)) {
-                throw new IllegalArgumentException("এই ইমেইল দিয়ে কোনো শিক্ষার্থী পাওয়া যায়নি।");
+                throw new ApiException(ErrorCode.NO_STUDENT_WITH_EMAIL);
             }
         } else {
             if (!teacherRepository.existsByEmail(email)) {
-                throw new IllegalArgumentException("এই ইমেইল দিয়ে কোনো শিক্ষক বা কর্মকর্তা পাওয়া যায়নি।");
+                throw new ApiException(ErrorCode.NO_TEACHER_WITH_EMAIL);
             }
         }
 
@@ -187,41 +188,41 @@ public class PasswordResetService {
         EmailVerificationOtp.UserRole emailRole = parseEmailRole(role);
 
         var record = emailOtpRepository.findByEmailAndUserRole(email, emailRole)
-                .orElseThrow(() -> new IllegalArgumentException("OTP পাওয়া যায়নি। নতুন করে অনুরোধ করুন।"));
+                .orElseThrow(() -> new ApiException(ErrorCode.OTP_NOT_FOUND));
 
         if (record.getExpiresAt().isBefore(LocalDateTime.now())) {
             emailOtpRepository.delete(record);
-            throw new IllegalArgumentException("OTP মেয়াদ শেষ হয়েছে। নতুন করে অনুরোধ করুন।");
+            throw new ApiException(ErrorCode.OTP_EXPIRED);
         }
 
         if (record.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
             emailOtpRepository.delete(record);
-            throw new IllegalArgumentException("অনেক বার ভুল চেষ্টা হয়েছে। নতুন করে অনুরোধ করুন।");
+            throw new ApiException(ErrorCode.OTP_TOO_MANY_ATTEMPTS);
         }
 
         if (!passwordEncoder.matches(otp, record.getOtpHash())) {
             record.setFailedAttempts(record.getFailedAttempts() + 1);
             emailOtpRepository.save(record);
-            throw new BadCredentialsException("ভুল OTP। আবার চেষ্টা করুন।");
+            throw new ApiException(ErrorCode.OTP_INVALID);
         }
 
         if (newPassword == null || newPassword.isBlank()) {
-            throw new IllegalArgumentException("নতুন পাসওয়ার্ড প্রয়োজন।");
+            throw new ApiException(ErrorCode.NEW_PASSWORD_REQUIRED);
         }
         if (newPassword.length() < 6) {
-            throw new IllegalArgumentException("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।");
+            throw new ApiException(ErrorCode.PASSWORD_TOO_SHORT);
         }
 
         String encodedPassword = passwordEncoder.encode(newPassword);
 
         if (emailRole == EmailVerificationOtp.UserRole.STUDENT) {
             Student student = studentRepository.findByEmail(email)
-                    .orElseThrow(() -> new IllegalArgumentException("শিক্ষার্থী পাওয়া যায়নি।"));
+                    .orElseThrow(() -> new ApiException(ErrorCode.STUDENT_NOT_FOUND));
             student.setPassword(encodedPassword);
             studentRepository.save(student);
         } else {
             Teacher teacher = teacherRepository.findByEmail(email)
-                    .orElseThrow(() -> new IllegalArgumentException("শিক্ষক পাওয়া যায়নি।"));
+                    .orElseThrow(() -> new ApiException(ErrorCode.TEACHER_NOT_FOUND));
             teacher.setPassword(encodedPassword);
             teacherRepository.save(teacher);
         }
@@ -232,23 +233,23 @@ public class PasswordResetService {
 
     private EmailVerificationOtp.UserRole parseEmailRole(String role) {
         if (role == null || role.isBlank()) {
-            throw new IllegalArgumentException("Role is required");
+            throw new ApiException(ErrorCode.ROLE_REQUIRED);
         }
         try {
             return EmailVerificationOtp.UserRole.valueOf(role.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid role. Must be STUDENT or EMPLOYEE");
+            throw new ApiException(ErrorCode.INVALID_ROLE, "Invalid role. Must be STUDENT or EMPLOYEE");
         }
     }
 
     private UserRole parseRole(String role) {
         if (role == null || role.isBlank()) {
-            throw new IllegalArgumentException("রোল নির্বাচন করুন");
+            throw new ApiException(ErrorCode.ROLE_REQUIRED);
         }
         try {
             return UserRole.valueOf(role.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("অবৈধ রোল। শুধু STUDENT বা TEACHER হতে পারবে");
+            throw new ApiException(ErrorCode.INVALID_ROLE, "Invalid role. Must be STUDENT or TEACHER");
         }
     }
 }

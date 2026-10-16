@@ -12,29 +12,29 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TeacherRegisterRequest {
 
-    @NotBlank(message = "নাম দিন")
-    @Size(min = 2, max = 100, message = "নাম ২ থেকে ১০০ অক্ষরের মধ্যে হতে হবে")
+    @NotBlank(message = "Name is required")
+    @Size(min = 2, max = 100, message = "Name must be 2 to 100 characters")
     private String name;
 
-    @NotBlank(message = "ফোন নম্বর দিন")
-    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "সঠিক ফোন নম্বর দিন")
+    @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Enter a valid phone number")
     private String phone;
 
-    @Size(min = 6, max = 128, message = "পাসওয়ার্ড ৬ থেকে ১২৮ অক্ষরের মধ্যে হতে হবে")
+    @Size(min = 6, max = 128, message = "Password must be 6 to 128 characters")
     private String password;
 
-    /** Google ID token for Google Sign-In registrations. পাসওয়ার্ড দিন when this is absent. */
+    /** Google ID token for Google Sign-In registrations. Password is required when this is absent. */
     private String googleIdToken;
 
-    @NotBlank(message = "শিক্ষক আইডি দিন")
-    @Pattern(regexp = "^[A-Za-z0-9\\-]{2,50}$", message = "শিক্ষক আইডি ২-৫০ অক্ষরের হতে হবে")
+    @NotBlank(message = "Teacher ID is required")
+    @Pattern(regexp = "^[A-Za-z0-9\\-]{2,50}$", message = "Teacher ID must be 2-50 characters")
     private String teacherId;
 
-    @Size(max = 100, message = "পদবী ১০০ অক্ষরের মধ্যে হতে হবে")
+    @Size(max = 100, message = "Designation must be at most 100 characters")
     private String designation;
 
-    @NotBlank(message = "বিভাগ দিন")
-    @Size(min = 2, max = 100, message = "বিভাগ ২ থেকে ১০০ অক্ষরের মধ্যে হতে হবে")
+    @NotBlank(message = "Department is required")
+    @Size(min = 2, max = 100, message = "Department must be 2 to 100 characters")
     private String department;
 
 

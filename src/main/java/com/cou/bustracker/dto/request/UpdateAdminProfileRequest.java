@@ -7,10 +7,10 @@ import lombok.Data;
 @Data
 public class UpdateAdminProfileRequest {
 
-    @NotBlank(message = "নাম দিন")
-    @Size(max = 100, message = "নাম ১০০ অক্ষরের মধ্যে হতে হবে")
+    @NotBlank(message = "Name is required")
+    @Size(max = 100, message = "Name must be at most 100 characters")
     private String name;
 
-    @Size(min = 6, max = 100, message = "পাসওয়ার্ড ৬ থেকে ১০০ অক্ষরের মধ্যে হতে হবে")
+    @Size(min = 6, max = 100, message = "Password must be 6 to 100 characters")
     private String password;
 }

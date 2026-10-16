@@ -100,10 +100,10 @@ public class AppConfigService {
                 .latestAppVersion(getOrDefault("latest_app_version", "1.0.0"))
                 .minimumAppVersion(getOrDefault("minimum_app_version", "1.0.0"))
                 .forceUpdate(getBoolean("force_update"))
-                .updateMessage(getOrDefault("update_available_message", "নতুন ভার্সন পাওয়া গেছে! আপডেট করুন।"))
+                .updateMessage(getOrDefault("update_available_message", "A new version is available! Please update."))
                 .playStoreUrl(getOrDefault("play_store_url", "https://play.google.com/store/apps/details?id=com.cou.bustracker"))
                 .maintenanceMode(getBoolean("maintenance_mode"))
-                .maintenanceMessage(getOrDefault("maintenance_message", "অ্যাপটি রক্ষণাবেক্ষণে আছে। শীঘ্রই ফিরে আসছি।"))
+                .maintenanceMessage(getOrDefault("maintenance_message", "The app is under maintenance. We'll be back soon."))
                 .build();
     }
 }
