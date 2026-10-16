@@ -1,806 +1,303 @@
 <div align="center">
 
-# 🚌 CoU Bus Tracker
+# 🚌 CoU Bus Tracker (CoU Jatra)
 
-**Real-time bus information & fleet-management platform for Comilla University**
+### 🎓 Comilla University Transport Management System
 
-[![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14%2B-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Vite](https://img.shields.io/badge/Vite-Fast-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![License](https://img.shields.io/badge/license-Unlicensed-lightgrey)]()
+**A real-time bus tracking and transport management platform for Comilla University students, teachers, and staff.**
 
-*A Spring Boot REST API + React admin panel, built to power a Bengali Android application.*
+Built with a Flutter mobile client, a Spring Boot REST API, and a web-based admin panel.
+
+![Flutter](https://img.shields.io/badge/Flutter-3.24%2B-02569B?logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-3.8%2B-0175C2?logo=dart&logoColor=white)
+![State management](https://img.shields.io/badge/State-Riverpod-40BFA5)
+![Backend](https://img.shields.io/badge/Backend-Spring%20Boot%203-6DB33F?logo=springboot&logoColor=white)
+![Database](https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white)
 
 </div>
 
 ---
 
-## 🧩 System overview
+## 📱 App Screenshots
 
-| Component | Location | Technology | Default URL |
-|---|---|---|---|
-| 🔧 **REST API** (local backend) | `Backend/` | Java 21 · Spring Boot 3.3 · Spring Security + JWT · Spring Data JPA · **PostgreSQL** · Flyway · OpenAPI | `http://localhost:8080` |
-| 🐳 **REST API** (Docker backend) | `Backend/` | Spring Boot + containerized PostgreSQL | `http://localhost:8081` |
-| ☁️ **REST API** (Render) | `Backend/` | Same Spring Boot jar on Render | `https://cou-bus-tracker-backend-admin-frontend.onrender.com` |
-| 🎛️ **Admin panel** | `Backend/admin-panel/` | React 19 · Vite · Tailwind CSS 4 · React Router 7 · Axios | `http://localhost:5173` |
-| 🎛️ **Admin panel** (Render) | `Backend/admin-panel/` | Same React build, static site on Render | `https://cou-bus-tracker-backend-admin-frontend-1.onrender.com` |
-| 👑 **Super admin panel** | `super_admin/` | React 18 · Vite · MUI 5 · React Hook Form · Yup | `http://localhost:5174` |
-| 👑 **Super admin panel** (Vercel) | `super_admin/` | Same React build on Vercel | `https://cou-bus-tracker-super-admin.vercel.app` |
-| 📱 **Android app** | `Backend/CoUBusTracker_Project_Spec.md` | Android-ready API & UI specification | — |
+<table>
+  <tr>
+    <th>🚀 Splash &amp; Cold-Launch</th>
+    <th>🏠 Home Dashboard</th>
+    <th>🗓️ Bus Schedules</th>
+    <th>🚌 Bus Details</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="kubi_jatra_images_api/splash_page.jpeg" width="150" alt="CoU Jatra splash screen"></td>
+    <td align="center"><img src="kubi_jatra_images_api/home_page.jpeg" width="150" alt="CoU Jatra home dashboard"></td>
+    <td align="center"><img src="kubi_jatra_images_api/bus_schedule_page.jpeg" width="150" alt="Bus schedules"></td>
+    <td align="center"><img src="kubi_jatra_images_api/bus_details_page.jpeg" width="150" alt="Bus details"></td>
+  </tr>
+  <tr>
+    <td align="center">Splash screen &amp; server warmup</td>
+    <td align="center">Live dashboard</td>
+    <td align="center">Daily bus schedules</td>
+    <td align="center">Route and bus information</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <th>📍 Live GPS Tracking</th>
+    <th>🔐 Phone OTP Verification</th>
+    <th>👤 User Profile</th>
+    <th>ℹ️ About &amp; Credits</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="kubi_jatra_images_api/bus_location_view.jpeg" width="150" alt="Live bus location"></td>
+    <td align="center"><img src="kubi_jatra_images_api/otp_page.jpeg" width="150" alt="Phone OTP verification"></td>
+    <td align="center"><img src="kubi_jatra_images_api/profile_page.jpeg" width="150" alt="User profile"></td>
+    <td align="center"><img src="kubi_jatra_images_api/about_us_page.jpeg" width="150" alt="About CoU Jatra"></td>
+  </tr>
+  <tr>
+    <td align="center">Track buses on the map</td>
+    <td align="center">Verify a phone number securely</td>
+    <td align="center">Manage account details</td>
+    <td align="center">Project team and credits</td>
+  </tr>
+</table>
+
+## 🖥️ Admin Panel Screenshots
+
+<table>
+  <tr>
+    <th>📊 Dashboard</th>
+    <th>🚌 Bus Management</th>
+    <th>📢 Notice Management</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="kubi_jatra_images_api/admin_dashboard.png" width="210" alt="Admin dashboard"></td>
+    <td align="center"><img src="kubi_jatra_images_api/admin_bus_list.png" width="210" alt="Admin bus list"></td>
+    <td align="center"><img src="kubi_jatra_images_api/admin_notice_page.png" width="210" alt="Admin notices"></td>
+  </tr>
+  <tr>
+    <td align="center">Transport overview and statistics</td>
+    <td align="center">Manage buses and tracker links</td>
+    <td align="center">Publish service notices</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <th>🗓️ Schedule List</th>
+    <th>🕒 Schedule Details</th>
+    <th>✏️ Update Schedule</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="kubi_jatra_images_api/admin_schedule_page_1.png" width="210" alt="Admin schedule list"></td>
+    <td align="center"><img src="kubi_jatra_images_api/admin_schedule_page_2.png" width="210" alt="Admin schedule details"></td>
+    <td align="center"><img src="kubi_jatra_images_api/admin_schedule_update.png" width="210" alt="Update bus schedule"></td>
+  </tr>
+  <tr>
+    <td align="center">Browse and filter schedules</td>
+    <td align="center">Review route timings</td>
+    <td align="center">Edit route and departure details</td>
+  </tr>
+</table>
+
+## 🧭 System Diagrams
+
+The diagrams are shown after the app and admin screenshots. Original image files are in [`kubi_jatra_images_api/`](kubi_jatra_images_api/).
+
+<p align="center"><strong>System Context Diagram</strong><br><img src="kubi_jatra_images_api/context_diagram.jpeg" width="540" alt="CoU Jatra system context diagram"></p>
+
+<p align="center"><strong>Container Diagram</strong><br><img src="kubi_jatra_images_api/container%20diagram.jpeg" width="540" alt="CoU Jatra container diagram"></p>
+
+<p align="center"><strong>Component Diagram</strong><br><img src="kubi_jatra_images_api/component_diagram.jpeg" width="540" alt="CoU Jatra component diagram"></p>
+
+<p align="center"><strong>Backend Architecture</strong><br><img src="kubi_jatra_images_api/backend_architecture.jpeg" width="540" alt="CoU Jatra backend architecture"></p>
+
+<p align="center"><strong>Data Flow Diagram</strong><br><img src="kubi_jatra_images_api/data_flow_diagram.jpeg" width="540" alt="CoU Jatra data flow diagram"></p>
 
 ---
 
-## 📖 Table of contents
+## 📖 Contents
 
 - [✨ Features](#-features)
+- [🧩 System overview](#-system-overview)
 - [🗂️ Project structure](#️-project-structure)
-- [✅ Prerequisites](#-prerequisites)
-- [⚙️ Backend (Spring Boot)](#️-backend-spring-boot)
-  - [Configuration](#configuration)
-  - [Run locally](#run-locally)
-  - [Docker deployment](#docker-deployment)
-  - [Render deployment](#render-deployment)
-  - [Database migrations](#database-migrations)
-  - [Data model](#data-model)
-  - [API reference](#api-reference)
-  - [Authentication & security](#authentication--security)
-- [🖥️ Frontend (React admin panel)](#️-frontend-react-admin-panel)
-- [👑 Super admin panel](#-super-admin-panel)
-- [📱 Android application](#-android-application)
-- [🧪 Testing](#-testing)
-- [🛠️ Troubleshooting](#️-troubleshooting)
-- [🚀 Production checklist](#-production-checklist)
-
----
+- [⚙️ Technology stack](#️-technology-stack)
+- [🚀 Run locally](#-run-locally)
+- [🌐 Production deployment](#-production-deployment)
+- [🔌 API overview](#-api-overview)
+- [🔐 Security](#-security)
 
 ## ✨ Features
 
-### ⚙️ Backend (Spring Boot API)
+### 📱 Mobile app
 
-- 🌐 **Public APIs** for buses, schedules, and active notices — no authentication required
-- 🎓 **Student & teacher accounts** with registration, login, ID-card image upload, and profile retrieval
-- 🔐 **JWT-protected admin APIs** to fully manage buses, live tracker links, schedules, notices, students, teachers, and other admin users
-- 📊 **Admin dashboard** endpoints returning aggregated statistics
-- 📁 **File uploads** (e.g., student ID cards) stored under a configurable directory
-- 🗃️ **PostgreSQL schema versioning** through Flyway migrations (seeded with real Comilla University bus data)
-- 📚 **OpenAPI / Swagger UI** documentation generated automatically
-- 🚏 Optional **bus name** and **live tracker link** support
-- 🔒 **JWT validation against DB** — deleted/deactivated users are immediately rejected (auto-logout on Flutter app)
-- ⚡ **Active/inactive toggle** for buses and schedules — inactive items hidden from public API
+- Browse buses, routes, schedules, and university transport notices.
+- View live bus tracking links and bus details.
+- Student and teacher accounts with phone OTP verification.
+- Profile management and app configuration/version checks.
+- Bengali-first interface for the Comilla University community.
 
-### 🖥️ Frontend (React admin panel)
+### 🖥️ Admin panel
 
-- 🔑 Secure login with JWT stored in `localStorage`, auto-redirect on 401/403
-- 📈 Dashboard with live statistics
-- 📝 Full CRUD screens for buses, schedules, and notices
-- ⚡ **Active/inactive toggle** for buses and schedules with status filters
-- 👥 Student & teacher management (list, pending approval, verify, activate/deactivate, delete)
-- 🛡️ Admin user management and admin profile editing
-- 📱 Responsive Tailwind CSS layout
+- Dashboard with transport and account statistics.
+- Manage buses, tracker links, schedules, and notices.
+- Review student and teacher accounts and verification status.
+- Manage administrator accounts and profiles.
 
-### 👑 Super admin panel
+### ⚙️ Backend platform
 
-- 🔐 Separate super admin login (independent from regular admins)
-- 📊 Dashboard with system-wide stats (total admins, buses, students, teachers)
-- 🛡️ CRUD for super admin accounts (create, activate/deactivate, delete)
-- ⚙️ **Server config** — edit runtime config keys (API base URL, Play Store URL, maintenance mode, etc.)
-- 📢 **Broadcast notice** — send push notification messages to all app users
-- 🔧 **App version control** — set latest/minimum Flutter app version, force-update flag
-- 📱 Modern glassmorphism UI with MUI 5
+- Spring Boot REST API with public and authenticated endpoints.
+- JWT authentication with role-based access for students, teachers, admins, and super admins.
+- PostgreSQL persistence with versioned Flyway migrations.
+- Cloudinary image storage, BulkSMSBD OTP delivery, and SMTP email integration.
+- OpenAPI documentation through Springdoc.
 
----
+## 🧩 System overview
+
+| Component | Technology | Local address | Production address |
+|---|---|---|---|
+| REST API | Java 21 · Spring Boot · Spring Security · JPA · PostgreSQL | `http://localhost:8080` (source) / `http://localhost:8081` (Docker) | [api.kubijatra.com](https://api.kubijatra.com) |
+| Admin panel | React · Vite · Tailwind CSS | `http://localhost:5173` | [admin.kubijatra.com](https://admin.kubijatra.com) |
+| Super-admin routes | Spring Boot API | API route under `/api/super-admin` | [super.kubijatra.com](https://super.kubijatra.com) |
+| Mobile app | Flutter · Dart · Riverpod | Android/iOS client | [app.kubijatra.com](https://app.kubijatra.com) |
+| Main domain | Nginx reverse proxy | — | [kubijatra.com](https://kubijatra.com) |
+
+The current Nginx configuration proxies the listed public hosts to the API at `127.0.0.1:8080`. The app client is maintained separately; this repository includes its API integration and screenshots.
 
 ## 🗂️ Project structure
 
 ```text
-Backend/
-├── admin-panel/                     # Frontend (React + Vite)
-│   ├── public/                      # Static assets (favicon, icons)
-│   └── src/
-│       ├── api.js                   # Axios client + grouped API calls, auth interceptor
-│       ├── App.jsx                  # Routes + auth guards
-│       ├── context/AuthContext.jsx  # Global admin auth state
-│       └── pages/                   # Login, Dashboard, Buses, Schedules, Notices,
-│                                     # Students, Teachers, Admins, Profile, Layout
+.
+├── admin-panel/                         # React + Vite administrator interface
+├── kubi_jatra_images_api/                # App, admin, and architecture images for this README
+│   ├── splash_page.jpeg
+│   ├── home_page.jpeg
+│   ├── bus_schedule_page.jpeg
+│   ├── bus_details_page.jpeg
+│   ├── bus_location_view.jpeg
+│   ├── otp_page.jpeg
+│   ├── profile_page.jpeg
+│   ├── about_us_page.jpeg
+│   ├── admin_*.png
+│   └── *_diagram.jpeg / backend_architecture.jpeg
 ├── src/
-│   ├── main/
-│   │   ├── java/com/cou/bustracker/
-│   │   │   ├── config/              # Security, OpenAPI, WebMVC config
-│   │   │   ├── controller/          # Public + admin REST controllers
-│   │   │   │   └── superadmin/      # Super admin controllers (auth, config, management, notices)
-│   │   │   ├── dto/                 # request/, response/, config/ DTOs
-│   │   │   ├── entity/              # Bus, Schedule, Notice, Student, Teacher, Admin,
-│   │   │   │                        # TrackerLink, SuperAdmin, AppConfig, EmailVerificationOtp
-│   │   │   ├── exception/           # Global exception handler
-│   │   │   ├── repository/          # Spring Data JPA repositories
-│   │   │   ├── security/            # JWT service, filter, user details service
-│   │   │   ├── service/             # Business logic services
-│   │   │   └── CouBusTrackerApplication.java
-│   │   └── resources/
-│   │       ├── db/migration/        # Flyway SQL migrations (V1–V16, PostgreSQL)
-│   │       ├── application.yaml         # Base config (profile, JWT, server, swagger)
-│   │       ├── application-dev.yaml     # Dev profile — local PostgreSQL datasource
-│   │       ├── application-docker.yaml  # Docker profile — container PostgreSQL datasource
-│   │       └── application-render.yaml  # Render profile — managed PostgreSQL datasource
-│   └── test/                        # Unit/integration tests
-├── Dockerfile                       # Multi-stage build (Maven + JRE)
-├── .dockerignore                    # Excludes target/, node_modules/, .env from build context
-├── docker-compose.yml               # PostgreSQL + backend services
-├── pom.xml                          # Maven build (Spring Boot 3.3.2)
-├── .env / .env.example              # Environment variables for Docker
-└── …Spec.md                         # Android app & project specifications
-
-super_admin/                         # Super admin panel (React + Vite + MUI)
-├── api/                             # Vercel serverless functions
-├── public/                          # Static assets
-├── src/
-│   ├── api/axios.js                 # Axios instance with super admin auth interceptor
-│   ├── components/                  # Sidebar, TopBar, LoadingScreen, ConfirmDialog
-│   ├── context/AuthContext.jsx      # Super admin auth state
-│   ├── layouts/DashboardLayout.jsx  # Sidebar + TopBar shell
-│   ├── pages/                       # Login, Dashboard, SuperAdmins, ServerConfig,
-│   │                                # AppVersion, BroadcastNotice
-│   ├── theme.js                     # MUI theme (glassmorphism palette)
-│   └── utils/validationSchemas.js   # Yup schemas for forms
-├── vercel.json                      # SPA rewrite rules
-└── package.json
+│   ├── main/java/com/cou/bustracker/     # Controllers, services, entities, repositories, security
+│   ├── main/resources/                   # Spring profiles and application configuration
+│   ├── main/resources/db/migration/      # PostgreSQL Flyway migrations
+│   └── test/                             # Backend tests
+├── docker-compose.yml                    # Local API + PostgreSQL
+├── docker-compose.prod.yml               # Production API service
+├── docker-compose.postgres.yml           # Separate production PostgreSQL service
+├── Dockerfile
+└── pom.xml
 ```
 
----
+## ⚙️ Technology stack
 
-## ✅ Prerequisites
-
-| Requirement | Minimum version |
+| Area | Technologies |
 |---|---|
-| ☕ Java | 21+ |
-| 🏗️ Maven | 3.8+ |
-| 🐘 PostgreSQL | 14+ (or Docker) |
-| 🟢 Node.js | 18+ (with npm) |
+| API | Java 21, Spring Boot 3.3, Spring Web, Spring Security, Spring Data JPA, Bean Validation |
+| Auth | JWT (JJWT), BCrypt password hashing |
+| Database | PostgreSQL 16, Flyway, HikariCP |
+| Admin UI | React, Vite, React Router, Tailwind CSS |
+| API docs | Springdoc OpenAPI / Swagger UI |
+| Integrations | Cloudinary, BulkSMSBD, MailerSend SMTP, Google sign-in token verification |
 
----
+## 🚀 Run locally
 
-# ⚙️ Backend (Spring Boot)
+Requirements: Docker with Compose. To run the API directly, install JDK 21, Maven 3.8+, and PostgreSQL. The admin UI requires Node.js and npm.
 
-The backend is a single-module Maven project (`com.cou:cou-bus-tracker:1.0.0`).
-
-## Main technologies
-
-| | |
-|---|---|
-| 🍃 | Spring Boot 3.3.2 (Web, Data JPA, Security, Validation) |
-| 📘 | Springdoc OpenAPI 2.6.0 (`springdoc-openapi-starter-webmvc-ui`) |
-| 🔏 | JJWT 0.12.6 (JWT auth) |
-| 🐘 | PostgreSQL Driver |
-| 🛫 | Flyway 10 (core + PostgreSQL) |
-| 🧊 | Lombok 1.18.40 |
-| ⚡ | HikariCP connection pool |
-
-## Configuration
-
-The backend reads its setup file(s) from `src/main/resources/`:
-
-| File | Purpose |
-|---|---|
-| `application.yaml` | Global defaults: `server.port=8080`, JWT secret + 24h expiration, Swagger paths, active profile = `dev` |
-| `application-dev.yaml` | Local dev PostgreSQL connection (`localhost:5432`), SQL logging, multipart size limits (5 MB), upload folder `./uploads` |
-| `application-docker.yaml` | Docker profile — same as dev but points datasource at the `postgres` container hostname, quieter logging, upload folder `/app/uploads` |
-
-### 🔌 Database connection (dev profile)
-
-By default it connects to:
-
-```
-jdbc:postgresql://localhost:5432/cou_bus_tracker
-```
-
-with `username: postgres` / `password: root1234`. Change these values in `application-dev.yaml` or via environment variables.
-
-### 🔀 Local and Docker ports
-
-Local and Docker services can run at the same time because they use separate host ports and separate PostgreSQL data stores:
-
-| Mode | Backend API | PostgreSQL | Database |
-|---|---|---|---|
-| Local development | `http://localhost:8080` | `localhost:5432` | `cou_bus_tracker` |
-| Docker Compose | `http://localhost:8081` | `localhost:5433` | `cou_bus_tracker` |
-
-> The two databases are independent. Data created in local PostgreSQL is not automatically available in Docker PostgreSQL, and vice versa.
-
-### 🌱 Environment variables (for Docker)
-
-When running with Docker Compose, settings are overridden via `.env` (copy `.env.example` to `.env`). Spring Boot automatically maps environment variables to properties using relaxed binding — for example, `SPRING_DATASOURCE_URL` overrides `spring.datasource.url`.
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `DB_NAME` | `cou_bus_tracker` | PostgreSQL database name |
-| `DB_USERNAME` | `postgres` | PostgreSQL user |
-| `DB_PASSWORD` | `root1234` | PostgreSQL password |
-| `JWT_SECRET` | `YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnough2024!` | JWT signing key (≥ 32 chars) |
-
-> The `app` service also receives `SPRING_PROFILES_ACTIVE=docker`, `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, and `FILE_UPLOAD_DIR` — all set in `docker-compose.yml` and derived from the variables above.
-
-> ⚠️ **Security warning:** Do not reuse the default JWT secret in production; a leaked secret lets anyone forge admin tokens.
-
-### 🔑 JWT & default admin
-
-The app also needs `admin` initialization data. The default admin (created by migration `V6__seed_initial_data.sql`) is:
-
-| Field | Value |
-|---|---|
-| Email | `admin@cou.ac.bd` |
-| Password | `Admin@123` |
-
-> 🚨 **Change this password before any public deployment.**
-
-The default **super admin** (seeded by `SuperAdminDataInitializer` at startup) is:
-
-| Field | Value |
-|---|---|
-| Email | `superadmincou@gmail.com` |
-| Password | `Admin@123` |
-
-## Run locally
-
-### 1️⃣ Backend only
-
-1. Make sure PostgreSQL is running and you have a `cou_bus_tracker` database:
-   ```sql
-   CREATE DATABASE cou_bus_tracker;
-   ```
-2. *(Optional)* Adjust `application-dev.yaml` — set your DB username/password.
-3. Start the API:
-   ```bash
-   cd Backend
-   mvn spring-boot:run
-   ```
-
-Flyway will automatically apply all migrations (**V1–V13**) on first startup, creating tables and seeding data.
-
-The API is then available at:
-
-| Resource | URL |
-|---|---|
-| 🌐 Base URL | `http://localhost:8080` |
-| 📘 Swagger UI | `http://localhost:8080/swagger-ui.html` |
-| 📄 OpenAPI JSON | `http://localhost:8080/api-docs` |
-
-### 2️⃣ Build an artifact (e.g. jar)
+### Start API and PostgreSQL with Docker
 
 ```bash
-cd Backend
-mvn clean package
-java -jar target/cou-bus-tracker-1.0.0.jar
+cp .env.example .env
+# Set a local DB_PASSWORD and JWT_SECRET in .env
+docker compose up -d --build
 ```
 
-The Spring Boot fat jar output is `target/cou-bus-tracker-1.0.0.jar`.
-
-## 🐳 Docker deployment
-
-### Quick start
-
-From `Backend/`, copy the env file and start the stack:
+The API is available at `http://localhost:8081`; the local database is exposed at `localhost:5433`. Flyway applies migrations at startup.
 
 ```bash
-cd Backend
-cp .env.example .env          # edit if you need different credentials
-docker compose up -d
+docker compose logs -f app
+docker compose ps
 ```
 
-Docker Compose builds the backend from the current local source and starts two services:
+### Run the API from source
 
-| Service | Image / Build | Port | Description |
-|---|---|---|---|
-| **cou-bus-tracker-postgres** | `postgres:16-alpine` | `5433` (host) → `5432` (container) | PostgreSQL with a named volume `postgres_data` and a healthcheck |
-| **cou-bus-tracker-app** | local `Dockerfile` build | `8081` (host) → `8080` (container) | Spring Boot backend (profile `docker`) — starts only after Postgres is healthy |
-
-Flyway applies the schema migrations on first startup.
-
-### Rebuild after backend changes
+Configure PostgreSQL for the `dev` profile, then run:
 
 ```bash
-docker compose up --build -d
+mvn spring-boot:run
 ```
 
-The multi-stage `Dockerfile` builds the fat JAR with Maven (stage 1) and runs it on `eclipse-temurin:21-jre-alpine` (stage 2) as a non-root user.
+The source-run API listens at `http://localhost:8080` by default.
 
-### Useful commands
+### Run the admin panel
 
 ```bash
-docker compose logs -f app        # follow backend logs
-docker compose logs -f postgres   # follow database logs
-docker compose ps                 # check service status
-docker compose down               # stop services (data persists)
-docker compose down -v            # stop + delete PostgreSQL volume (drops data!)
-```
-
-### Inspect the Docker database
-
-Connect from DBeaver or pgAdmin with:
-
-```text
-Host: localhost
-Port: 5433
-Database: cou_bus_tracker
-Username: postgres
-Password: root1234
-```
-
-Or open the PostgreSQL shell directly:
-
-```bash
-docker exec -it cou-bus-tracker-postgres psql -U postgres -d cou_bus_tracker
-```
-
-Useful commands inside `psql`:
-
-```sql
-\dt
-SELECT * FROM schedules;
-```
-
-## ☁️ Render deployment
-
-The backend is deployed as a **Web Service** on Render with the `render` profile.
-
-### Environment variables (Render dashboard)
-
-| Variable | Example | Purpose |
-|---|---|---|
-| `SPRING_PROFILES_ACTIVE` | `render` | Activates `application-render.yaml` |
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://...` | Render-managed PostgreSQL URL |
-| `SPRING_DATASOURCE_USERNAME` | `dbuser` | DB username |
-| `SPRING_DATASOURCE_PASSWORD` | `****` | DB password |
-| `JWT_SECRET` | `your-production-secret` | JWT signing key (≥ 32 chars) |
-| `PORT` | `8080` | Render assigns this automatically |
-| `CLOUDINARY_CLOUD_NAME` | `...` | Image uploads (optional) |
-| `CLOUDINARY_API_KEY` | `...` | Image uploads (optional) |
-| `CLOUDINARY_API_SECRET` | `...` | Image uploads (optional) |
-| `GOOGLE_OAUTH_CLIENT_ID` | `...` | Google Sign-In for Flutter app |
-
-### Render static sites
-
-| Site | Source | URL |
-|---|---|---|
-| Admin panel | `Backend/admin-panel/dist/` | `https://cou-bus-tracker-backend-admin-frontend-1.onrender.com` |
-
-### Vercel (super admin panel)
-
-| Site | Source | URL |
-|---|---|---|
-| Super admin panel | `super_admin/dist/` | `https://cou-bus-tracker-super-admin.vercel.app` |
-
-## 🗃️ Database migrations
-
-Flyway runs automatically whenever the backend starts. Migrations live at `src/main/resources/db/migration/`:
-
-| Migration | Content |
-|---|---|
-| `V1__create_buses_table.sql` | Buses table |
-| `V2__create_schedules_table.sql` | Schedules table (FK to buses) |
-| `V3__create_tracker_links_table.sql` | Tracker links (FK to buses) |
-| `V4__create_notices_table.sql` | Notices |
-| `V5__create_admins_table.sql` | Admin users |
-| `V6__seed_initial_data.sql` | Seed buses, admin account |
-| `V7__create_students_table.sql` | Students |
-| `V8__create_teachers_table.sql` | Teachers |
-| `V9__fix_admin_password.sql` | Fix admin password hash |
-| `V10__add_bus_name.sql` | Optional `bus_name` column |
-| `V11__move_legacy_saturday_schedules_to_weekdays.sql` | Re-route legacy Saturday schedules |
-| `V12__reseed_data_postgresql.sql` | Seed/repair data + fix missing sequences (PostgreSQL) |
-| `V13__fix_boolean_columns.sql` | Convert INTEGER boolean columns to native BOOLEAN |
-| `V14__add_teacher_identity_cards_and_google_auth.sql` | Teacher identity cards, Google auth subject for students & teachers |
-| `V15__add_email_verification.sql` | Email verification OTP table, `is_email_verified` columns |
-| `V16__create_super_admins_and_app_config.sql` | `super_admins` table, `app_config` key/value table (seeded with defaults) |
-
-> 💡 **PostgreSQL note:** All migrations use PostgreSQL-compatible syntax (`BIGSERIAL`, native `BOOLEAN`, no `ENGINE` clauses). When migrating from MySQL via DBeaver, boolean columns may be imported as `INTEGER` — V13 fixes this automatically.
-
-> 🚫 Never edit an applied migration — create a new `V{n+1}__…sql` file instead (Flyway validates checksums).
-
-## 🧬 Data model
-
-| Entity | Fields | Relationships |
-|---|---|---|
-| 🚌 **Bus** | id, busNumber, busName, category (BLUE/TEacher/STAFF), route, driverName, driverPhone, busImageUrl, **isActive**, createdAt | 1→many schedules, one TrackerLink |
-| 🕒 **Schedule** | id, departureTime, arrivalTime, direction, startPoint, endPoint, days (e.g. `SUN-THU`), **isActive**, createdAt | Many→1 Bus |
-| 📍 **TrackerLink** | id, url | 1→1 Bus |
-| 📢 **Notice** | id, title, body, expiryHours (default 24), isActive, expiresAt, createdAt | — |
-| 🎓 **Student** | id, name, email, password, studentId, department, varsityBatch, idCardImageUrl, googleSubject, isEduMail, isVerified, isEmailVerified, **isActive**, createdAt | — |
-| 🧑‍🏫 **Teacher** | id, name, email, password, teacherId, designation, department, phone, idCardImageUrl, googleSubject, isEduMail, isVerified, isEmailVerified, **isActive**, createdAt | — |
-| 🛡️ **Admin** | id, email, password, name, createdAt | — |
-| 👑 **SuperAdmin** | id, email, password, fullName, **isActive**, createdAt, updatedAt | — |
-| ⚙️ **AppConfig** | id, configKey (unique), configValue, description, updatedAt, updatedBy | — |
-| 📧 **EmailVerificationOtp** | id, email, userRole, otpHash, expiresAt, lastSentAt, failedAttempts, createdAt | — |
-
-### Active/inactive system
-
-- **Buses**: When a bus is set inactive, it and all its schedules are hidden from the public API (`/api/buses`, `/api/schedules`)
-- **Schedules**: Individual schedules can be toggled active/inactive independently
-- **Students/Teachers**: Inactive users cannot log in; existing JWTs are rejected on next API call (auto-logout)
-- **Admin panel**: Shows all items (active + inactive) with toggle buttons and status filters
-
-## 🔌 API reference
-
-### 🌐 Public endpoints (no auth)
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/config` | Public app config (API base URL, version info, maintenance mode, Play Store URL) |
-| `GET` | `/api/buses` | List active buses (inactive buses hidden) |
-| `GET` | `/api/buses/{id}` | Bus detail (incl. tracker link) |
-| `GET` | `/api/schedules` | All active schedules (inactive buses' schedules hidden) |
-| `GET` | `/api/schedules/bus/{busId}` | Schedules for one bus (only if bus is active) |
-| `GET` | `/api/notices/active` | Currently active notices |
-| `POST` | `/api/auth/student/register` | Student registration (`StudentRegisterRequest`) |
-| `POST` | `/api/auth/student/login` | Student login (`{ email, password }`) |
-| `POST` | `/api/auth/teacher/register` | Teacher registration |
-| `POST` | `/api/auth/teacher/login` | Teacher login |
-| `POST` | `/api/auth/google/login` | Google Sign-In (`{ idToken, role }`) |
-
-### 🎓 Authenticated student endpoints
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/auth/student/upload-id-card` | Upload image (multipart `file`); stored under `student-id-cards/` |
-| `GET` | `/api/auth/student/me` | Current student profile |
-
-### 🔐 Admin endpoints (JWT required, `Authorization: Bearer <token>`)
-
-<details>
-<summary><b>🔑 Auth</b></summary>
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/auth/admin/login` | Admin login → returns JWT |
-
-</details>
-
-<details>
-<summary><b>📊 Dashboard</b></summary>
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/admin/dashboard` | Aggregated statistics |
-
-</details>
-
-<details>
-<summary><b>🚌 Buses</b></summary>
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/admin/buses` | All buses (incl. inactive) |
-| `POST` | `/api/admin/buses` | Create bus |
-| `PUT` | `/api/admin/buses/{id}` | Update bus |
-| `PUT` | `/api/admin/buses/{id}/tracker-link` | Update / add live tracker link |
-| `PATCH` | `/api/admin/buses/{id}/toggle` | Toggle bus active/inactive status |
-| `DELETE` | `/api/admin/buses/{id}` | Delete bus |
-
-</details>
-
-<details>
-<summary><b>🕒 Schedules</b></summary>
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/admin/schedules` | All schedules (incl. inactive) |
-| `POST` | `/api/admin/schedules` | Create schedule |
-| `PUT` | `/api/admin/schedules/{id}` | Update schedule |
-| `PATCH` | `/api/admin/schedules/{id}/toggle` | Toggle schedule active/inactive status |
-| `DELETE` | `/api/admin/schedules/{id}` | Delete schedule |
-
-</details>
-
-<details>
-<summary><b>📢 Notices</b></summary>
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/admin/notices` | All notices |
-| `POST` | `/api/admin/notices` | Create notice |
-| `DELETE` | `/api/admin/notices/{id}` | Delete notice |
-
-</details>
-
-<details>
-<summary><b>🎓 Students</b></summary>
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/admin/students` | All students |
-| `GET` | `/api/admin/students/pending` | Unverified students |
-| `PUT` | `/api/admin/students/{id}/verify` | Verify student |
-| `PUT` | `/api/admin/students/{id}/toggle-active` | Activate / deactivate |
-| `DELETE` | `/api/admin/students/{id}` | Delete student |
-
-</details>
-
-<details>
-<summary><b>🧑‍🏫 Teachers</b></summary>
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/admin/teachers` | All teachers |
-| `GET` | `/api/admin/teachers/pending` | Unverified teachers |
-| `PUT` | `/api/admin/teachers/{id}/verify` | Verify teacher |
-| `PUT` | `/api/admin/teachers/{id}/toggle-active` | Activate / deactivate |
-| `DELETE` | `/api/admin/teachers/{id}` | Delete teacher |
-
-</details>
-
-<details>
-<summary><b>🛡️ Admin users</b></summary>
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/admin/manage` | List admin users |
-| `POST` | `/api/admin/manage` | Create admin |
-| `PUT` | `/api/admin/manage/{id}` | Update admin |
-| `DELETE` | `/api/admin/manage/{id}` | Delete admin |
-
-</details>
-
-<details>
-<summary><b>👤 Profile</b></summary>
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/admin/profile` | Current admin's profile |
-| `PUT` | `/api/admin/profile` | Update profile |
-
-</details>
-
-<details>
-<summary><b>👑 Super admin endpoints (JWT required, `Authorization: Bearer <super_admin_token>`)</summary>
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/super-admin/auth/login` | Super admin login → returns JWT |
-| `GET` | `/api/super-admin/auth/me` | Current super admin profile |
-| `GET` | `/api/super-admin/manage` | List all super admins |
-| `POST` | `/api/super-admin/manage` | Create super admin |
-| `PUT` | `/api/super-admin/manage/{id}` | Update super admin |
-| `DELETE` | `/api/super-admin/manage/{id}` | Delete super admin |
-| `GET` | `/api/super-admin/config` | List all app config keys |
-| `PUT` | `/api/super-admin/config` | Update app config values |
-| `GET` | `/api/super-admin/notices` | List broadcast notices |
-| `POST` | `/api/super-admin/notices` | Create broadcast notice |
-| `DELETE` | `/api/super-admin/notices/{id}` | Delete broadcast notice |
-
-</details>
-
-## 🔒 Authentication & security
-
-- 🔑 **Passwords** are stored hashed (bcrypt — seeded admin uses a `$2b$10$` hash)
-- 🎫 **JWT** is issued on login; default expiration from configuration is 24 hours (86400000 ms)
-- 🛡️ The `JwtAuthFilter` examines the `Authorization: Bearer ...` header, validates the token, and populates the security context
-- 🔍 **JWT validation checks DB existence** — deleted or deactivated users are immediately rejected (returns 401), enabling auto-logout on Flutter app
-- ⚡ **Active/inactive checks** — student/teacher `isActive` is verified on every request; inactive users cannot access protected endpoints
-- 🔐 **Profile endpoints protected** — `/api/auth/student/me` and `/api/auth/teacher/me` require valid JWT (not public)
-- 👤 `CustomUserDetailsService` loads user details from the admins (and student/users as needed)
-- 🚧 Protected admin routes require the admin role; unauthorized requests return `401`, forbidden ones `403`
-
-**Custom error handling:** `GlobalExceptionHandler` and custom exceptions (`ResourceNotFoundException`, `UnauthorizedException`) return structured JSON error bodies. See also tests in `Backend/src/test/java/com/cou/bustracker/service/AdminManagementServiceTest.java`.
-
----
-
-# 🖥️ Frontend (React admin panel)
-
-The panel lives in `Backend/admin-panel/`. It is a Vite + React SPA using Tailwind CSS v4 and React Router 7.
-
-## Stack
-
-`React 19` · `React DOM` · `Vite` · `Tailwind CSS 4` (`@tailwindcss/vite` plugin) · `React Router DOM 7` · `Axios` · `lucide-react` · `oxlint`
-
-## Run locally
-
-```bash
-cd Backend/admin-panel
+cd admin-panel
 npm install
-```
-
-Choose the backend you want to test, then start Vite:
-
-```bash
-# Local Spring Boot backend (http://localhost:8080)
 npm run dev:local
-
-# Docker backend (http://localhost:8081)
-npm run dev:docker
 ```
 
-On Windows PowerShell where `npm.ps1` is blocked by execution policy, use `npm.cmd run dev:local` or `npm.cmd run dev:docker` instead.
+Build the admin panel with `npm run build` from `admin-panel/`.
 
-Open `http://localhost:5173`. The Vite dev server proxies requests according to the selected mode:
+## 🌐 Production deployment
 
-| Command | `/api` and `/uploads` proxy target |
+The API runs on the VPS behind Nginx. The production Compose file runs the API with host networking on port `8080`; PostgreSQL is a separate Compose service bound to `127.0.0.1:5432` with a persistent Docker volume.
+
+### Deploy the API
+
+The production `.env.production` file must be present at the repository root on the server. Keep it private and out of version control.
+
+```bash
+ssh root@kubijatra
+cd /opt/cou-bus-tracker
+git pull origin main
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml ps
+docker logs --tail 100 -f cou-bus-tracker-app
+```
+
+The VPS previously stored the checkout under `/opt/cou-bus-tracker/Backend`. Before deploying this root-level repository layout, move the production `.env.production` file to `/opt/cou-bus-tracker/.env.production` and preserve any local `uploads/` data. Keep the existing PostgreSQL Compose project name/volume when operating the database so an update does not create a new empty volume.
+
+### Database backup
+
+Create backups on the VPS and keep a protected copy off-server:
+
+```bash
+mkdir -p /opt/cou-bus-tracker/backups
+docker exec cou-bus-tracker-postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+  > "/opt/cou-bus-tracker/backups/cou-bus-tracker-$(date +%Y%m%d-%H%M%S).sql"
+```
+
+Flyway migrations run at application startup. Back up the database before schema-changing releases.
+
+## 🔌 API overview
+
+Production API base URL: **`https://api.kubijatra.com`**.
+
+| API group | Examples |
 |---|---|
-| `npm run dev:local` | `http://localhost:8080` |
-| `npm run dev:docker` | `http://localhost:8081` |
+| Public data | Buses, schedules, notices, app version, public configuration |
+| Student/teacher auth | Registration, phone OTP verification, login, profile |
+| Admin | Buses, tracker links, schedules, notices, students, teachers, admin accounts |
+| Super admin | Super-admin authentication, app configuration, management routes |
 
-Stop the Vite server with `Ctrl + C` before switching modes. `npm run dev` defaults to Docker mode.
+Springdoc is configured to serve OpenAPI JSON at `/api-docs` and Swagger UI at `/swagger-ui.html`. Access depends on the active Spring Security configuration.
 
-## Build for production
+## 🔐 Security
 
-```bash
-cd Backend/admin-panel
-npm run build    # outputs to dist/
-npm run lint     # run oxlint
-npm run preview  # serve the production build locally
-```
-
-Deploy the contents of `admin-panel/dist/` behind a static file server (or serve it from the same origin as the API to keep the `/api` and `/uploads` relative URLs working).
-
-## 🧭 Pages / features
-
-| Route | Page | Description |
-|---|---|---|
-| `/login` | `LoginPage` | Admin login (calls `/api/auth/admin/login`) |
-| `/` | `DashboardPage` | Statistics from `/api/admin/dashboard` |
-| `/buses` | `BusesPage` | Create / edit / delete buses, set live tracker links, toggle active/inactive |
-| `/schedules` | `SchedulesPage` | Manage schedules, toggle active/inactive with status filters |
-| `/notices` | `NoticesPage` | Create / delete notices |
-| `/students` | `StudentsPage` | Approve pending, verify, activate/deactivate, delete |
-| `/teachers` | `TeachersPage` | Same for teachers |
-| `/admins` | `AdminUsersPage` | Manage admin accounts |
-| `/profile` | `AdminProfilePage` | Edit own profile |
-
-## 🔗 How the panel talks to the API
-
-All requests go through `src/api.js`, which:
-
-1. Creates an Axios instance with base URL `/api`
-2. Automatically adds the `Authorization: Bearer <token>` header from `localStorage.getItem('admin_token')`
-3. On any `401`/`403` response, clears the token and redirects to `/login` — session expiry is handled globally
-
-**Export groups:** `authAPI` · `profileAPI` · `dashboardAPI` · `noticeAPI` · `scheduleAPI` (incl. `toggle`) · `studentAPI` · `busAPI` (incl. `toggle`) · `teacherAPI` · `adminAPI`
-
----
-
-# 👑 Super admin panel
-
-The super admin panel lives in `super_admin/`. It is a separate Vite + React SPA using MUI 5, deployed on Vercel.
-
-## Stack
-
-`React 18` · `Vite` · `MUI 5` (`@mui/material`, `@mui/icons-material`) · `React Router 6` · `Axios` · `React Hook Form` · `Yup` · `react-hot-toast`
-
-## Run locally
-
-```bash
-cd super_admin
-npm install
-npm run dev
-```
-
-Opens at `http://localhost:5174`. The Vite dev server proxies `/api` to the backend.
-
-## Build for production
-
-```bash
-cd super_admin
-npm run build    # outputs to dist/
-```
-
-Deploy `dist/` to Vercel. The `vercel.json` handles SPA rewrites.
-
-## Default super admin credentials
-
-| Field | Value |
-|---|---|
-| Email | `superadmincou@gmail.com` |
-| Password | `Admin@123` |
-
-> **Change this password before any public deployment.**
-
-## Pages / features
-
-| Route | Page | Description |
-|---|---|---|
-| `/login` | `Login` | Super admin login |
-| `/` | `Dashboard` | System-wide statistics |
-| `/super-admins` | `SuperAdmins` | Manage super admin accounts |
-| `/server-config` | `ServerConfig` | Edit runtime config (API URL, maintenance mode, etc.) |
-| `/app-version` | `AppVersion` | Set Flutter app version constraints |
-| `/broadcast-notice` | `BroadcastNotice` | Send push notifications to all users |
-
----
-
-# 📱 Android application
-
-The Android team uses [`CoUBusTracker_Project_Spec.md`](Backend/CoUBusTracker_Project_Spec.md) as the single source of truth for the mobile app. That document contains:
-
-- 📦 Data contracts / request & response payloads
-- 🔐 Authentication rules (JWT for students & teachers)
-- 🧭 Screen flows & navigation
-- 🏗️ Recommended Android architecture
-- 🇧🇩 Bengali UI guidelines
-- 🛣️ Route options
-- ✅ Release checklist
-
-> The app should use a **configurable base URL** and keep the list of buses, schedules, notices, and tracker links all server-driven.
-
-### Auto-logout on user deletion/deactivation
-
-When a user is deleted or deactivated from the admin panel, the backend immediately rejects their JWT on the next API call (returns `401`). The Flutter app should handle this in the Dio interceptor:
-
-- On `401` response → clear secure storage → redirect to registration/login screen
-- Show message: "আপনার অ্যাকাউন্ট মুছে ফেলা হয়েছে। আবার রেজিস্ট্রেশন করুন।"
-
-### USB testing with a physical Android phone
-
-With USB debugging enabled, use ADB reverse so the phone can reach a backend running on your computer through `localhost`:
-
-```bash
-# Docker backend
-adb reverse tcp:8081 tcp:8081
-flutter run --dart-define=API_BASE_URL=http://localhost:8081/api
-
-# Local backend
-adb reverse tcp:8080 tcp:8080
-flutter run --dart-define=API_BASE_URL=http://localhost:8080/api
-```
-
-Verify the phone appears in `adb devices` first. The Android app also needs the `INTERNET` permission.
-
----
-
-# 🧪 Testing
-
-**Backend** tests live in `Backend/src/test/java/`. Run them with:
-
-```bash
-cd Backend
-mvn test
-```
-
-The tests use `spring-boot-starter-test` and `spring-security-test`.
-
-**Frontend** lint (no unit test suite configured):
-
-```bash
-cd Backend/admin-panel
-npm run lint
-```
-
----
-
-# 🛠️ Troubleshooting
-
-| Symptom | Likely cause / fix |
-|---|---|
-| ❌ `Connection refused` to PostgreSQL | For local mode, ensure PostgreSQL runs on `5432`; for Docker mode, use host port `5433` |
-| ❌ `Access denied for user` | Update `username`/`password` in `application-dev.yaml` to match your PostgreSQL credentials |
-| ⚠️ `Port 8080 already in use` | Change `server.port` in `application.yaml` or stop the process on 8080 |
-| ⚠️ Flyway validation error (`checksum mismatch`) | Never edit an applied migration file — add a new `V{n+1}__...sql` migration |
-| ⚠️ `column "is_active" is of type integer but expression is of type boolean` | DBeaver imported MySQL `BOOLEAN` (TINYINT) as PostgreSQL `INTEGER`. Run the V13 migration or manually alter: `ALTER TABLE <table> ALTER COLUMN is_active TYPE BOOLEAN USING is_active::BOOLEAN;` |
-| ⚠️ Panel can't reach API | Start Vite with `npm run dev:local` for backend `8080`, or `npm run dev:docker` for backend `8081` |
-| ⚠️ Super admin 403 on login | Ensure `SecurityConfig` allows `OPTIONS` preflight: `.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()` |
-| ⚠️ CORS errors from Flutter/super admin | Check `WebMvcConfig` has the correct origins and methods mapped |
-| ℹ️ 401/403 in the panel | Session token expired or server rebooted; the panel auto-logs out |
-
----
-
-# 🚀 Production checklist
-
-- [ ] 🔑 Override the **default JWT secret**
-- [ ] 🔐 Change the **default admin password** (`admin@cou.ac.bd` / `Admin@123`)
-- [ ] 👑 Change the **default super admin password** (`superadmincou@gmail.com` / `Admin@123`)
-- [ ] 🛡️ Use strong DB credentials (not `root1234`), ideally from secrets/Env
-- [ ] 🎛️ Switch to a production profile (or harden `application-dev.yaml`)
-- [ ] ☁️ Deploy `admin-panel/dist/` behind a static server / CDN and enable TLS
-- [ ] 👑 Deploy `super_admin/dist/` to Vercel
-- [ ] 📁 Restrict file uploads (extensions, size) and protect the `uploads/` directory
-- [ ] 🗃️ Run Flyway migrations before deploying the Android version that uses `bus_name`
-- [ ] 💾 Set up backups for the PostgreSQL database and the `uploads/` folder
-- [ ] ⚙️ Set `api_base_url` in `app_config` to the production backend URL
+- Keep `.env`, `.env.production`, database backups, and private credentials out of Git.
+- Use unique production values for `JWT_SECRET`, database passwords, and external-service keys.
+- Set `SMS_ALLOW_SOFT_FAIL=false` in production when OTP delivery must be enforced.
+- Keep PostgreSQL bound to localhost and expose web traffic through HTTPS/Nginx.
+- Do not use `docker compose down -v` on the production database stack; it removes its named data volume.
 
 ---
 
 <div align="center">
 
-Made for **Comilla University** 🎓
+Made for **Comilla University** 🎓 · **Kubi Jatra** 🚌
 
 </div>
-
