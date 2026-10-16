@@ -17,12 +17,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RegisterFcmTokenRequest {
 
-    @NotBlank(message = "টোকেন দিন")
-    @Size(max = 4096, message = "টোকেন অনুমোদিত দৈর্ঘ্যের বেশি হতে পারবে না")
+    @NotBlank(message = "Token is required")
+    @Size(max = 4096, message = "Token exceeds the allowed length")
     private String token;
 
     /** Optional: 'android' / 'ios'. */
-    @Size(max = 30, message = "প্ল্যাটফর্ম ৩০ অক্ষরের বেশি হতে পারবে না")
+    @Size(max = 30, message = "Platform must be at most 30 characters")
     private String platform;
 
     /**
@@ -30,6 +30,6 @@ public class RegisterFcmTokenRequest {
      * rotated FCM token for the same device overwrites the old row instead of
      * inserting a duplicate.
      */
-    @Size(max = 150, message = "ডিভাইস আইডি ১৫০ অক্ষরের বেশি হতে পারবে না")
+    @Size(max = 150, message = "Device ID must be at most 150 characters")
     private String deviceId;
 }

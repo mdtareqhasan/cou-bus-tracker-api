@@ -1,8 +1,11 @@
 package com.cou.bustracker.service;
 
+import com.cou.bustracker.dto.request.TeacherAcademicDetailsRequest;
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.dto.response.TeacherResponse;
 import com.cou.bustracker.entity.Teacher;
+import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.security.JwtService;
@@ -103,9 +106,7 @@ public class TeacherService {
         String email = identity.email();
 
         if (!GoogleTokenService.isFacultyEmail(email)) {
-            throw new BadCredentialsException(
-                    "শিক্ষক হিসেবে প্রবেশ করতে শুধুমাত্র কর্মচারীদের ইমেইল (name@cou.ac.bd) ব্যবহার করুন। "
-                            + "শিক্ষার্থী হিসেবে প্রবেশ করতে রোল হিসেবে STUDENT নির্বাচন করুন।");
+            throw new ApiException(ErrorCode.FACULTY_EMAIL_REQUIRED);
         }
 
         Teacher teacher = teacherRepository.findByEmail(email).orElse(null);
@@ -121,8 +122,7 @@ public class TeacherService {
                     .build());
         } else {
             if (!Boolean.TRUE.equals(teacher.getIsActive())) {
-                throw new BadCredentialsException(
-                        "আপনার অ্যাকাউন্ট নিষ্ক্রিয়। অ্যাডমিনের সাথে যোগাযোগ করুন।");
+                throw new ApiException(ErrorCode.ACCOUNT_DEACTIVATED);
             }
             boolean changed = false;
             if (teacher.getGoogleSubject() == null) {
@@ -160,6 +160,80 @@ public class TeacherService {
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found"));
         teacher.setIdCardImageUrl(imageUrl);
         teacherRepository.save(teacher);
+    }
+
+    /**
+     * Fills in the details a Google Sign-In account is created without:
+     * department, employee ID and designation. The app policy requires all
+     * three before a teacher may use the system.
+     *
+     * <p>Every value is write-once — once a field holds a value it can only be
+     * re-sent unchanged, so an employee ID registered during sign-up can never
+     * be swapped for another one. An employee ID that already belongs to a
+     * different account is rejected.
+     *
+     * @param principal JWT subject (email for Google/email logins, phone otherwise)
+     * @return the updated profile
+     */
+    @Transactional
+    public TeacherResponse updateAcademicDetails(String principal, TeacherAcademicDetailsRequest request) {
+        Teacher teacher = getTeacherByPrincipal(principal);
+
+        String department = trimToNull(request.getDepartment());
+        String employeeId = trimToNull(request.getEmployeeId());
+        String designation = trimToNull(request.getDesignation());
+
+        requireValue(ErrorCode.DEPARTMENT_REQUIRED, department);
+        requireValue(ErrorCode.EMPLOYEE_ID_REQUIRED, employeeId);
+        requireValue(ErrorCode.DESIGNATION_REQUIRED, designation);
+
+        requireUnchanged(ErrorCode.DEPARTMENT_IMMUTABLE, teacher.getDepartment(), department);
+        requireUnchanged(ErrorCode.EMPLOYEE_ID_IMMUTABLE, teacher.getTeacherId(), employeeId);
+        requireUnchanged(ErrorCode.DESIGNATION_IMMUTABLE, teacher.getDesignation(), designation);
+
+        boolean changed = false;
+        if (isBlank(teacher.getDepartment())) {
+            teacher.setDepartment(department);
+            changed = true;
+        }
+        if (isBlank(teacher.getTeacherId())) {
+            if (teacherRepository.existsByTeacherId(employeeId)) {
+                throw new ApiException(ErrorCode.TEACHER_ID_ALREADY_REGISTERED);
+            }
+            teacher.setTeacherId(employeeId);
+            changed = true;
+        }
+        if (isBlank(teacher.getDesignation())) {
+            teacher.setDesignation(designation);
+            changed = true;
+        }
+
+        return mapToResponse(changed ? teacherRepository.save(teacher) : teacher);
+    }
+
+    /** Write-once rule: a populated value may only be re-sent unchanged. */
+    private void requireUnchanged(ErrorCode errorCode, String current, String incoming) {
+        if (!isBlank(current) && !current.trim().equals(incoming)) {
+            throw new ApiException(errorCode);
+        }
+    }
+
+    private void requireValue(ErrorCode errorCode, String value) {
+        if (value == null) {
+            throw new ApiException(errorCode);
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     public List<TeacherResponse> getAllTeachers() {

@@ -1,6 +1,8 @@
 package com.cou.bustracker.controller;
 
 import com.cou.bustracker.dto.response.MessageResponse;
+import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,15 +27,16 @@ public class PasswordResetEmailController {
         String role = request.get("role");
 
         if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("ইমেইল দিন");
+            throw new ApiException(ErrorCode.EMAIL_REQUIRED);
         }
         if (role == null || role.isBlank()) {
-            throw new IllegalArgumentException("রোল নির্বাচন করুন (STUDENT বা EMPLOYEE)");
+            throw new ApiException(ErrorCode.ROLE_REQUIRED, "Select a role (STUDENT or EMPLOYEE)");
         }
 
         passwordResetService.sendResetEmailOtp(email, role);
         return ResponseEntity.ok(MessageResponse.builder()
-                .message("OTP পাঠানো হয়েছে। আপনার ইমেইল চেক করুন।")
+                .message("OTP sent. Please check your email.")
+                .code("OTP_SENT")
                 .build());
     }
 
@@ -46,21 +49,22 @@ public class PasswordResetEmailController {
         String newPassword = request.get("newPassword");
 
         if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("ইমেইল দিন");
+            throw new ApiException(ErrorCode.EMAIL_REQUIRED);
         }
         if (role == null || role.isBlank()) {
-            throw new IllegalArgumentException("রোল নির্বাচন করুন");
+            throw new ApiException(ErrorCode.ROLE_REQUIRED);
         }
         if (otp == null || otp.isBlank()) {
-            throw new IllegalArgumentException("OTP দিন");
+            throw new ApiException(ErrorCode.OTP_REQUIRED);
         }
         if (newPassword == null || newPassword.isBlank()) {
-            throw new IllegalArgumentException("নতুন পাসওয়ার্ড দিন");
+            throw new ApiException(ErrorCode.NEW_PASSWORD_REQUIRED);
         }
 
         passwordResetService.verifyAndResetEmailPassword(email, role, otp, newPassword);
         return ResponseEntity.ok(MessageResponse.builder()
-                .message("পাসওয়ার্ড সফলভাবে রিসেট হয়েছে। এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।")
+                .message("Password reset successfully. Log in with your new password.")
+                .code("PASSWORD_RESET_SUCCESS")
                 .build());
     }
 }

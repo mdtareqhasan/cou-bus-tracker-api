@@ -10,10 +10,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateNoticeRequest {
 
-    @NotBlank(message = "শিরোনাম দিন")
+    @NotBlank(message = "Title is required")
     private String title;
 
-    @NotBlank(message = "বডি লিখুন")
+    @NotBlank(message = "Body is required")
     private String body;
 
     private Integer expiryHours;

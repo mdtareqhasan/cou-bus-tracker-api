@@ -8,16 +8,16 @@ import lombok.Data;
 @Data
 public class CreateAdminRequest {
 
-    @NotBlank(message = "নাম দিন")
-    @Size(max = 100, message = "নাম ১০০ অক্ষরের মধ্যে হতে হবে")
+    @NotBlank(message = "Name is required")
+    @Size(max = 100, message = "Name must be at most 100 characters")
     private String name;
 
-    @NotBlank(message = "ইমেইল দিন")
-    @Email(message = "সঠিক ইমেইল দিন")
-    @Size(max = 100, message = "ইমেইল ১০০ অক্ষরের মধ্যে হতে হবে")
+    @NotBlank(message = "Email is required")
+    @Email(message = "Enter a valid email address")
+    @Size(max = 100, message = "Email must be at most 100 characters")
     private String email;
 
-    @NotBlank(message = "পাসওয়ার্ড দিন")
-    @Size(min = 6, max = 100, message = "পাসওয়ার্ড ৬ থেকে ১০০ অক্ষরের মধ্যে হতে হবে")
+    @NotBlank(message = "Password is required")
+    @Size(min = 6, max = 100, message = "Password must be 6 to 100 characters")
     private String password;
 }

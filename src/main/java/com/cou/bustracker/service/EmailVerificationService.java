@@ -5,6 +5,8 @@ import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.entity.EmailVerificationOtp.UserRole;
 import com.cou.bustracker.entity.Student;
 import com.cou.bustracker.entity.Teacher;
+import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.security.JwtService;
@@ -49,13 +51,13 @@ public class EmailVerificationService {
 
     public AuthResponse verifyOtp(String rawEmail, UserRole role, String otp) {
         if (otp == null || !otp.matches("\\d{6}")) {
-            throw new IllegalArgumentException("OTP অবশ্যই ৬ সংখ্যার হতে হবে");
+            throw new ApiException(ErrorCode.OTP_INVALID_LENGTH);
         }
 
         String key = key(rawEmail, role);
         EmailVerificationInitRequest request = pendingRegistrations.remove(key);
         if (request == null) {
-            throw new IllegalArgumentException("রেজিস্ট্রেশন খুঁজছে পাওয়া যায়নি। প্রথমে রেজিস্ট্রেশন ফর্ম জমা দিন");
+            throw new ApiException(ErrorCode.REGISTRATION_NOT_FOUND);
         }
 
         // Dummy verification: any 6-digit OTP is accepted.
@@ -68,46 +70,46 @@ public class EmailVerificationService {
 
     private void validateRequest(EmailVerificationInitRequest request) {
         if (request.getRole() == null) {
-            throw new IllegalArgumentException("রোল নির্বাচন করুন");
+            throw new ApiException(ErrorCode.ROLE_REQUIRED);
         }
         if (request.getEmail() == null || request.getEmail().isBlank()) {
-            throw new IllegalArgumentException("ইমেইল দিন");
+            throw new ApiException(ErrorCode.EMAIL_REQUIRED);
         }
         String normalizedEmail = request.getEmail().trim().toLowerCase();
         boolean isAllowedEmailDomain = normalizedEmail.endsWith("@stud.cou.ac.bd")
                 || normalizedEmail.endsWith("@cou.ac.bd");
         if (!isAllowedEmailDomain) {
-            throw new IllegalArgumentException("শুধুমাত্র @stud.cou.ac.bd অথবা @cou.ac.bd ইমেইল ব্যবহার করা যাবে");
+            throw new ApiException(ErrorCode.EMAIL_DOMAIN_NOT_ALLOWED);
         }
         if (request.getDepartment() == null || request.getDepartment().isBlank()) {
-            throw new IllegalArgumentException("বিভাগ দিন");
+            throw new ApiException(ErrorCode.DEPARTMENT_REQUIRED);
         }
         if (request.getPassword() == null || request.getPassword().isBlank()) {
-            throw new IllegalArgumentException("পাসওয়ার্ড দিন");
+            throw new ApiException(ErrorCode.PASSWORD_REQUIRED);
         }
 
         if (request.getRole() == UserRole.STUDENT) {
             if (request.getRollNumber() == null || request.getRollNumber().isBlank()) {
-                throw new IllegalArgumentException("রোল নম্বর দিন");
+                throw new ApiException(ErrorCode.ROLL_NUMBER_REQUIRED);
             }
             if (request.getSession() == null || request.getSession().isBlank()) {
-                throw new IllegalArgumentException("সেশন দিন");
+                throw new ApiException(ErrorCode.SESSION_REQUIRED);
             }
             if (studentRepository.existsByEmail(normalizedEmail)) {
-                throw new IllegalStateException("A student with this email already exists");
+                throw new ApiException(ErrorCode.STUDENT_EMAIL_EXISTS);
             }
             if (studentRepository.existsByRollNumber(request.getRollNumber())) {
-                throw new IllegalStateException("This roll number is already registered");
+                throw new ApiException(ErrorCode.ROLL_ALREADY_REGISTERED);
             }
         } else {
             if (request.getEmployeeId() == null || request.getEmployeeId().isBlank()) {
-                throw new IllegalArgumentException("কর্মচারী আইডি দিন");
+                throw new ApiException(ErrorCode.EMPLOYEE_ID_REQUIRED);
             }
             if (teacherRepository.existsByEmail(normalizedEmail)) {
-                throw new IllegalStateException("An employee with this email already exists");
+                throw new ApiException(ErrorCode.EMPLOYEE_EMAIL_EXISTS);
             }
             if (teacherRepository.existsByTeacherId(request.getEmployeeId())) {
-                throw new IllegalStateException("This employee ID is already registered");
+                throw new ApiException(ErrorCode.TEACHER_ID_ALREADY_REGISTERED);
             }
         }
     }

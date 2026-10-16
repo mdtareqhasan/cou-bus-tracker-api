@@ -6,9 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 public record SendPhoneOtpRequest(
-    @NotBlank(message = "ফোন নম্বর দিন")
-    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "সঠিক ফোন নম্বর দিন")
+    @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Enter a valid phone number")
     String phone,
-    @NotNull(message = "রোল নির্বাচন করুন")
+    @NotNull(message = "Select a role")
     UserRole role
 ) {}

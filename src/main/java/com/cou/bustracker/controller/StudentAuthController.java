@@ -1,5 +1,6 @@
 package com.cou.bustracker.controller;
 
+import com.cou.bustracker.dto.request.StudentAcademicDetailsRequest;
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.dto.response.FileUploadResponse;
 import com.cou.bustracker.dto.response.StudentResponse;
@@ -8,6 +9,7 @@ import com.cou.bustracker.service.FileStorageService;
 import com.cou.bustracker.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -22,7 +24,7 @@ import java.util.Map;
  * <p>Registration has been moved to the OTP-first flow at
  * {@code POST /api/auth/phone-verification/init} — the Student row is only
  * created after a successful OTP verification. This controller therefore
- * exposes login, ID-card replace, and profile only.
+ * exposes login, ID-card replace, academic details, and profile only.
  */
 @RestController
 @RequestMapping("/api/auth/student")
@@ -53,6 +55,15 @@ public class StudentAuthController {
                 .message("ID card uploaded successfully")
                 .filePath(filePath)
                 .build());
+    }
+
+    @PutMapping("/academic")
+    @Operation(summary = "Set department, roll number and session (write-once, used after Google Sign-In)")
+    public ResponseEntity<StudentResponse> updateAcademicDetails(
+            @Valid @RequestBody StudentAcademicDetailsRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(
+                studentService.updateAcademicDetails(authentication.getName(), request));
     }
 
     @GetMapping("/me")

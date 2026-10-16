@@ -10,12 +10,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateBusRequest {
 
-    @NotBlank(message = "বাস নম্বর দিন")
+    @NotBlank(message = "Bus number is required")
     private String busNumber;
 
     private String busName;
 
-    @NotBlank(message = "বিভাগ/ক্যাটাগরি দিন")
+    @NotBlank(message = "Department/category is required")
     private String category;
 
     private String route;

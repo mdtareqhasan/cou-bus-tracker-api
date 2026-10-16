@@ -1,6 +1,8 @@
 package com.cou.bustracker.controller;
 
 import com.cou.bustracker.dto.response.AuthResponse;
+import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.service.StudentService;
 import com.cou.bustracker.service.TeacherService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,20 +30,20 @@ public class EmailLoginController {
         String password = request.get("password");
 
         if (role == null || role.isBlank()) {
-            throw new IllegalArgumentException("রোল নির্বাচন করুন");
+            throw new ApiException(ErrorCode.ROLE_REQUIRED);
         }
         if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("ইমেইল দিন");
+            throw new ApiException(ErrorCode.EMAIL_REQUIRED);
         }
         if (password == null || password.isBlank()) {
-            throw new IllegalArgumentException("পাসওয়ার্ড দিন");
+            throw new ApiException(ErrorCode.PASSWORD_REQUIRED);
         }
 
         String normalizedRole = role.trim().toUpperCase();
         return switch (normalizedRole) {
             case "STUDENT" -> ResponseEntity.ok(studentService.loginWithEmail(email, password));
             case "TEACHER", "EMPLOYEE" -> ResponseEntity.ok(teacherService.loginWithEmail(email, password));
-            default -> throw new IllegalArgumentException("রোল অবশ্যই STUDENT, TEACHER, অথবা EMPLOYEE হতে হবে");
+            default -> throw new ApiException(ErrorCode.INVALID_ROLE);
         };
     }
 }

@@ -4,6 +4,8 @@ import com.cou.bustracker.dto.request.CreateAdminRequest;
 import com.cou.bustracker.dto.request.UpdateAdminProfileRequest;
 import com.cou.bustracker.dto.response.AdminProfileResponse;
 import com.cou.bustracker.entity.Admin;
+import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.repository.AdminRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +33,8 @@ public class AdminManagementService {
     public AdminProfileResponse createAdmin(CreateAdminRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         if (adminRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("এই ইমেইল দিয়ে আগে থেকে একজন অ্যাডমিন আছে");
+            throw new ApiException(ErrorCode.EMAIL_ALREADY_EXISTS,
+                    "An admin with this email already exists");
         }
 
         Admin admin = Admin.builder()
@@ -62,7 +65,7 @@ public class AdminManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
 
         if (currentAdmin.getId().equals(adminId)) {
-            throw new IllegalArgumentException("আপনি আপনার নিজের অ্যাকাউন্ট ডিলেট করতে পারবেন না");
+            throw new ApiException(ErrorCode.CANNOT_DELETE_SELF);
         }
 
         Admin adminToDelete = adminRepository.findById(adminId)

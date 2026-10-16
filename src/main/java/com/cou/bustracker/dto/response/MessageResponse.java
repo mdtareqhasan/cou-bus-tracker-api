@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 public class MessageResponse {
 
     private String message;
+    /** Optional machine-readable marker (e.g. OTP_SENT) clients can localize on. */
+    private String code;
     private Long id;
     private String busNumber;
     private String expiresAt;

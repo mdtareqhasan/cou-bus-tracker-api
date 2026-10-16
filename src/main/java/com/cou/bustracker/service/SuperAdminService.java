@@ -2,6 +2,8 @@ package com.cou.bustracker.service;
 
 import com.cou.bustracker.dto.superadmin.*;
 import com.cou.bustracker.entity.SuperAdmin;
+import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.exception.UnauthorizedException;
 import com.cou.bustracker.repository.SuperAdminRepository;
@@ -68,7 +70,8 @@ public class SuperAdminService {
     public SuperAdminResponse createSuperAdmin(SuperAdminCreateRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         if (superAdminRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("এই ইমেইল দিয়ে আগে থেকে একজন সুপার অ্যাডমিন আছে");
+            throw new ApiException(ErrorCode.EMAIL_ALREADY_EXISTS,
+                    "A super admin with this email already exists");
         }
 
         SuperAdmin superAdmin = SuperAdmin.builder()
@@ -105,7 +108,7 @@ public class SuperAdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Super admin not found"));
 
         if (current.getId().equals(id)) {
-            throw new IllegalArgumentException("আপনি আপনার নিজের অ্যাকাউন্ট ডিলেট করতে পারবেন না");
+            throw new ApiException(ErrorCode.CANNOT_DELETE_SELF);
         }
 
         SuperAdmin toDelete = superAdminRepository.findById(id)

@@ -11,10 +11,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LoginRequest {
 
-    @NotBlank(message = "ইমেইল দিন")
-    @Email(message = "সঠিক ইমেইল দিন")
+    @NotBlank(message = "Email is required")
+    @Email(message = "Enter a valid email address")
     private String email;
 
-    @NotBlank(message = "পাসওয়ার্ড দিন")
+    @NotBlank(message = "Password is required")
     private String password;
 }
