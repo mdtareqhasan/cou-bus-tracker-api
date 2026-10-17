@@ -10,6 +10,7 @@ import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -25,8 +26,19 @@ public class FcmService {
 
     private final FirebaseMessaging firebaseMessaging;
 
+    /**
+     * {@code @Autowired} is required now that a package-private test
+     * constructor exists: with two constructors and no marker, Spring can't
+     * pick one and startup fails.
+     */
+    @Autowired
     public FcmService(FirebaseApp firebaseApp) {
-        this.firebaseMessaging = FirebaseMessaging.getInstance(firebaseApp);
+        this(FirebaseMessaging.getInstance(firebaseApp));
+    }
+
+    /** Package-private seam so tests can substitute the messaging client. */
+    FcmService(FirebaseMessaging firebaseMessaging) {
+        this.firebaseMessaging = firebaseMessaging;
     }
 
     /**

@@ -6,6 +6,8 @@ import com.cou.bustracker.entity.Bus;
 import com.cou.bustracker.entity.Schedule;
 import com.cou.bustracker.event.ScheduleChangedEvent;
 import com.cou.bustracker.event.ScheduleChangedEvent.Action;
+import com.cou.bustracker.event.ScheduleChangedEvent.Field;
+import com.cou.bustracker.event.ScheduleChangedEvent.FieldChange;
 import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.repository.BusRepository;
 import com.cou.bustracker.repository.ScheduleRepository;
@@ -124,7 +126,7 @@ public class ScheduleService {
         schedule.setEndPoint(request.getEndPoint());
         schedule.setDays(request.getDays() != null ? request.getDays() : "SUN-THU");
 
-        List<String> changes = describeChanges(bus, previousBusId, previousBusNumber, previousBusName,
+        List<FieldChange> changes = describeChanges(bus, previousBusId, previousBusNumber, previousBusName,
                 previousDeparture, previousArrival, previousDirection,
                 previousStartPoint, previousEndPoint, previousDays, schedule);
 
@@ -141,49 +143,54 @@ public class ScheduleService {
      * Field-by-field diff of the snapshot taken before the mutation against the
      * schedule as it now stands. Empty means "nothing a rider cares about moved"
      * — the admin gets their 200, nobody gets a push.
+     *
+     * <p>Diff values are structured ({@link FieldChange}), not sentences: the
+     * push dispatcher localizes the field labels per device language at send
+     * time. Values are kept as plain display data — times as "HH:mm", missing
+     * values as null (rendered as a localized placeholder).
      */
-    private List<String> describeChanges(Bus bus,
-                                         Long previousBusId, String previousBusNumber, String previousBusName,
-                                         LocalTime previousDeparture, LocalTime previousArrival,
-                                         String previousDirection, String previousStartPoint,
-                                         String previousEndPoint, String previousDays,
-                                         Schedule schedule) {
-        List<String> changes = new ArrayList<>();
+    private List<FieldChange> describeChanges(Bus bus,
+                                              Long previousBusId, String previousBusNumber, String previousBusName,
+                                              LocalTime previousDeparture, LocalTime previousArrival,
+                                              String previousDirection, String previousStartPoint,
+                                              String previousEndPoint, String previousDays,
+                                              Schedule schedule) {
+        List<FieldChange> changes = new ArrayList<>();
 
         if (!Objects.equals(previousBusId, bus.getId())) {
-            changes.add("bus: " + previousBusNumber + " → " + bus.getBusNumber());
+            changes.add(new FieldChange(Field.BUS_NUMBER, previousBusNumber, bus.getBusNumber()));
         }
         if (!Objects.equals(previousBusName, bus.getBusName())) {
-            changes.add("bus name: " + text(previousBusName) + " → " + text(bus.getBusName()));
+            changes.add(new FieldChange(Field.BUS_NAME, text(previousBusName), text(bus.getBusName())));
         }
         if (!Objects.equals(previousDeparture, schedule.getDepartureTime())) {
-            changes.add("departure: " + time(previousDeparture) + " → " + time(schedule.getDepartureTime()));
+            changes.add(new FieldChange(Field.DEPARTURE, time(previousDeparture), time(schedule.getDepartureTime())));
         }
         if (!Objects.equals(previousArrival, schedule.getArrivalTime())) {
-            changes.add("arrival: " + time(previousArrival) + " → " + time(schedule.getArrivalTime()));
+            changes.add(new FieldChange(Field.ARRIVAL, time(previousArrival), time(schedule.getArrivalTime())));
         }
         if (!Objects.equals(previousDirection, schedule.getDirection())) {
-            changes.add("direction: " + text(previousDirection) + " → " + text(schedule.getDirection()));
+            changes.add(new FieldChange(Field.DIRECTION, text(previousDirection), text(schedule.getDirection())));
         }
         if (!Objects.equals(previousStartPoint, schedule.getStartPoint())) {
-            changes.add("start: " + text(previousStartPoint) + " → " + text(schedule.getStartPoint()));
+            changes.add(new FieldChange(Field.START_POINT, text(previousStartPoint), text(schedule.getStartPoint())));
         }
         if (!Objects.equals(previousEndPoint, schedule.getEndPoint())) {
-            changes.add("end: " + text(previousEndPoint) + " → " + text(schedule.getEndPoint()));
+            changes.add(new FieldChange(Field.END_POINT, text(previousEndPoint), text(schedule.getEndPoint())));
         }
         if (!Objects.equals(previousDays, schedule.getDays())) {
-            changes.add("days: " + text(previousDays) + " → " + text(schedule.getDays()));
+            changes.add(new FieldChange(Field.DAYS, text(previousDays), text(schedule.getDays())));
         }
 
         return changes;
     }
 
     private static String text(String value) {
-        return value == null || value.isBlank() ? "none" : value;
+        return value == null || value.isBlank() ? null : value;
     }
 
     private static String time(LocalTime value) {
-        return value == null ? "none" : String.format("%02d:%02d", value.getHour(), value.getMinute());
+        return value == null ? null : String.format("%02d:%02d", value.getHour(), value.getMinute());
     }
 
     @Transactional

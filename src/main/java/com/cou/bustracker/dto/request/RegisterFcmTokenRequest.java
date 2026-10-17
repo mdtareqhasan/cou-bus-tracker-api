@@ -32,4 +32,12 @@ public class RegisterFcmTokenRequest {
      */
     @Size(max = 150, message = "Device ID must be at most 150 characters")
     private String deviceId;
+
+    /**
+     * Optional app language ('bn' / 'en'). Push notifications are rendered in
+     * this language for this device; unsupported or missing values fall back
+     * to English.
+     */
+    @Size(max = 10, message = "Language must be at most 10 characters")
+    private String appLanguage;
 }

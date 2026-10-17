@@ -35,8 +35,10 @@ import java.util.List;
  * @param arrivalTime    optional
  * @param days           e.g. "SUN-THU"
  * @param scheduleActive whether the schedule was active at snapshot time
- * @param changes        human-readable field diffs (update only, empty
- *                       otherwise) so the message says what actually moved
+ * @param changes        structured field diffs (update only, empty otherwise)
+ *                       so the message says what actually moved. Structured
+ *                       rather than pre-rendered English so the dispatcher can
+ *                       localize each field label per device language.
  */
 public record ScheduleChangedEvent(
         Action action,
@@ -52,10 +54,27 @@ public record ScheduleChangedEvent(
         LocalTime arrivalTime,
         String days,
         boolean scheduleActive,
-        List<String> changes) {
+        List<FieldChange> changes) {
 
     public enum Action {
         CREATED, UPDATED, DELETED, ACTIVATED, DEACTIVATED
+    }
+
+    /**
+     * One field that moved in an update.
+     *
+     * <p>Values are raw display data, not sentences: null means "had/will have
+     * no value" and is rendered as a localized placeholder at push time. Field
+     * labels are deliberately <em>not</em> carried here — they come from the
+     * message bundles keyed by {@link Field}, so the same diff renders in any
+     * language.
+     */
+    public record FieldChange(Field field, String from, String to) {
+    }
+
+    /** Schedule fields a rider can see move in an update. */
+    public enum Field {
+        BUS_NUMBER, BUS_NAME, DEPARTURE, ARRIVAL, DIRECTION, START_POINT, END_POINT, DAYS
     }
 
     public ScheduleChangedEvent {
@@ -66,7 +85,7 @@ public record ScheduleChangedEvent(
      * Snapshots a live entity. <strong>Must be called inside the transaction</strong>
      * that owns {@code schedule} — never from an after-commit listener.
      */
-    public static ScheduleChangedEvent from(Action action, Schedule schedule, List<String> changes) {
+    public static ScheduleChangedEvent from(Action action, Schedule schedule, List<FieldChange> changes) {
         Bus bus = schedule.getBus();
         return new ScheduleChangedEvent(
                 action,

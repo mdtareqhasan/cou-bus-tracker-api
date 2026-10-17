@@ -1,13 +1,18 @@
 package com.cou.bustracker.service;
 
 import com.cou.bustracker.event.ScheduleChangedEvent;
+import com.cou.bustracker.event.ScheduleChangedEvent.Field;
+import com.cou.bustracker.event.ScheduleChangedEvent.FieldChange;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSource;
+import org.springframework.context.NoSuchMessageException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -22,7 +27,9 @@ import java.util.Map;
  *                                    │ hand-off to proxy
  *                                    ▼
  *                          NotificationDispatcher#dispatch  ◀── notificationExecutor
- *                                    │ resolve audience ──▶ fetch tokens
+ *                                    │ resolve audience ──▶ fetch tokens by language
+ *                                    ▼
+ *                          render title/body per language (MessageSource)
  *                                    ▼
  *                          FcmService#sendEachAsync  ──▶ FCM (non-blocking)
  *                                    │                    │ callback
@@ -37,6 +44,11 @@ import java.util.Map;
  *   <li><b>No session.</b> Everything needed is in the immutable event, so
  *       there is no lazy-loading or after-commit surprise.</li>
  *   <li><b>Audience comes from the bus category</b>, not from the caller.</li>
+ *   <li><b>Localized per device.</b> FCM renders the notification payload in
+ *       the tray without the app running, so the text must already be in the
+ *       rider's language when we send it. Devices are grouped by the
+ *       {@code app_language} they registered with, and each group gets its own
+ *       rendered message from the {@code messages_*.properties} bundles.</li>
  * </ul>
  */
 @Slf4j
@@ -61,6 +73,14 @@ public class NotificationDispatcher {
     private final FcmService fcmService;
 
     /**
+     * Message bundles on the classpath ({@code messages.properties} is the
+     * English base and fallback; {@code spring.messages.*} in
+     * application.yaml disables system-locale fallback so push text never
+     * depends on the server's own locale).
+     */
+    private final MessageSource messageSource;
+
+    /**
      * Runs on {@code notificationExecutor} after the writing transaction has
      * committed. Never propagates an exception.
      */
@@ -83,23 +103,28 @@ public class NotificationDispatcher {
                 return;
             }
 
-            List<String> tokens = fcmTokenService.getActiveTokensForRole(audience);
-            if (tokens.isEmpty()) {
+            Map<String, List<String>> tokensByLanguage = fcmTokenService.getActiveTokensGroupedByLanguage(audience);
+            int deviceCount = tokensByLanguage.values().stream().mapToInt(List::size).sum();
+            if (deviceCount == 0) {
                 log.info("No active {} devices to notify about schedule {} ({})",
                         audience, event.scheduleId(), event.action());
                 return;
             }
 
-            String title = title(event);
-            String body = body(event);
-            log.info("Pushing schedule {} ({}) to {} {} device(s): {}",
-                    event.scheduleId(), event.action(), tokens.size(), audience, title);
+            // One rendered message per language, one FCM fan-out per group.
+            for (Map.Entry<String, List<String>> group : tokensByLanguage.entrySet()) {
+                Locale locale = localeOf(group.getKey());
+                List<String> batch = group.getValue();
+                String title = title(event, locale);
+                String body = body(event, locale);
+                log.info("Pushing schedule {} ({}) to {} {} device(s) in {}: {}",
+                        event.scheduleId(), event.action(), batch.size(), audience, locale, title);
 
-            for (int from = 0; from < tokens.size(); from += FcmService.MAX_BATCH_SIZE) {
-                int to = Math.min(from + FcmService.MAX_BATCH_SIZE, tokens.size());
-                List<String> batch = List.copyOf(tokens.subList(from, to));
-                fcmService.sendEachAsync(batch, title, body,
-                        fcmTokenService::pruneUnregisteredTokens);
+                for (int from = 0; from < batch.size(); from += FcmService.MAX_BATCH_SIZE) {
+                    int to = Math.min(from + FcmService.MAX_BATCH_SIZE, batch.size());
+                    fcmService.sendEachAsync(List.copyOf(batch.subList(from, to)), title, body,
+                            fcmTokenService::pruneUnregisteredTokens);
+                }
             }
         } catch (Exception e) {
             // Deliberately swallowed: the schedule write already succeeded and
@@ -123,36 +148,40 @@ public class NotificationDispatcher {
         };
     }
 
-    private static String title(ScheduleChangedEvent event) {
-        String bus = event.busNumber() != null ? event.busNumber() : "Bus";
+    private String title(ScheduleChangedEvent event, Locale locale) {
+        String bus = event.busNumber() != null ? event.busNumber() : msg(locale, "push.bus.fallback");
         return switch (event.action()) {
-            case CREATED -> "New schedule: " + bus;
-            case UPDATED -> "Schedule updated: " + bus;
-            case DELETED -> "Schedule removed: " + bus;
-            case ACTIVATED -> "Service resumed: " + bus;
-            case DEACTIVATED -> "Service paused: " + bus;
+            case CREATED -> msg(locale, "push.schedule.created.title", bus);
+            case UPDATED -> msg(locale, "push.schedule.updated.title", bus);
+            case DELETED -> msg(locale, "push.schedule.deleted.title", bus);
+            case ACTIVATED -> msg(locale, "push.schedule.activated.title", bus);
+            case DEACTIVATED -> msg(locale, "push.schedule.deactivated.title", bus);
         };
     }
 
-    private static String body(ScheduleChangedEvent event) {
-        StringBuilder body = new StringBuilder(header(event)).append(" · ");
+    private String body(ScheduleChangedEvent event, Locale locale) {
+        String header = header(event, locale);
 
-        switch (event.action()) {
-            case CREATED -> body.append(when(event)).append(" added");
-            // changes() already says exactly which fields moved, e.g.
-            // "departure 07:00 → 07:15" or "bus name: Blue → COU Blue"
-            case UPDATED -> body.append(String.join(", ", event.changes()));
-            case DELETED -> body.append(when(event)).append(" no longer runs");
-            case ACTIVATED -> body.append(when(event)).append(" is running again");
-            case DEACTIVATED -> body.append(when(event)).append(" is paused for now");
-        }
+        String detail = switch (event.action()) {
+            // when() already says exactly when it runs, e.g.
+            // "departs 07:00–08:00 (SUN-THU)"
+            case CREATED -> msg(locale, "push.body.created", when(event, locale));
+            // changes() says exactly which fields moved, e.g.
+            // "departure: 07:00 → 07:15" — each label localized per field.
+            case UPDATED -> String.join(", ", event.changes().stream()
+                    .map(change -> describe(change, locale)).toList());
+            case DELETED -> msg(locale, "push.body.deleted", when(event, locale));
+            case ACTIVATED -> msg(locale, "push.body.activated", when(event, locale));
+            case DEACTIVATED -> msg(locale, "push.body.deactivated", when(event, locale));
+        };
 
-        return body.toString();
+        return header + " · " + detail;
     }
 
     /** "BUS 03 · COU Blue · BLUE · Kandirpar → Campus" */
-    private static String header(ScheduleChangedEvent event) {
-        StringBuilder header = new StringBuilder(event.busNumber() != null ? event.busNumber() : "Bus");
+    private String header(ScheduleChangedEvent event, Locale locale) {
+        StringBuilder header = new StringBuilder(
+                event.busNumber() != null ? event.busNumber() : msg(locale, "push.bus.fallback"));
         if (notBlank(event.busName())) {
             header.append(" · ").append(event.busName());
         }
@@ -167,26 +196,79 @@ public class NotificationDispatcher {
     }
 
     /** "departs 07:00–08:00 (SUN-THU)" */
-    private static String when(ScheduleChangedEvent event) {
-        StringBuilder when = new StringBuilder("departs ").append(format(event.departureTime()));
-        if (event.arrivalTime() != null) {
-            when.append("–").append(format(event.arrivalTime()));
-        }
+    private String when(ScheduleChangedEvent event, Locale locale) {
+        StringBuilder when = event.arrivalTime() != null
+                ? new StringBuilder(msg(locale, "push.when.range",
+                format(event.departureTime()), format(event.arrivalTime())))
+                : new StringBuilder(msg(locale, "push.when.single", format(event.departureTime())));
         if (notBlank(event.days())) {
             when.append(" (").append(event.days()).append(")");
         }
         return when.toString();
     }
 
-    private static String route(ScheduleChangedEvent event) {
+    /** "departure: 07:00 → 07:15" — label localized, values are raw data. */
+    private String describe(FieldChange change, Locale locale) {
+        return msg(locale, "push.change",
+                msg(locale, "push.field." + fieldKey(change.field())),
+                display(change.from(), locale),
+                display(change.to(), locale));
+    }
+
+    /** Renders a diff value, replacing "no value" with a localized placeholder. */
+    private String display(String value, Locale locale) {
+        return notBlank(value) ? value : msg(locale, "push.value.none");
+    }
+
+    private String route(ScheduleChangedEvent event) {
         if (notBlank(event.startPoint()) && notBlank(event.endPoint())) {
             return event.startPoint() + " → " + event.endPoint();
         }
         return notBlank(event.direction()) ? event.direction() : "";
     }
 
+    private static String fieldKey(Field field) {
+        return switch (field) {
+            case BUS_NUMBER -> "busNumber";
+            case BUS_NAME -> "busName";
+            case DEPARTURE -> "departure";
+            case ARRIVAL -> "arrival";
+            case DIRECTION -> "direction";
+            case START_POINT -> "start";
+            case END_POINT -> "end";
+            case DAYS -> "days";
+        };
+    }
+
     private static String format(LocalTime time) {
         return time == null ? "?" : String.format("%02d:%02d", time.getHour(), time.getMinute());
+    }
+
+    /**
+     * Resolves a stored language code ("bn" / "en") to a locale. Anything
+     * unparseable becomes the base bundle (English) rather than throwing.
+     */
+    private static Locale localeOf(String language) {
+        try {
+            return Locale.forLanguageTag(language);
+        } catch (Exception e) {
+            return Locale.ENGLISH;
+        }
+    }
+
+    /**
+     * Resolves one message with {@code MessageFormat} arguments. A missing key
+     * degrades to the key itself — a half-translated push is still better than
+     * a swallowed exception losing the whole notification (or, worse, the
+     * never-throws rule breaking).
+     */
+    private String msg(Locale locale, String key, Object... args) {
+        try {
+            return messageSource.getMessage(key, args, locale);
+        } catch (NoSuchMessageException e) {
+            log.warn("Missing push message key '{}' for locale {}", key, locale);
+            return key;
+        }
     }
 
     private static boolean notBlank(String value) {

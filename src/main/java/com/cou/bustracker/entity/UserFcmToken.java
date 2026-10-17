@@ -50,6 +50,14 @@ public class UserFcmToken {
     @Column(name = "device_id", length = 150)
     private String deviceId;
 
+    /**
+     * The app language this device reads ('bn' / 'en'), sent by the client so
+     * push text can be rendered server-side per device. Null for tokens
+     * registered by older app versions — pushes fall back to English.
+     */
+    @Column(name = "app_language", length = 10)
+    private String appLanguage;
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
