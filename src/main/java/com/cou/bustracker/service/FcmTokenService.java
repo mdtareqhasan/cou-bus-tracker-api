@@ -9,8 +9,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -28,6 +31,17 @@ public class FcmTokenService {
 
     /** Roles the schema allows in user_fcm_tokens.user_type. */
     private static final Set<String> SUPPORTED_ROLES = Set.of("STUDENT", "TEACHER");
+
+    /**
+     * Languages pushes can be rendered in. Must match the locales the Flutter
+     * app supports (lib/l10n) — a device asking for anything else gets the
+     * fallback language so a stray tag can never produce a half-translated
+     * notification.
+     */
+    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("bn", "en");
+
+    /** Language used when a device has no usable language of its own. */
+    public static final String FALLBACK_LANGUAGE = "en";
 
     private final UserFcmTokenRepository userFcmTokenRepository;
 
@@ -66,6 +80,7 @@ public class FcmTokenService {
         entity.setToken(token);
         entity.setPlatform(platform);
         entity.setDeviceId(deviceId);
+        entity.setAppLanguage(resolveLanguage(request.getAppLanguage(), entity.getAppLanguage()));
         entity.setIsActive(true);
         entity.setLastSeenAt(LocalDateTime.now());
 
@@ -114,20 +129,30 @@ public class FcmTokenService {
     }
 
     /**
-     * Every active registration token of a user type — the broadcast audience
-     * for schedule notifications (all students / all teachers).
+     * Every active registration token of a user type, grouped by the app
+     * language it should be rendered in — the broadcast audience for schedule
+     * notifications (all students / all teachers). The push dispatcher renders
+     * one localized message per group and fans out separately, so a Bengali
+     * rider gets Bengali text and an English rider gets English.
      *
-     * @return the raw tokens, in storage order
+     * <p>Tokens with a missing or unsupported {@code app_language} land under
+     * {@link #FALLBACK_LANGUAGE}, so every device is always in exactly one
+     * group.
+     *
+     * @return language → raw tokens, in storage order
      */
     @Transactional(readOnly = true)
-    public List<String> getActiveTokensForRole(String userType) {
+    public Map<String, List<String>> getActiveTokensGroupedByLanguage(String userType) {
         if (!SUPPORTED_ROLES.contains(userType)) {
             throw new IllegalArgumentException("Unsupported FCM audience: " + userType);
         }
-        return userFcmTokenRepository.findByUserTypeAndIsActiveTrue(userType)
-                .stream()
-                .map(UserFcmToken::getToken)
-                .toList();
+        Map<String, List<String>> byLanguage = new LinkedHashMap<>();
+        for (UserFcmToken token : userFcmTokenRepository.findByUserTypeAndIsActiveTrue(userType)) {
+            byLanguage.computeIfAbsent(
+                    resolveLanguage(token.getAppLanguage(), null), k -> new ArrayList<>())
+                    .add(token.getToken());
+        }
+        return byLanguage;
     }
 
     /**
@@ -159,5 +184,29 @@ public class FcmTokenService {
 
     private static String blankToNull(String value) {
         return (value == null || value.isBlank()) ? null : value.trim();
+    }
+
+    /**
+     * Normalizes a client-supplied language tag to a supported language code:
+     * "bn", "bn-BD", "BN" → "bn"; "en-US" → "en". Anything unsupported or
+     * blank falls back to {@code currentOrNull} (the value already stored on
+     * the row) and finally to {@link #FALLBACK_LANGUAGE}, so an older client
+     * that doesn't send a language can't wipe the one we already know.
+     */
+    private static String resolveLanguage(String requested, String currentOrNull) {
+        String requestedTrimmed = blankToNull(requested);
+        if (requestedTrimmed != null) {
+            String base = requestedTrimmed.split("[-_]", 2)[0].toLowerCase();
+            if (SUPPORTED_LANGUAGES.contains(base)) {
+                return base;
+            }
+            // An unsupported tag is a real (if odd) choice — don't keep stale state.
+            return FALLBACK_LANGUAGE;
+        }
+        String current = blankToNull(currentOrNull);
+        if (current != null && SUPPORTED_LANGUAGES.contains(current)) {
+            return current;
+        }
+        return FALLBACK_LANGUAGE;
     }
 }

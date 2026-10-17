@@ -1,0 +1,171 @@
+package com.cou.bustracker.service;
+
+import com.cou.bustracker.entity.UserFcmToken;
+import com.cou.bustracker.event.ScheduleChangedEvent;
+import com.cou.bustracker.event.ScheduleChangedEvent.Action;
+import com.cou.bustracker.event.ScheduleChangedEvent.Field;
+import com.cou.bustracker.event.ScheduleChangedEvent.FieldChange;
+import com.cou.bustracker.repository.UserFcmTokenRepository;
+import com.google.firebase.messaging.FirebaseMessaging;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.context.support.ResourceBundleMessageSource;
+
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/**
+ * Verifies per-device-language rendering of schedule pushes against the real
+ * {@code messages*.properties} bundles — the dispatcher is the only place
+ * where a {@link ScheduleChangedEvent} becomes human text, so this is where
+ * the en/bn contract is pinned down.
+ *
+ * <p>Uses a real {@link FcmTokenService} (backed by a mocked repository) and a
+ * recording {@link FcmService} subclass instead of Mockito mocks: only
+ * interfaces can be mocked on this JVM, matching the house style of the other
+ * service tests.
+ */
+class NotificationDispatcherTest {
+
+    /** One send as the dispatcher issued it: tokens + rendered text. */
+    private record Send(List<String> tokens, String title, String body) {
+    }
+
+    /** Captures {@code sendEachAsync} calls instead of talking to FCM. */
+    private static class RecordingFcmService extends FcmService {
+        final List<Send> sends = new ArrayList<>();
+
+        RecordingFcmService() {
+            super((FirebaseMessaging) null);
+        }
+
+        @Override
+        public void sendEachAsync(List<String> tokens, String title, String body,
+                                  Consumer<List<String>> onUnregistered) {
+            sends.add(new Send(tokens, title, body));
+        }
+    }
+
+    private UserFcmTokenRepository repository;
+    private RecordingFcmService fcmService;
+    private NotificationDispatcher dispatcher;
+
+    @BeforeEach
+    void setUp() {
+        repository = mock(UserFcmTokenRepository.class);
+        fcmService = new RecordingFcmService();
+
+        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+        messageSource.setBasename("messages");
+        messageSource.setDefaultEncoding("UTF-8");
+
+        dispatcher = new NotificationDispatcher(
+                new FcmTokenService(repository), fcmService, messageSource);
+    }
+
+    @Test
+    void rendersEachLanguageGroupInItsOwnLanguage() {
+        audienceTokens(token("bn-token-1", "bn"), token("bn-token-2", "bn"), token("en-token-1", "en"));
+
+        dispatcher.dispatch(event(Action.CREATED, List.of()));
+
+        assertEquals(List.of(
+                new Send(List.of("bn-token-1", "bn-token-2"),
+                        "নতুন সময়সূচি: BUS 03",
+                        "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · 07:00 থেকে ছাড়ছে (SUN-THU) যোগ করা হয়েছে"),
+                new Send(List.of("en-token-1"),
+                        "New schedule: BUS 03",
+                        "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · departs 07:00 (SUN-THU) added")),
+                fcmService.sends);
+    }
+
+    @Test
+    void rendersUpdateDiffsWithLocalizedFieldLabels() {
+        audienceTokens(token("bn-token", "bn"), token("en-token", "en"));
+
+        List<FieldChange> changes = List.of(
+                new FieldChange(Field.DEPARTURE, "07:00", "07:15"),
+                new FieldChange(Field.BUS_NAME, null, "COU Blue"));
+
+        dispatcher.dispatch(event(Action.UPDATED, changes));
+
+        assertEquals(List.of(
+                new Send(List.of("bn-token"),
+                        "সময়সূচি হালনাগাদ: BUS 03",
+                        "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · "
+                                + "ছাড়ার সময়: 07:00 → 07:15, বাসের নাম: নেই → COU Blue"),
+                new Send(List.of("en-token"),
+                        "Schedule updated: BUS 03",
+                        "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · "
+                                + "departure: 07:00 → 07:15, bus name: none → COU Blue")),
+                fcmService.sends);
+    }
+
+    @Test
+    void legacyTokenWithoutLanguageFallsBackToEnglishBundle() {
+        // A token registered before app_language existed lands in the "en"
+        // group (FcmTokenService normalizes) and must render in English.
+        audienceTokens(token("legacy-token", null));
+
+        dispatcher.dispatch(event(Action.DEACTIVATED, List.of()));
+
+        assertEquals(List.of(new Send(
+                List.of("legacy-token"),
+                "Service paused: BUS 03",
+                "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · departs 07:00 (SUN-THU) is paused for now")),
+                fcmService.sends);
+    }
+
+    @Test
+    void skipsInactiveSchedule() {
+        audienceTokens(token("en-token", "en"));
+
+        // Inactive CREATED: admin bookkeeping, not news.
+        dispatcher.dispatch(new ScheduleChangedEvent(
+                Action.CREATED, 1L, 1L, "BUS 03", "COU Blue", "BLUE", "UP",
+                "Kandirpar", "Campus", LocalTime.of(7, 0), null, "SUN-THU",
+                false, List.of()));
+
+        assertTrue(fcmService.sends.isEmpty());
+    }
+
+    @Test
+    void skipsUnmappedCategoryInsteadOfBroadcasting() {
+        audienceTokens(token("en-token", "en"));
+
+        dispatcher.dispatch(new ScheduleChangedEvent(
+                Action.CREATED, 2L, 1L, "BUS 03", null, "VIP", "UP",
+                null, null, LocalTime.of(7, 0), null, null,
+                true, List.of()));
+
+        assertTrue(fcmService.sends.isEmpty());
+    }
+
+    private void audienceTokens(UserFcmToken... tokens) {
+        when(repository.findByUserTypeAndIsActiveTrue("STUDENT")).thenReturn(List.of(tokens));
+    }
+
+    private static UserFcmToken token(String token, String appLanguage) {
+        return UserFcmToken.builder()
+                .userType("STUDENT")
+                .userId(10L)
+                .token(token)
+                .appLanguage(appLanguage)
+                .build();
+    }
+
+    /** An active BLUE-bus schedule — the audience resolves to STUDENT. */
+    private static ScheduleChangedEvent event(Action action, List<FieldChange> changes) {
+        return new ScheduleChangedEvent(
+                action, 1L, 1L, "BUS 03", "COU Blue", "BLUE", "UP",
+                "Kandirpar", "Campus", LocalTime.of(7, 0), null, "SUN-THU",
+                true, changes);
+    }
+}

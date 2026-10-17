@@ -1,6 +1,14 @@
 spring:
   profiles:
     active: dev
+  messages:
+    # Push notification bundles (classpath:messages*.properties). Rendered
+    # server-side per device language, so fallback must be deterministic:
+    # unknown locale → base bundle (English), never the server's system locale.
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+    cache-duration: 30
 
 server:
   port: 8080

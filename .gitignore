@@ -52,8 +52,14 @@ docker-compose.override.yml
 uploads/
 
 ### Frontend build/dist ###
-admin-panel/dist/
-admin-panel/node_modules/
+# NOTE: a `.gitignore` pattern containing a slash (other than a trailing one)
+# is anchored to this file's directory, so `admin-panel/node_modules/` below
+# only matched the top-level `admin-panel/` — not `admin/admin-panel/`, which
+# is why 9k dependency files got staged. The `**/` prefix matches at any depth.
+**/admin-panel/dist/
+**/admin-panel/node_modules/
+# Belt and braces: never track dependencies wherever they appear.
+**/node_modules/
 
 
 ### Firebase credentials
