@@ -58,7 +58,7 @@ public class StudentService {
                 .id(student.getId())
                 .name(student.getName())
                 .phone(student.getPhone())
-                .isVerified(student.getIsVerified())
+                .isVerified(isComplete(student))
                 .isPhoneVerified(student.getIsPhoneVerified())
                 .build();
     }
@@ -87,7 +87,7 @@ public class StudentService {
                 .name(student.getName())
                 .email(student.getEmail())
                 .phone(student.getPhone())
-                .isVerified(student.getIsVerified())
+                .isVerified(isComplete(student))
                 .isPhoneVerified(student.getIsPhoneVerified())
                 .build();
     }
@@ -142,7 +142,7 @@ public class StudentService {
                 .name(student.getName())
                 .email(student.getEmail())
                 .phone(student.getPhone())
-                .isVerified(student.getIsVerified())
+                .isVerified(isComplete(student))
                 .isPhoneVerified(student.getIsPhoneVerified())
                 .build();
     }
@@ -244,11 +244,11 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
-    /** Accounts still awaiting admin approval, i.e. not verified yet. */
+    /** Accounts still awaiting the registration step, i.e. academic details missing. */
     public List<StudentResponse> getPendingStudents() {
         return studentRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(student -> !Boolean.TRUE.equals(student.getIsVerified()))
+                .filter(student -> !isComplete(student))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -301,16 +301,26 @@ public class StudentService {
         return StudentResponse.builder()
                 .id(student.getId())
                 .name(student.getName())
-                .phone(student.getPhone())
                 .email(student.getEmail())
                 .rollNumber(student.getRollNumber())
                 .department(student.getDepartment())
                 .session(student.getSession())
                 .idCardImageUrl(student.getIdCardImageUrl())
-                .isVerified(student.getIsVerified())
-                .isPhoneVerified(student.getIsPhoneVerified())
+                .isVerified(isComplete(student))
                 .isActive(student.getIsActive())
                 .createdAt(student.getCreatedAt())
                 .build();
+    }
+
+    /**
+     * Verification is the single registration step: department, roll number and
+     * session are submitted together, and once they are all there the account
+     * is verified. Derived on read — the stored {@code is_verified} column is
+     * left untouched.
+     */
+    public static boolean isComplete(Student student) {
+        return !isBlank(student.getDepartment())
+                && !isBlank(student.getRollNumber())
+                && !isBlank(student.getSession());
     }
 }

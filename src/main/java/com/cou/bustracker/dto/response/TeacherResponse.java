@@ -18,11 +18,14 @@ public class TeacherResponse {
     private String teacherId;
     private String designation;
     private String department;
-    private String phone;
     private String email;
     private String idCardImageUrl;
+    /**
+     * Derived, not stored: verified once department, employee ID and
+     * designation are filled in — the teacher equivalent of the student
+     * department/roll/session rule.
+     */
     private Boolean isVerified;
-    private Boolean isPhoneVerified;
     private Boolean isActive;
     private LocalDateTime createdAt;
 }

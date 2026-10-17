@@ -15,14 +15,17 @@ public class StudentResponse {
 
     private Long id;
     private String name;
-    private String phone;
     private String email;
     private String rollNumber;
     private String department;
     private String session;
     private String idCardImageUrl;
+    /**
+     * Derived, not stored: an account counts as verified once department, roll
+     * number and session are filled in (the one step registration completes).
+     * Phone is no longer part of the admin-facing payload.
+     */
     private Boolean isVerified;
-    private Boolean isPhoneVerified;
     private Boolean isActive;
     private LocalDateTime createdAt;
 }

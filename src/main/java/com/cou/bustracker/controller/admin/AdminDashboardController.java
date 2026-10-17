@@ -2,6 +2,8 @@ package com.cou.bustracker.controller.admin;
 
 import com.cou.bustracker.dto.response.DashboardStatsResponse;
 import com.cou.bustracker.repository.*;
+import com.cou.bustracker.service.StudentService;
+import com.cou.bustracker.service.TeacherService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,15 +30,20 @@ public class AdminDashboardController {
         long totalBuses = busRepository.count();
         long activeBuses = busRepository.countByIsActiveTrue();
 
-        // Counted unfiltered: the admin panel lists every registered account and
-        // shows verification state as a badge, so the stats must match the list.
+        // Counted with the same derived rule the listings and the app use
+        // (department/roll/session filled in) rather than the stored flag, so
+        // the numbers always agree with what the panel shows.
         long totalStudents = studentRepository.count();
-        long verifiedStudents = studentRepository.countByIsVerifiedTrue();
-        long pendingStudents = studentRepository.countByIsVerifiedFalse();
+        long verifiedStudents = studentRepository.findAll().stream()
+                .filter(StudentService::isComplete)
+                .count();
+        long pendingStudents = totalStudents - verifiedStudents;
 
         long totalTeachers = teacherRepository.count();
-        long verifiedTeachers = teacherRepository.countByIsVerifiedTrue();
-        long pendingTeachers = teacherRepository.countByIsVerifiedFalse();
+        long verifiedTeachers = teacherRepository.findAll().stream()
+                .filter(TeacherService::isComplete)
+                .count();
+        long pendingTeachers = totalTeachers - verifiedTeachers;
 
         long totalNotices = noticeRepository.count();
         long totalSchedules = scheduleRepository.count();

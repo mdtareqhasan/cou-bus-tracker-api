@@ -57,7 +57,7 @@ public class TeacherService {
                 .id(teacher.getId())
                 .name(teacher.getName())
                 .phone(teacher.getPhone())
-                .isVerified(teacher.getIsVerified())
+                .isVerified(isComplete(teacher))
                 .isPhoneVerified(teacher.getIsPhoneVerified())
                 .build();
     }
@@ -86,7 +86,7 @@ public class TeacherService {
                 .name(teacher.getName())
                 .email(teacher.getEmail())
                 .phone(teacher.getPhone())
-                .isVerified(teacher.getIsVerified())
+                .isVerified(isComplete(teacher))
                 .isPhoneVerified(teacher.getIsPhoneVerified())
                 .build();
     }
@@ -149,7 +149,7 @@ public class TeacherService {
                 .name(teacher.getName())
                 .email(teacher.getEmail())
                 .phone(teacher.getPhone())
-                .isVerified(teacher.getIsVerified())
+                .isVerified(isComplete(teacher))
                 .isPhoneVerified(teacher.getIsPhoneVerified())
                 .build();
     }
@@ -267,11 +267,11 @@ public class TeacherService {
         return mapToResponse(getTeacherByPrincipal(principal));
     }
 
-    /** Accounts still awaiting admin approval, i.e. not verified yet. */
+    /** Accounts still awaiting the registration step, i.e. academic details missing. */
     public List<TeacherResponse> getPendingTeachers() {
         return teacherRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(teacher -> !Boolean.TRUE.equals(teacher.getIsVerified()))
+                .filter(teacher -> !isComplete(teacher))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -313,14 +313,28 @@ public class TeacherService {
                 .teacherId(teacher.getTeacherId())
                 .designation(teacher.getDesignation())
                 .department(teacher.getDepartment())
-                .phone(teacher.getPhone())
                 .email(teacher.getEmail())
                 .idCardImageUrl(teacher.getIdCardImageUrl())
-                .isVerified(teacher.getIsVerified())
-                .isPhoneVerified(teacher.getIsPhoneVerified())
+                .isVerified(isComplete(teacher))
                 .isActive(teacher.getIsActive())
                 .createdAt(teacher.getCreatedAt())
                 .build();
+    }
+
+    /**
+     * Verification is the single registration step: department, employee ID and
+     * designation are submitted together, and once they are all there the
+     * account is verified. Derived on read — the stored column is untouched.
+     * Teacher mirror of {@link StudentService#isComplete(Student)}.
+     */
+    public static boolean isComplete(Teacher teacher) {
+        return isNotBlank(teacher.getDepartment())
+                && isNotBlank(teacher.getTeacherId())
+                && isNotBlank(teacher.getDesignation());
+    }
+
+    private static boolean isNotBlank(String value) {
+        return value != null && !value.isBlank();
     }
 
     private String normalizePhone(String phone) {
