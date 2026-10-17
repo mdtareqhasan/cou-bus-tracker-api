@@ -236,10 +236,15 @@ public class TeacherService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    /**
+     * Every registered teacher, whatever their verification state. See
+     * {@link StudentService#getAllStudents()} — the same rule applies here:
+     * Google/e-mail sign-ups never set {@code isPhoneVerified}, so filtering on
+     * it hid them from the admin panel.
+     */
     public List<TeacherResponse> getAllTeachers() {
         return teacherRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(teacher -> Boolean.TRUE.equals(teacher.getIsPhoneVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -262,10 +267,10 @@ public class TeacherService {
         return mapToResponse(getTeacherByPrincipal(principal));
     }
 
+    /** Accounts still awaiting admin approval, i.e. not verified yet. */
     public List<TeacherResponse> getPendingTeachers() {
         return teacherRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(teacher -> Boolean.TRUE.equals(teacher.getIsPhoneVerified()))
                 .filter(teacher -> !Boolean.TRUE.equals(teacher.getIsVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());

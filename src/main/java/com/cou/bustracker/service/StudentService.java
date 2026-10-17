@@ -229,18 +229,25 @@ public class StudentService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    /**
+     * Every registered student, whatever their verification state.
+     *
+     * <p>These listings used to drop accounts with {@code isPhoneVerified = false},
+     * which silently hid every Google/e-mail sign-up from the admin panel (only the
+     * phone-OTP flow sets that flag). Verification is surfaced as a badge/filter in
+     * the UI instead, so nothing is filtered out here.
+     */
     public List<StudentResponse> getAllStudents() {
         return studentRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(student -> Boolean.TRUE.equals(student.getIsPhoneVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
+    /** Accounts still awaiting admin approval, i.e. not verified yet. */
     public List<StudentResponse> getPendingStudents() {
         return studentRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .filter(student -> Boolean.TRUE.equals(student.getIsPhoneVerified()))
                 .filter(student -> !Boolean.TRUE.equals(student.getIsVerified()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());

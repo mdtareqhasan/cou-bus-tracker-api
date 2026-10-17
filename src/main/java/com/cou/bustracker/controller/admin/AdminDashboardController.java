@@ -28,13 +28,15 @@ public class AdminDashboardController {
         long totalBuses = busRepository.count();
         long activeBuses = busRepository.countByIsActiveTrue();
 
-        long totalStudents = studentRepository.countByIsPhoneVerifiedTrue();
+        // Counted unfiltered: the admin panel lists every registered account and
+        // shows verification state as a badge, so the stats must match the list.
+        long totalStudents = studentRepository.count();
         long verifiedStudents = studentRepository.countByIsVerifiedTrue();
-        long pendingStudents = studentRepository.countByIsPhoneVerifiedTrueAndIsVerifiedFalse();
+        long pendingStudents = studentRepository.countByIsVerifiedFalse();
 
-        long totalTeachers = teacherRepository.countByIsPhoneVerifiedTrue();
+        long totalTeachers = teacherRepository.count();
         long verifiedTeachers = teacherRepository.countByIsVerifiedTrue();
-        long pendingTeachers = teacherRepository.countByIsPhoneVerifiedTrueAndIsVerifiedFalse();
+        long pendingTeachers = teacherRepository.countByIsVerifiedFalse();
 
         long totalNotices = noticeRepository.count();
         long totalSchedules = scheduleRepository.count();
