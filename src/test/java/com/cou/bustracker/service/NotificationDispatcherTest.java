@@ -1,6 +1,7 @@
 package com.cou.bustracker.service;
 
 import com.cou.bustracker.entity.UserFcmToken;
+import com.cou.bustracker.event.NoticeCreatedEvent;
 import com.cou.bustracker.event.ScheduleChangedEvent;
 import com.cou.bustracker.event.ScheduleChangedEvent.Action;
 import com.cou.bustracker.event.ScheduleChangedEvent.Field;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.support.ResourceBundleMessageSource;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -148,8 +150,96 @@ class NotificationDispatcherTest {
         assertTrue(fcmService.sends.isEmpty());
     }
 
+    // --- Notice pushes -------------------------------------------------
+
+    @Test
+    void noticeForAllFansOutToStudentsAndTeachers() {
+        when(repository.findByUserTypeAndIsActiveTrue("STUDENT"))
+                .thenReturn(List.of(token("student-token", "bn")));
+        when(repository.findByUserTypeAndIsActiveTrue("TEACHER"))
+                .thenReturn(List.of(token("teacher-token", "en")));
+
+        dispatcher.dispatch(noticeEvent("ALL", "Semester break notice"));
+
+        assertEquals(List.of(
+                new Send(List.of("student-token"),
+                        "Semester break notice", "Campus closed Friday."),
+                new Send(List.of("teacher-token"),
+                        "Semester break notice", "Campus closed Friday.")),
+                fcmService.sends);
+    }
+
+    @Test
+    void noticeForSingleAudienceSkipsTheOtherRole() {
+        when(repository.findByUserTypeAndIsActiveTrue("STUDENT"))
+                .thenReturn(List.of(token("student-token", "en")));
+
+        dispatcher.dispatch(noticeEvent("STUDENT", "Exam seating", "Room 204 tomorrow."));
+
+        assertEquals(List.of(new Send(
+                List.of("student-token"), "Exam seating", "Room 204 tomorrow.")),
+                fcmService.sends);
+    }
+
+    @Test
+    void noticeTextIsPushedVerbatimInEveryLanguageGroup() {
+        // Notice prose is admin-authored (often Bengali) — the dispatcher
+        // must not translate or wrap it, only route it to the right tokens.
+        when(repository.findByUserTypeAndIsActiveTrue("STUDENT"))
+                .thenReturn(List.of(token("bn-token", "bn"), token("en-token", "en")));
+
+        dispatcher.dispatch(noticeEvent("STUDENT", "রুট পরিবর্তন", "শুক্রবার বাস চলবে না।"));
+
+        assertEquals(List.of(
+                new Send(List.of("bn-token", "en-token"),
+                        "রুট পরিবর্তন", "শুক্রবার বাস চলবে না।")),
+                fcmService.sends);
+    }
+
+    @Test
+    void unknownNoticeAudienceIsSkippedInsteadOfBroadcasting() {
+        dispatcher.dispatch(noticeEvent("VIP", "Classified"));
+
+        assertTrue(fcmService.sends.isEmpty());
+    }
+
+    @Test
+    void nullNoticeAudienceDefaultsToAllRiders() {
+        when(repository.findByUserTypeAndIsActiveTrue("STUDENT"))
+                .thenReturn(List.of(token("student-token", "en")));
+        when(repository.findByUserTypeAndIsActiveTrue("TEACHER"))
+                .thenReturn(List.of(token("teacher-token", "en")));
+
+        dispatcher.dispatch(noticeEvent(null, "General holiday"));
+
+        assertEquals(2, fcmService.sends.size());
+    }
+
+    @Test
+    void longNoticeBodyIsTruncatedForTheTray() {
+        when(repository.findByUserTypeAndIsActiveTrue("STUDENT"))
+                .thenReturn(List.of(token("student-token", "en")));
+
+        String longBody = "x".repeat(600);
+        dispatcher.dispatch(noticeEvent("STUDENT", "Long notice", longBody));
+
+        String sent = fcmService.sends.get(0).body();
+        assertEquals(500, sent.length());
+        assertTrue(sent.endsWith("…"));
+    }
+
     private void audienceTokens(UserFcmToken... tokens) {
         when(repository.findByUserTypeAndIsActiveTrue("STUDENT")).thenReturn(List.of(tokens));
+    }
+
+    private static NoticeCreatedEvent noticeEvent(String audience, String title) {
+        return new NoticeCreatedEvent(7L, title, "Campus closed Friday.", audience,
+                LocalDateTime.of(2026, 10, 20, 12, 0));
+    }
+
+    private static NoticeCreatedEvent noticeEvent(String audience, String title, String body) {
+        return new NoticeCreatedEvent(7L, title, body, audience,
+                LocalDateTime.of(2026, 10, 20, 12, 0));
     }
 
     private static UserFcmToken token(String token, String appLanguage) {

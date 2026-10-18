@@ -25,10 +25,12 @@ public class SuperAdminNoticeController {
     @Operation(summary = "Broadcast a notice to all users (reuses public /api/notices/active)")
     public ResponseEntity<NoticeResponse> broadcast(@Valid @RequestBody BroadcastNoticeRequest request) {
         // Map BroadcastNoticeRequest -> CreateNoticeRequest so we reuse NoticeService.
+        // A broadcast reaches everyone, so the audience is fixed to ALL.
         com.cou.bustracker.dto.request.CreateNoticeRequest createReq =
                 new com.cou.bustracker.dto.request.CreateNoticeRequest(
                         request.getTitle(),
                         request.getBody(),
+                        "ALL",
                         request.getExpiryHours());
         return ResponseEntity.status(HttpStatus.CREATED).body(noticeService.createNotice(createReq));
     }

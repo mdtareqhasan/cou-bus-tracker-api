@@ -1,5 +1,6 @@
 package com.cou.bustracker.service;
 
+import com.cou.bustracker.event.NoticeCreatedEvent;
 import com.cou.bustracker.event.ScheduleChangedEvent;
 import com.cou.bustracker.event.ScheduleChangedEvent.Field;
 import com.cou.bustracker.event.ScheduleChangedEvent.FieldChange;
@@ -11,19 +12,22 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 /**
- * Turns a schedule mutation into push notifications, off the request thread.
+ * Turns a schedule mutation or a new notice into push notifications, off the
+ * request thread.
  *
  * <p>Pipeline:
  * <pre>
  *   ScheduleService ──publish──▶ ScheduleChangedEvent
+ *   NoticeService   ──publish──▶ NoticeCreatedEvent
  *        │                          │  (transaction commits)
  *        ▼                          ▼
- *   HTTP 200 returned      ScheduleChangedListener (AFTER_COMMIT)
+ *   HTTP 200 returned      *ChangedListener (AFTER_COMMIT)
  *                                    │ hand-off to proxy
  *                                    ▼
  *                          NotificationDispatcher#dispatch  ◀── notificationExecutor
@@ -43,12 +47,16 @@ import java.util.Map;
  *       retry — an admin's write.</li>
  *   <li><b>No session.</b> Everything needed is in the immutable event, so
  *       there is no lazy-loading or after-commit surprise.</li>
- *   <li><b>Audience comes from the bus category</b>, not from the caller.</li>
+ *   <li><b>Audience comes from the data</b>, not from the caller: from the
+ *       bus category for schedules, from the notice audience for notices.</li>
  *   <li><b>Localized per device.</b> FCM renders the notification payload in
  *       the tray without the app running, so the text must already be in the
  *       rider's language when we send it. Devices are grouped by the
  *       {@code app_language} they registered with, and each group gets its own
- *       rendered message from the {@code messages_*.properties} bundles.</li>
+ *       rendered message from the {@code messages_*.properties} bundles.
+ *       Notices skip this step on purpose — their title/body <em>are</em>
+ *       admin-authored prose, so they are pushed verbatim in whatever
+ *       language the admin wrote them.</li>
  * </ul>
  */
 @Slf4j
@@ -68,6 +76,21 @@ public class NotificationDispatcher {
             "BLUE", "STUDENT",
             "STAFF", "STUDENT",
             "TEACHER", "TEACHER");
+
+    /**
+     * Audiences a notice can target, in fan-out order. Kept as the stored
+     * vocabulary (STUDENT / TEACHER / ALL) so the mapping from notice to FCM
+     * {@code user_type} groups is a single lookup — {@code ALL} simply walks
+     * both rider roles.
+     */
+    private static final List<String> NOTICE_AUDIENCES = List.of("STUDENT", "TEACHER");
+
+    /**
+     * FCM puts a hard-ish cap on payload size and the tray truncates long
+     * text anyway, so a runaway body is trimmed before send. The title is
+     * already capped at 200 chars by the notices schema.
+     */
+    private static final int NOTICE_MAX_BODY_CHARS = 500;
 
     private final FcmTokenService fcmTokenService;
     private final FcmService fcmService;
@@ -120,11 +143,7 @@ public class NotificationDispatcher {
                 log.info("Pushing schedule {} ({}) to {} {} device(s) in {}: {}",
                         event.scheduleId(), event.action(), batch.size(), audience, locale, title);
 
-                for (int from = 0; from < batch.size(); from += FcmService.MAX_BATCH_SIZE) {
-                    int to = Math.min(from + FcmService.MAX_BATCH_SIZE, batch.size());
-                    fcmService.sendEachAsync(List.copyOf(batch.subList(from, to)), title, body,
-                            fcmTokenService::pruneUnregisteredTokens);
-                }
+                sendInBatches(batch, title, body);
             }
         } catch (Exception e) {
             // Deliberately swallowed: the schedule write already succeeded and
@@ -133,6 +152,93 @@ public class NotificationDispatcher {
                     event == null ? "?" : event.scheduleId(),
                     event == null ? "?" : event.action(), e);
         }
+    }
+
+    /**
+     * Pushes a freshly created notice to its target audience, off the request
+     * thread. Never throws.
+     *
+     * <p>Unlike schedule pushes, the text is <em>not</em> localized per
+     * device: a notice is admin-authored prose (usually Bengali), and the
+     * title and body are pushed exactly as written. Only the audience is
+     * resolved here — {@code ALL} fans out to both rider roles.
+     */
+    @Async("notificationExecutor")
+    public void dispatch(NoticeCreatedEvent event) {
+        try {
+            if (event == null) {
+                return;
+            }
+
+            List<String> audiences = audiencesOf(event.audience());
+            if (audiences.isEmpty()) {
+                log.warn("Unknown notice audience '{}' — skipping notification for notice {}",
+                        event.audience(), event.noticeId());
+                return;
+            }
+
+            String title = truncate(event.title(), null);
+            String body = truncate(event.body(), NOTICE_MAX_BODY_CHARS);
+
+            for (String audience : audiences) {
+                Map<String, List<String>> tokensByLanguage = fcmTokenService.getActiveTokensGroupedByLanguage(audience);
+                // Notice text is language-independent, so the per-language
+                // groups only matter for token routing, not rendering.
+                List<String> tokens = tokensByLanguage.values().stream()
+                        .flatMap(List::stream)
+                        .toList();
+                if (tokens.isEmpty()) {
+                    log.info("No active {} devices to notify about notice {}", audience, event.noticeId());
+                    continue;
+                }
+
+                log.info("Pushing notice {} to {} {} device(s): {}",
+                        event.noticeId(), tokens.size(), audience, title);
+                sendInBatches(tokens, title, body);
+            }
+        } catch (Exception e) {
+            // Deliberately swallowed: the notice write already succeeded and
+            // the admin already got their 201. Log loudly instead of failing.
+            log.error("Failed to dispatch notice notification {}",
+                    event == null ? "?" : event.noticeId(), e);
+        }
+    }
+
+    /**
+     * Maps a stored notice audience onto FCM {@code user_type} groups.
+     * A null audience is treated as {@code ALL} (the schema default, but a
+     * hand-built event may omit it); anything unrecognized yields an empty
+     * list so the caller skips rather than broadcasting to everyone — same
+     * rule as an unmapped bus category.
+     */
+    private static List<String> audiencesOf(String audience) {
+        if (audience == null || audience.isBlank()
+                || "ALL".equalsIgnoreCase(audience.trim())) {
+            return NOTICE_AUDIENCES;
+        }
+        String normalized = audience.trim().toUpperCase(Locale.ROOT);
+        return NOTICE_AUDIENCES.contains(normalized) ? List.of(normalized) : List.of();
+    }
+
+    /** Splits tokens into FCM-sized batches and fires one async send per batch. */
+    private void sendInBatches(List<String> tokens, String title, String body) {
+        for (int from = 0; from < tokens.size(); from += FcmService.MAX_BATCH_SIZE) {
+            int to = Math.min(from + FcmService.MAX_BATCH_SIZE, tokens.size());
+            fcmService.sendEachAsync(List.copyOf(tokens.subList(from, to)), title, body,
+                    fcmTokenService::pruneUnregisteredTokens);
+        }
+    }
+
+    /**
+     * Caps free text for the push payload; {@code maxChars == null} means the
+     * schema already bounds the value. An ellipsis marks trimmed text so a
+     * rider can tell there is more.
+     */
+    private static String truncate(String value, Integer maxChars) {
+        if (value == null || maxChars == null || value.length() <= maxChars) {
+            return value;
+        }
+        return value.substring(0, maxChars - 1) + "…";
     }
 
     /**

@@ -16,6 +16,8 @@ public class NoticeResponse {
     private Long id;
     private String title;
     private String body;
+    /** STUDENT / TEACHER / ALL */
+    private String audience;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
