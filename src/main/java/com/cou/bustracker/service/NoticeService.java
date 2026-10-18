@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -31,6 +32,20 @@ public class NoticeService {
     /** Used when a request doesn't name an audience — everyone. */
     public static final String DEFAULT_AUDIENCE = "ALL";
 
+    /**
+     * Which stored audiences a role is allowed to see.
+     *
+     * <p>Riders only ever see {@code ALL} plus their own role's notices;
+     * admins and super-admins manage every notice, so they see all three.
+     * The role key is the JWT claim ({@code CurrentUser#role}), the value is
+     * what goes into {@code notices.audience}.
+     */
+    private static final Map<String, List<String>> AUDIENCES_BY_ROLE = Map.of(
+            "STUDENT", List.of(DEFAULT_AUDIENCE, "STUDENT"),
+            "TEACHER", List.of(DEFAULT_AUDIENCE, "TEACHER"),
+            "ADMIN", List.of(DEFAULT_AUDIENCE, "STUDENT", "TEACHER"),
+            "SUPER_ADMIN", List.of(DEFAULT_AUDIENCE, "STUDENT", "TEACHER"));
+
     private final NoticeRepository noticeRepository;
 
     /**
@@ -40,8 +55,24 @@ public class NoticeService {
      */
     private final ApplicationEventPublisher eventPublisher;
 
-    public List<NoticeResponse> getActiveNotices() {
-        List<Notice> notices = noticeRepository.findActiveNotices(LocalDateTime.now());
+    /**
+     * Active, non-expired notices the given role is allowed to see, newest
+     * first.
+     *
+     * <p>The audience filter keeps a student from reading teacher-only
+     * notices (and vice versa) — the same split the push fan-out applies.
+     * An unrecognised role sees nothing rather than everything: the security
+     * layer rejects it anyway, and failing open here would turn any future
+     * mapping mistake into an information leak.
+     *
+     * @param role the JWT role claim ({@code CurrentUser#role})
+     */
+    public List<NoticeResponse> getActiveNotices(String role) {
+        List<String> audiences = AUDIENCES_BY_ROLE.get(role);
+        if (audiences == null) {
+            return List.of();
+        }
+        List<Notice> notices = noticeRepository.findActiveNoticesForAudiences(LocalDateTime.now(), audiences);
         return notices.stream()
                 .map(this::mapToNoticeResponse)
                 .collect(Collectors.toList());

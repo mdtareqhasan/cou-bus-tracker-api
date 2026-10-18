@@ -32,8 +32,9 @@ import java.util.Map;
  * and password-reset flows (which must work for an incomplete profile — they
  * are how such a profile gets completed) as well as the profile read/update
  * endpoints the completion flow itself depends on. Guest-facing endpoints
- * ({@code /buses}, {@code /schedules}, {@code /notices/active}) carry no token
- * and are unaffected.
+ * ({@code /buses}, {@code /schedules}) carry no token and are unaffected;
+ * {@code /notices/active} <em>is</em> authenticated (its audience filter
+ * needs the caller's role), so an incomplete profile is held back there too.
  *
  * <p>Runs as an MVC interceptor so it is guaranteed to execute after
  * {@link JwtAuthFilter} has populated the {@link SecurityContextHolder}.

@@ -70,7 +70,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/buses/**").permitAll()
                         .requestMatchers("/api/schedules/**").permitAll()
-                        .requestMatchers("/api/notices/active").permitAll()
+                        // Notices are authenticated: the audience filter needs
+                        // the caller's role (students see ALL+STUDENT, teachers
+                        // see ALL+TEACHER)
+                        .requestMatchers("/api/notices/**").authenticated()
                         // Swagger/OpenAPI endpoints
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         // Actuator endpoints
