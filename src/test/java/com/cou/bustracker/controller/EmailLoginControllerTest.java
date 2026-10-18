@@ -85,7 +85,7 @@ public class EmailLoginControllerTest {
 
     static class StubStudentService extends StudentService {
         StubStudentService() {
-            super(null, null, null, null, null);
+            super(null, null, null, null, null, null);
         }
 
         @Override
@@ -103,7 +103,7 @@ public class EmailLoginControllerTest {
 
     static class StubTeacherService extends TeacherService {
         StubTeacherService() {
-            super(null, null, null, null, null);
+            super(null, null, null, null, null, null);
         }
 
         @Override

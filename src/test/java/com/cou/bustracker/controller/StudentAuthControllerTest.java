@@ -74,7 +74,7 @@ public class StudentAuthControllerTest {
     /** Echoes the submitted details back, exactly as the real service does. */
     static class StubStudentService extends StudentService {
         StubStudentService() {
-            super(null, null, null, null, null);
+            super(null, null, null, null, null, null);
         }
 
         @Override

@@ -2,6 +2,8 @@ package com.cou.bustracker.service;
 
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.exception.ErrorCode;
+import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.security.JwtService;
 import org.junit.jupiter.api.Test;
@@ -15,11 +17,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@code POST /api/auth/google/login} with {@code role=TEACHER} must never
- * accept a student address ({@code *@stud.cou.ac.bd}).
+ * accept a student address ({@code *@stud.cou.ac.bd}), nor an email that is
+ * already registered as a student.
  */
 public class TeacherServiceGoogleLoginTest {
 
-    private TeacherService serviceFor(String googleEmail) {
+    private TeacherService serviceFor(String googleEmail, boolean emailRegisteredAsStudent) {
         GoogleTokenService googleTokenService = new GoogleTokenService("test-client-id") {
             @Override
             public GoogleIdentity verify(String idToken) {
@@ -34,18 +37,25 @@ public class TeacherServiceGoogleLoginTest {
                     case "save" -> args[0];
                     default -> null;
                 });
+        StudentRepository studentRepository = (StudentRepository) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{StudentRepository.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "existsByEmail" -> emailRegisteredAsStudent;
+                    default -> null;
+                });
         JwtService jwtService = new JwtService() {
             @Override
             public String generateToken(String subject, String role) {
                 return "jwt-token";
             }
         };
-        return new TeacherService(teacherRepository, jwtService, null, googleTokenService, null);
+        return new TeacherService(teacherRepository, studentRepository, jwtService, null, googleTokenService, null);
     }
 
     @Test
     void studentDomainEmail_isRejected() {
-        TeacherService service = serviceFor("someone@stud.cou.ac.bd");
+        TeacherService service = serviceFor("someone@stud.cou.ac.bd", false);
 
         ApiException exception = assertThrows(
                 ApiException.class, () -> service.loginWithGoogle("google-token"));
@@ -53,8 +63,17 @@ public class TeacherServiceGoogleLoginTest {
     }
 
     @Test
+    void emailAlreadyRegisteredAsStudent_isRejected() {
+        TeacherService service = serviceFor("teacher@cou.ac.bd", true);
+
+        ApiException exception = assertThrows(
+                ApiException.class, () -> service.loginWithGoogle("google-token"));
+        assertEquals(ErrorCode.EMAIL_REGISTERED_AS_STUDENT, exception.getErrorCode());
+    }
+
+    @Test
     void facultyDomainEmail_signsInAsTeacher() {
-        TeacherService service = serviceFor("teacher@cou.ac.bd");
+        TeacherService service = serviceFor("teacher@cou.ac.bd", false);
 
         AuthResponse response = service.loginWithGoogle("google-token");
 

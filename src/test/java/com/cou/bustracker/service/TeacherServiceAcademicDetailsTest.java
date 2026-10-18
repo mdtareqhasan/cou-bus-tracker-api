@@ -35,7 +35,7 @@ public class TeacherServiceAcademicDetailsTest {
     @BeforeEach
     void setUp() {
         teacherRepository = mock(TeacherRepository.class);
-        teacherService = new TeacherService(teacherRepository, null, null, null, null);
+        teacherService = new TeacherService(teacherRepository, null, null, null, null, null);
         teacher = Teacher.builder()
                 .id(11L)
                 .name("Teacher")

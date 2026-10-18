@@ -26,6 +26,10 @@ import org.springframework.web.bind.annotation.RestController;
  * {@code TEACHER} only accepts {@code name@cou.ac.bd} — student addresses
  * ({@code name@stud.cou.ac.bd}) are rejected with 401 — while
  * {@code STUDENT} accepts both institutional domains.
+ *
+ * <p>An email already registered under the opposite role is rejected with 403
+ * ({@code EMAIL_REGISTERED_AS_TEACHER} / {@code EMAIL_REGISTERED_AS_STUDENT}):
+ * one account, one role.
  */
 @RestController
 @RequestMapping("/api/auth/google")

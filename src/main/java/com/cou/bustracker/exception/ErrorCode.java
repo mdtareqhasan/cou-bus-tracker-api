@@ -105,6 +105,10 @@ public enum ErrorCode {
             "Only official Comilla University emails (name@cou.ac.bd or name@stud.cou.ac.bd) can sign in"),
     FACULTY_EMAIL_REQUIRED(HttpStatus.UNAUTHORIZED,
             "To sign in as a teacher, use a staff email (name@cou.ac.bd). To sign in as a student, select role STUDENT"),
+    EMAIL_REGISTERED_AS_TEACHER(HttpStatus.FORBIDDEN,
+            "This email is already registered as a teacher. Sign in with role TEACHER instead"),
+    EMAIL_REGISTERED_AS_STUDENT(HttpStatus.FORBIDDEN,
+            "This email is already registered as a student. Sign in with role STUDENT instead"),
 
     // ---- Profile completion --------------------------------------------------
     PROFILE_INCOMPLETE(HttpStatus.FORBIDDEN, "Complete your profile to use the app");

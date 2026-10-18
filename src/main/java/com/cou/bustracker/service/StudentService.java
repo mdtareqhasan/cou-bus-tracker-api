@@ -8,6 +8,7 @@ import com.cou.bustracker.exception.ApiException;
 import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.repository.StudentRepository;
+import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.security.JwtService;
 import com.cou.bustracker.util.PhoneUtils;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 public class StudentService {
 
     private final StudentRepository studentRepository;
+    private final TeacherRepository teacherRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final GoogleTokenService googleTokenService;
@@ -96,11 +98,18 @@ public class StudentService {
      * Google Sign-In. Verifies the ID token and signs the student in. If no
      * student row exists for the (verified) institutional email, a pending
      * profile is created — academic details and a password are filled in later.
+     *
+     * <p>An email already registered as a teacher is rejected: one account,
+     * one role. The teacher flow mirrors this check.
      */
     @Transactional
     public AuthResponse loginWithGoogle(String idToken) {
         GoogleTokenService.GoogleIdentity identity = googleTokenService.verify(idToken);
         String email = identity.email();
+
+        if (teacherRepository.existsByEmail(email)) {
+            throw new ApiException(ErrorCode.EMAIL_REGISTERED_AS_TEACHER);
+        }
 
         Student student = studentRepository.findByEmail(email).orElse(null);
         if (student == null) {

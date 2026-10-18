@@ -7,6 +7,7 @@ import com.cou.bustracker.entity.Teacher;
 import com.cou.bustracker.exception.ApiException;
 import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.exception.ResourceNotFoundException;
+import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 public class TeacherService {
 
     private final TeacherRepository teacherRepository;
+    private final StudentRepository studentRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final GoogleTokenService googleTokenService;
@@ -99,6 +101,9 @@ public class TeacherService {
      * <p>Only the faculty/staff domain ({@code name@cou.ac.bd}) is accepted
      * here: student addresses ({@code name@stud.cou.ac.bd}) are rejected, as
      * those belong to the {@code STUDENT} role.
+     *
+     * <p>An email already registered as a student is rejected as well: one
+     * account, one role. The student flow mirrors this check.
      */
     @Transactional
     public AuthResponse loginWithGoogle(String idToken) {
@@ -107,6 +112,10 @@ public class TeacherService {
 
         if (!GoogleTokenService.isFacultyEmail(email)) {
             throw new ApiException(ErrorCode.FACULTY_EMAIL_REQUIRED);
+        }
+
+        if (studentRepository.existsByEmail(email)) {
+            throw new ApiException(ErrorCode.EMAIL_REGISTERED_AS_STUDENT);
         }
 
         Teacher teacher = teacherRepository.findByEmail(email).orElse(null);
