@@ -31,7 +31,6 @@ public enum ErrorCode {
     NAME_REQUIRED(HttpStatus.BAD_REQUEST, "Name is required"),
     EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "Email is required"),
     PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "Password is required"),
-    PHONE_REQUIRED(HttpStatus.BAD_REQUEST, "Phone number is required"),
     OTP_REQUIRED(HttpStatus.BAD_REQUEST, "OTP is required"),
     NEW_PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "A new password is required"),
     DEPARTMENT_REQUIRED(HttpStatus.BAD_REQUEST, "Department is required"),
@@ -41,7 +40,6 @@ public enum ErrorCode {
     DESIGNATION_REQUIRED(HttpStatus.BAD_REQUEST, "Designation is required"),
     TEACHER_ID_REQUIRED(HttpStatus.BAD_REQUEST, "Teacher ID is required"),
     EMAIL_INVALID(HttpStatus.BAD_REQUEST, "Enter a valid email address"),
-    PHONE_INVALID(HttpStatus.BAD_REQUEST, "Enter a valid phone number"),
     OTP_INVALID_LENGTH(HttpStatus.BAD_REQUEST, "OTP must be 6 digits"),
     PASSWORD_TOO_SHORT(HttpStatus.BAD_REQUEST, "Password must be at least 6 characters"),
     EMAIL_DOMAIN_NOT_ALLOWED(HttpStatus.BAD_REQUEST,
@@ -61,7 +59,6 @@ public enum ErrorCode {
             "Designation cannot be changed once it has been set"),
 
     // ---- Uniqueness conflicts ------------------------------------------------
-    PHONE_ALREADY_USED(HttpStatus.CONFLICT, "This phone number is already in use"),
     ROLL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "This roll number is already registered"),
     TEACHER_ID_ALREADY_REGISTERED(HttpStatus.CONFLICT, "This teacher ID is already registered"),
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "An account with this email already exists"),
@@ -71,8 +68,6 @@ public enum ErrorCode {
     // ---- Account lookup / state ---------------------------------------------
     STUDENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Student not found"),
     TEACHER_NOT_FOUND(HttpStatus.NOT_FOUND, "Teacher not found"),
-    NO_STUDENT_WITH_PHONE(HttpStatus.NOT_FOUND, "No student is registered with this phone number"),
-    NO_TEACHER_WITH_PHONE(HttpStatus.NOT_FOUND, "No teacher is registered with this phone number"),
     NO_STUDENT_WITH_EMAIL(HttpStatus.NOT_FOUND, "No student is registered with this email address"),
     NO_TEACHER_WITH_EMAIL(HttpStatus.NOT_FOUND,
             "No teacher or staff member is registered with this email address"),
@@ -93,8 +88,6 @@ public enum ErrorCode {
     // ---- Registration flow ---------------------------------------------------
     REGISTRATION_NOT_FOUND(HttpStatus.BAD_REQUEST,
             "Registration not found. Please submit the registration form first"),
-    PENDING_REGISTRATION_NOT_FOUND(HttpStatus.BAD_REQUEST,
-            "No pending registration found for this phone. Please submit the registration form first"),
 
     // ---- Google Sign-In ------------------------------------------------------
     GOOGLE_TOKEN_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED,
@@ -111,7 +104,18 @@ public enum ErrorCode {
             "This email is already registered as a student. Sign in with role STUDENT instead"),
 
     // ---- Profile completion --------------------------------------------------
-    PROFILE_INCOMPLETE(HttpStatus.FORBIDDEN, "Complete your profile to use the app");
+    PROFILE_INCOMPLETE(HttpStatus.FORBIDDEN, "Complete your profile to use the app"),
+
+    // ---- Academic reference data (admin management) --------------------------
+    ACADEMIC_UNIT_NOT_FOUND(HttpStatus.NOT_FOUND, "Academic unit not found"),
+    ACADEMIC_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "Academic session not found"),
+    ACADEMIC_UNIT_NAME_EXISTS(HttpStatus.CONFLICT,
+            "An option with this name already exists for this type"),
+    ACADEMIC_SESSION_NAME_EXISTS(HttpStatus.CONFLICT, "This academic session already exists"),
+    ACADEMIC_UNIT_IN_USE(HttpStatus.CONFLICT,
+            "This option is assigned to existing accounts. Deactivate it instead of deleting"),
+    ACADEMIC_SESSION_IN_USE(HttpStatus.CONFLICT,
+            "This session is assigned to existing students. Deactivate it instead of deleting");
 
     private final HttpStatus status;
     private final String defaultMessage;

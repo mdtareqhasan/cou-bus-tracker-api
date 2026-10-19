@@ -19,7 +19,5 @@ public class AuthResponse {
     private Long id;
     private String name;
     private String email;
-    private String phone;
     private Boolean isVerified;
-    private Boolean isPhoneVerified;
 }

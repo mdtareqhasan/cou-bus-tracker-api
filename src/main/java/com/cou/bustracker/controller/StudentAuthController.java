@@ -1,7 +1,6 @@
 package com.cou.bustracker.controller;
 
 import com.cou.bustracker.dto.request.StudentAcademicDetailsRequest;
-import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.dto.response.FileUploadResponse;
 import com.cou.bustracker.dto.response.StudentResponse;
 import com.cou.bustracker.entity.Student;
@@ -16,30 +15,22 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Map;
-
 /**
  * Student authentication endpoints.
  *
- * <p>Registration has been moved to the OTP-first flow at
- * {@code POST /api/auth/phone-verification/init} — the Student row is only
- * created after a successful OTP verification. This controller therefore
- * exposes login, ID-card replace, academic details, and profile only.
+ * <p>Registration happens via e-mail OTP ({@code POST /api/auth/email-verification/init})
+ * or Google Sign-In — the Student row is only created after a successful
+ * verification. This controller therefore exposes ID-card replace, academic
+ * details, and profile only.
  */
 @RestController
 @RequestMapping("/api/auth/student")
 @RequiredArgsConstructor
-@Tag(name = "Student Auth", description = "Student login and profile (registration via /api/auth/phone-verification/init)")
+@Tag(name = "Student Auth", description = "Student profile endpoints (registration via /api/auth/email-verification/init or Google Sign-In)")
 public class StudentAuthController {
 
     private final StudentService studentService;
     private final FileStorageService fileStorageService;
-
-    @PostMapping("/login")
-    @Operation(summary = "Student login with phone and password")
-    public ResponseEntity<AuthResponse> login(@RequestBody Map<String, String> request) {
-        return ResponseEntity.ok(studentService.loginWithPhone(request.get("phone"), request.get("password")));
-    }
 
     @PostMapping("/upload-id-card")
     @Operation(summary = "Replace student ID card image")
@@ -69,18 +60,6 @@ public class StudentAuthController {
     @GetMapping("/me")
     @Operation(summary = "Get current student profile")
     public ResponseEntity<StudentResponse> getProfile(Authentication authentication) {
-        Student student = studentService.getStudentByPrincipal(authentication.getName());
-        return ResponseEntity.ok(StudentResponse.builder()
-                .id(student.getId())
-                .name(student.getName())
-                .email(student.getEmail())
-                .rollNumber(student.getRollNumber())
-                .department(student.getDepartment())
-                .session(student.getSession())
-                .idCardImageUrl(student.getIdCardImageUrl())
-                .isVerified(StudentService.isComplete(student))
-                .isActive(student.getIsActive())
-                .createdAt(student.getCreatedAt())
-                .build());
+        return ResponseEntity.ok(studentService.getProfile(authentication.getName()));
     }
 }

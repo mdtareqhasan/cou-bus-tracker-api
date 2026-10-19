@@ -17,7 +17,21 @@ public class TeacherResponse {
     private String name;
     private String teacherId;
     private String designation;
+
+    /**
+     * The department's resolved Bengali name, for display. Kept so the admin
+     * panel and Flutter profile screen render with no change; the FK id below
+     * is the source of truth.
+     */
     private String department;
+
+    /**
+     * FK into academic_units — may point at a DEPARTMENT or an OFFICE row,
+     * since a teacher works in a teaching department or an administrative
+     * office.
+     */
+    private Long departmentId;
+
     private String email;
     private String idCardImageUrl;
     /**

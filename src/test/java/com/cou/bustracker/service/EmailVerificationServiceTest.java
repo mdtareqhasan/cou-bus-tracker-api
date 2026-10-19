@@ -1,13 +1,18 @@
 package com.cou.bustracker.service;
 
 import com.cou.bustracker.dto.request.EmailVerificationInitRequest;
+import com.cou.bustracker.entity.AcademicSession;
+import com.cou.bustracker.entity.AcademicUnit;
 import com.cou.bustracker.entity.EmailVerificationOtp.UserRole;
 import com.cou.bustracker.exception.ApiException;
+import com.cou.bustracker.repository.AcademicSessionRepository;
+import com.cou.bustracker.repository.AcademicUnitRepository;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,8 +20,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class EmailVerificationServiceTest {
 
+    private static final Long DEPT_ID = 3L;
+    private static final Long SESSION_ID = 9L;
+
     private EmailVerificationService service;
 
+    @SuppressWarnings("unchecked")
     private void newService() {
         StudentRepository studentRepository = (StudentRepository) Proxy.newProxyInstance(
                 getClass().getClassLoader(),
@@ -34,7 +43,32 @@ public class EmailVerificationServiceTest {
                     case "save" -> args[0];
                     default -> null;
                 });
-        service = new EmailVerificationService(studentRepository, teacherRepository, null, null);
+        AcademicUnitRepository academicUnitRepository = (AcademicUnitRepository) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{AcademicUnitRepository.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "findById" -> Optional.of(AcademicUnit.builder()
+                            .id((Long) args[0])
+                            .unitType(AcademicUnit.UnitType.DEPARTMENT)
+                            .nameBn("গণিত")
+                            .isActive(true)
+                            .build());
+                    default -> null;
+                });
+        AcademicSessionRepository academicSessionRepository = (AcademicSessionRepository) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{AcademicSessionRepository.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "findById" -> Optional.of(AcademicSession.builder()
+                            .id((Long) args[0])
+                            .nameBn("২০১৬-২০১৭")
+                            .nameEn("2016-2017")
+                            .isActive(true)
+                            .build());
+                    default -> null;
+                });
+        service = new EmailVerificationService(studentRepository, teacherRepository,
+                academicUnitRepository, academicSessionRepository, null, null);
     }
 
     private EmailVerificationInitRequest studentRequest(String email) {
@@ -43,9 +77,9 @@ public class EmailVerificationServiceTest {
         request.setName("Test Student");
         request.setEmail(email);
         request.setPassword("secret123");
-        request.setDepartment("CSE");
+        request.setDepartmentId(DEPT_ID);
         request.setRollNumber("1607041");
-        request.setSession("2016-17");
+        request.setSessionId(SESSION_ID);
         return request;
     }
 
@@ -55,7 +89,7 @@ public class EmailVerificationServiceTest {
         request.setName("Test Employee");
         request.setEmail(email);
         request.setPassword("secret123");
-        request.setDepartment("Admin");
+        request.setDepartmentId(DEPT_ID);
         request.setEmployeeId("EMP-1001");
         request.setDesignation("Officer");
         return request;

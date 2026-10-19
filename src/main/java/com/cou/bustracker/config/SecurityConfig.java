@@ -43,19 +43,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Allow all OPTIONS requests for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Public auth endpoints (register, login, google, email verification)
-                        .requestMatchers("/api/auth/student/register", "/api/auth/student/login").permitAll()
-                        .requestMatchers("/api/auth/teacher/register", "/api/auth/teacher/login").permitAll()
+                        // Public auth endpoints (login, google, email verification)
                         .requestMatchers("/api/auth/google/**").permitAll()
                         .requestMatchers("/api/auth/email-verification/**").permitAll()
                         .requestMatchers("/api/auth/email-login").permitAll()
-                        .requestMatchers("/api/auth/phone-verification/**").permitAll()
-                        .requestMatchers("/api/auth/forgot-password/**").permitAll()
                         .requestMatchers("/api/auth/forgot-password-email/**").permitAll()
-                        .requestMatchers("/api/debug/**").permitAll()
                         .requestMatchers("/api/auth/admin/login").permitAll()
                         // Public Flutter runtime config
                         .requestMatchers("/api/config", "/api/config/**").permitAll()
+                        // Public academic reference data for the registration pickers
+                        .requestMatchers("/api/academic/**").permitAll()
                         // Public super-admin login only; everything else under /api/super-admin requires SUPER_ADMIN
                         .requestMatchers("/api/super-admin/auth/login").permitAll()
                         // Protected auth endpoints (profile, academic details,

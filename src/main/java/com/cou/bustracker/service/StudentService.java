@@ -3,14 +3,17 @@ package com.cou.bustracker.service;
 import com.cou.bustracker.dto.request.StudentAcademicDetailsRequest;
 import com.cou.bustracker.dto.response.AuthResponse;
 import com.cou.bustracker.dto.response.StudentResponse;
+import com.cou.bustracker.entity.AcademicSession;
+import com.cou.bustracker.entity.AcademicUnit;
 import com.cou.bustracker.entity.Student;
 import com.cou.bustracker.exception.ApiException;
 import com.cou.bustracker.exception.ErrorCode;
 import com.cou.bustracker.exception.ResourceNotFoundException;
+import com.cou.bustracker.repository.AcademicSessionRepository;
+import com.cou.bustracker.repository.AcademicUnitRepository;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.security.JwtService;
-import com.cou.bustracker.util.PhoneUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,9 +25,8 @@ import java.util.stream.Collectors;
 
 /**
  * Student read/write operations used after the user has been verified by
- * {@link PhoneVerificationService}. Registration itself lives in the OTP
- * service — see {@code POST /api/auth/phone-verification/init}. Google
- * sign-in may also create a pending profile — see {@link #loginWithGoogle}.
+ * {@link EmailVerificationService}. Google sign-in may also create a pending
+ * profile — see {@link #loginWithGoogle}.
  */
 @Service
 @RequiredArgsConstructor
@@ -32,38 +34,12 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
+    private final AcademicUnitRepository academicUnitRepository;
+    private final AcademicSessionRepository academicSessionRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final GoogleTokenService googleTokenService;
     private final FileStorageService fileStorageService;
-
-    public AuthResponse loginWithPhone(String phone, String password) {
-        String normalized = PhoneUtils.normalizeBd(phone);
-        Student student = studentRepository.findByPhone(normalized)
-                .orElseThrow(() -> new RuntimeException("Student not found with this phone number"));
-        if (student.getPassword() == null || !passwordEncoder.matches(password, student.getPassword())) {
-            throw new BadCredentialsException("Invalid phone number or password");
-        }
-        if (!student.getIsActive()) {
-            throw new BadCredentialsException("Account is deactivated. Please contact admin.");
-        }
-        if (!student.getIsPhoneVerified()) {
-            throw new BadCredentialsException("Please verify your phone number before logging in");
-        }
-
-        String token = jwtService.generateToken(student.getPhone(), "STUDENT");
-
-        return AuthResponse.builder()
-                .accessToken(token)
-                .tokenType("Bearer")
-                .role("STUDENT")
-                .id(student.getId())
-                .name(student.getName())
-                .phone(student.getPhone())
-                .isVerified(isComplete(student))
-                .isPhoneVerified(student.getIsPhoneVerified())
-                .build();
-    }
 
     public AuthResponse loginWithEmail(String email, String password) {
         String normalizedEmail = email.trim().toLowerCase();
@@ -88,9 +64,7 @@ public class StudentService {
                 .id(student.getId())
                 .name(student.getName())
                 .email(student.getEmail())
-                .phone(student.getPhone())
                 .isVerified(isComplete(student))
-                .isPhoneVerified(student.getIsPhoneVerified())
                 .build();
     }
 
@@ -119,7 +93,6 @@ public class StudentService {
                     .googleSubject(identity.subject())
                     .isEmailVerified(true)
                     .isVerified(false)
-                    .isPhoneVerified(false)
                     .isActive(true)
                     .build());
         } else {
@@ -150,9 +123,7 @@ public class StudentService {
                 .id(student.getId())
                 .name(student.getName())
                 .email(student.getEmail())
-                .phone(student.getPhone())
                 .isVerified(isComplete(student))
-                .isPhoneVerified(student.getIsPhoneVerified())
                 .build();
     }
 
@@ -169,43 +140,61 @@ public class StudentService {
      * without: department, roll number and session. The app policy requires all
      * three before a student may use the system.
      *
+     * <p>Department and session are referenced by row id (fetched from the
+     * public academic reference endpoints). A student must pick a
+     * {@code DEPARTMENT} unit — offices are teacher-only.
+     *
      * <p>Every value is write-once — once a field holds a value it can only be
      * re-sent unchanged, so a roll number registered during sign-up can never
      * be swapped for another one. A roll number that already belongs to a
      * different account is rejected.
      *
-     * @param principal JWT subject (email for Google/email logins, phone otherwise)
+     * @param principal JWT subject (email for Google/e-mail logins)
      * @return the updated profile
      */
     @Transactional
     public StudentResponse updateAcademicDetails(String principal, StudentAcademicDetailsRequest request) {
         Student student = getStudentByPrincipal(principal);
 
-        String department = trimToNull(request.getDepartment());
+        Long departmentId = request.getDepartmentId();
         String rollNumber = trimToNull(request.getRollNumber());
-        String session = trimToNull(request.getSession());
+        Long sessionId = request.getSessionId();
 
-        requireValue(ErrorCode.DEPARTMENT_REQUIRED, department);
+        requireValue(ErrorCode.DEPARTMENT_REQUIRED, departmentId);
         requireValue(ErrorCode.ROLL_NUMBER_REQUIRED, rollNumber);
-        requireValue(ErrorCode.SESSION_REQUIRED, session);
+        requireValue(ErrorCode.SESSION_REQUIRED, sessionId);
+
+        AcademicUnit department = academicUnitRepository.findById(departmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+        // Students may only pick a teaching department, never an office.
+        if (department.getUnitType() != AcademicUnit.UnitType.DEPARTMENT
+                || !Boolean.TRUE.equals(department.getIsActive())) {
+            throw new ApiException(ErrorCode.DEPARTMENT_REQUIRED);
+        }
+
+        AcademicSession session = academicSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+        if (!Boolean.TRUE.equals(session.getIsActive())) {
+            throw new ApiException(ErrorCode.SESSION_REQUIRED);
+        }
 
         requireUnchanged(ErrorCode.DEPARTMENT_IMMUTABLE, student.getDepartment(), department);
-        requireUnchanged(ErrorCode.ROLL_NUMBER_IMMUTABLE, student.getRollNumber(), rollNumber);
         requireUnchanged(ErrorCode.SESSION_IMMUTABLE, student.getSession(), session);
+        requireUnchanged(ErrorCode.ROLL_NUMBER_IMMUTABLE, student.getRollNumber(), rollNumber);
 
         boolean changed = false;
-        if (isBlank(student.getDepartment())) {
+        if (student.getDepartment() == null) {
             student.setDepartment(department);
             changed = true;
         }
-        if (isBlank(student.getRollNumber())) {
+        if (student.getRollNumber() == null || student.getRollNumber().isBlank()) {
             if (studentRepository.existsByRollNumber(rollNumber)) {
                 throw new ApiException(ErrorCode.ROLL_ALREADY_REGISTERED);
             }
             student.setRollNumber(rollNumber);
             changed = true;
         }
-        if (isBlank(student.getSession())) {
+        if (student.getSession() == null) {
             student.setSession(session);
             changed = true;
         }
@@ -214,20 +203,16 @@ public class StudentService {
     }
 
     /** Write-once rule: a populated value may only be re-sent unchanged. */
-    private void requireUnchanged(ErrorCode errorCode, String current, String incoming) {
-        if (!isBlank(current) && !current.trim().equals(incoming)) {
+    private void requireUnchanged(ErrorCode errorCode, Object current, Object incoming) {
+        if (current != null && !current.equals(incoming)) {
             throw new ApiException(errorCode);
         }
     }
 
-    private void requireValue(ErrorCode errorCode, String value) {
+    private void requireValue(ErrorCode errorCode, Object value) {
         if (value == null) {
             throw new ApiException(errorCode);
         }
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 
     private static String trimToNull(String value) {
@@ -242,9 +227,8 @@ public class StudentService {
      * Every registered student, whatever their verification state.
      *
      * <p>These listings used to drop accounts with {@code isPhoneVerified = false},
-     * which silently hid every Google/e-mail sign-up from the admin panel (only the
-     * phone-OTP flow sets that flag). Verification is surfaced as a badge/filter in
-     * the UI instead, so nothing is filtered out here.
+     * which silently hid every Google/e-mail sign-up from the admin panel. Verification
+     * is surfaced as a badge/filter in the UI instead, so nothing is filtered out here.
      */
     public List<StudentResponse> getAllStudents() {
         return studentRepository.findAllByOrderByCreatedAtDesc()
@@ -292,28 +276,28 @@ public class StudentService {
         fileStorageService.deleteFile(imageUrl);
     }
 
-    public Student getStudentByPhone(String phone) {
-        return studentRepository.findByPhone(PhoneUtils.normalizeBd(phone))
+    /** Resolves a student from the JWT subject, which is an email. */
+    public Student getStudentByPrincipal(String principal) {
+        return studentRepository.findByEmail(principal)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
     }
 
-    /**
-     * Resolves a student from the JWT subject, which is a phone number for
-     * phone logins and an email for email/Google logins.
-     */
-    public Student getStudentByPrincipal(String principal) {
-        return studentRepository.findByPhoneOrEmail(principal)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+    public StudentResponse getProfile(String principal) {
+        return mapToResponse(getStudentByPrincipal(principal));
     }
 
     private StudentResponse mapToResponse(Student student) {
+        AcademicUnit department = student.getDepartment();
+        AcademicSession session = student.getSession();
         return StudentResponse.builder()
                 .id(student.getId())
                 .name(student.getName())
                 .email(student.getEmail())
                 .rollNumber(student.getRollNumber())
-                .department(student.getDepartment())
-                .session(student.getSession())
+                .department(department == null ? null : department.getNameBn())
+                .session(session == null ? null : session.getNameBn())
+                .departmentId(department == null ? null : department.getId())
+                .sessionId(session == null ? null : session.getId())
                 .idCardImageUrl(student.getIdCardImageUrl())
                 .isVerified(isComplete(student))
                 .isActive(student.getIsActive())
@@ -328,8 +312,8 @@ public class StudentService {
      * left untouched.
      */
     public static boolean isComplete(Student student) {
-        return !isBlank(student.getDepartment())
-                && !isBlank(student.getRollNumber())
-                && !isBlank(student.getSession());
+        return student.getDepartment() != null
+                && student.getRollNumber() != null && !student.getRollNumber().isBlank()
+                && student.getSession() != null;
     }
 }

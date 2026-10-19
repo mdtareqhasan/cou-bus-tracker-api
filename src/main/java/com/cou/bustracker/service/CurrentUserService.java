@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
  * Resolves the caller's database identity from the authenticated
  * {@link Authentication} set by {@code JwtAuthFilter}.
  *
- * <p>The JWT carries the user's email (or phone) as the subject and the role
+ * <p>The JWT carries the user's email as the subject and the role
  * as a {@code role} claim, which the filter turns into a
  * {@code ROLE_<role>} authority. This service maps that back to the concrete
  * student/teacher/admin row so controllers can act on the real user id.
@@ -43,12 +43,12 @@ public class CurrentUserService {
 
         Long userId = switch (role) {
             case "STUDENT" -> studentRepository
-                    .findByPhoneOrEmail(principal)
+                    .findByEmail(principal)
                     .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
                     .map(s -> s.getId())
                     .orElseThrow(() -> new UnauthorizedException("Student not found or inactive"));
             case "TEACHER" -> teacherRepository
-                    .findByPhoneOrEmail(principal)
+                    .findByEmail(principal)
                     .filter(t -> Boolean.TRUE.equals(t.getIsActive()))
                     .map(t -> t.getId())
                     .orElseThrow(() -> new UnauthorizedException("Teacher not found or inactive"));

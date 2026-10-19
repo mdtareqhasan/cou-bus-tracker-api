@@ -31,7 +31,9 @@ import java.util.Map;
  * <p>The whole {@code /api/auth/**} subtree is exempt: it holds the login, OTP
  * and password-reset flows (which must work for an incomplete profile — they
  * are how such a profile gets completed) as well as the profile read/update
- * endpoints the completion flow itself depends on. Guest-facing endpoints
+ * endpoints the completion flow itself depends on. {@code /api/academic/**}
+ * is exempt for the same reason: the department/office/session pickers are
+ * read on the completion screen itself. Guest-facing endpoints
  * ({@code /buses}, {@code /schedules}) carry no token and are unaffected;
  * {@code /notices/active} <em>is</em> authenticated (its audience filter
  * needs the caller's role), so an incomplete profile is held back there too.
@@ -48,6 +50,14 @@ public class ProfileCompletionInterceptor implements HandlerInterceptor {
 
     /** Account-lifecycle endpoints an incomplete profile may still use. */
     private static final String AUTH_PATH_PREFIX = "/api/auth/";
+
+    /**
+     * Public reference data an incomplete profile needs in order to complete
+     * itself: the department/office/session pickers are read on the very
+     * screen that fills in the missing academic details, so blocking them
+     * would deadlock the completion flow.
+     */
+    private static final String ACADEMIC_PATH_PREFIX = "/api/academic/";
 
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
@@ -71,7 +81,7 @@ public class ProfileCompletionInterceptor implements HandlerInterceptor {
         if (contextPath != null && !contextPath.isEmpty() && path.startsWith(contextPath)) {
             path = path.substring(contextPath.length());
         }
-        if (path.startsWith(AUTH_PATH_PREFIX)) {
+        if (path.startsWith(AUTH_PATH_PREFIX) || path.startsWith(ACADEMIC_PATH_PREFIX)) {
             return true;
         }
 
@@ -89,10 +99,10 @@ public class ProfileCompletionInterceptor implements HandlerInterceptor {
 
     /** @return {@code true} when department, roll number or session is missing */
     private boolean isIncompleteStudent(String principal) {
-        return studentRepository.findByPhoneOrEmail(principal)
-                .map(student -> isBlank(student.getDepartment())
+        return studentRepository.findByEmail(principal)
+                .map(student -> student.getDepartment() == null
                         || isBlank(student.getRollNumber())
-                        || isBlank(student.getSession()))
+                        || student.getSession() == null)
                 // Row resolved by JwtAuthFilter; if it vanished, let the request
                 // through and let the endpoint report the real problem.
                 .orElse(false);
@@ -100,8 +110,8 @@ public class ProfileCompletionInterceptor implements HandlerInterceptor {
 
     /** @return {@code true} when department, employee ID or designation is missing */
     private boolean isIncompleteTeacher(String principal) {
-        return teacherRepository.findByPhoneOrEmail(principal)
-                .map(teacher -> isBlank(teacher.getDepartment())
+        return teacherRepository.findByEmail(principal)
+                .map(teacher -> teacher.getDepartment() == null
                         || isBlank(teacher.getTeacherId())
                         || isBlank(teacher.getDesignation()))
                 .orElse(false);

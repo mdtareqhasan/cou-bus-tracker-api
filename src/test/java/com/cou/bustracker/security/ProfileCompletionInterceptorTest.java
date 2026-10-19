@@ -1,5 +1,7 @@
 package com.cou.bustracker.security;
 
+import com.cou.bustracker.entity.AcademicSession;
+import com.cou.bustracker.entity.AcademicUnit;
 import com.cou.bustracker.entity.Student;
 import com.cou.bustracker.entity.Teacher;
 import com.cou.bustracker.repository.StudentRepository;
@@ -61,7 +63,7 @@ public class ProfileCompletionInterceptorTest {
     @Test
     void incompleteStudent_onProtectedPath_isBlocked() throws Exception {
         authenticate("student@stud.cou.ac.bd", "STUDENT");
-        when(studentRepository.findByPhoneOrEmail("student@stud.cou.ac.bd"))
+        when(studentRepository.findByEmail("student@stud.cou.ac.bd"))
                 .thenReturn(Optional.of(Student.builder()
                         .email("student@stud.cou.ac.bd")
                         .department(null)
@@ -82,7 +84,7 @@ public class ProfileCompletionInterceptorTest {
     @Test
     void incompleteStudent_onAuthPath_isAllowed() throws Exception {
         authenticate("student@stud.cou.ac.bd", "STUDENT");
-        when(studentRepository.findByPhoneOrEmail("student@stud.cou.ac.bd"))
+        when(studentRepository.findByEmail("student@stud.cou.ac.bd"))
                 .thenReturn(Optional.of(Student.builder().email("student@stud.cou.ac.bd").build()));
         MockHttpServletRequest request = request("/api/auth/student/me");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -92,14 +94,26 @@ public class ProfileCompletionInterceptorTest {
     }
 
     @Test
+    void incompleteStudent_onAcademicReferencePath_isAllowed() throws Exception {
+        authenticate("student@stud.cou.ac.bd", "STUDENT");
+        when(studentRepository.findByEmail("student@stud.cou.ac.bd"))
+                .thenReturn(Optional.of(Student.builder().email("student@stud.cou.ac.bd").build()));
+        MockHttpServletRequest request = request("/api/academic/sessions");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertTrue(interceptor.preHandle(request, response, null));
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
     void completeStudent_isAllowed() throws Exception {
         authenticate("student@stud.cou.ac.bd", "STUDENT");
-        when(studentRepository.findByPhoneOrEmail("student@stud.cou.ac.bd"))
+        when(studentRepository.findByEmail("student@stud.cou.ac.bd"))
                 .thenReturn(Optional.of(Student.builder()
                         .email("student@stud.cou.ac.bd")
-                        .department("গণিত")
+                        .department(AcademicUnit.builder().id(3L).nameBn("গণিত").build())
                         .rollNumber("190345")
-                        .session("2019-2020")
+                        .session(AcademicSession.builder().id(9L).nameEn("2019-2020").build())
                         .build()));
         MockHttpServletRequest request = request("/api/notifications/fcm-token");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -111,10 +125,10 @@ public class ProfileCompletionInterceptorTest {
     @Test
     void incompleteTeacher_onProtectedPath_isBlocked() throws Exception {
         authenticate("teacher@cou.ac.bd", "TEACHER");
-        when(teacherRepository.findByPhoneOrEmail("teacher@cou.ac.bd"))
+        when(teacherRepository.findByEmail("teacher@cou.ac.bd"))
                 .thenReturn(Optional.of(Teacher.builder()
                         .email("teacher@cou.ac.bd")
-                        .department("গণিত")
+                        .department(AcademicUnit.builder().id(3L).nameBn("গণিত").build())
                         .teacherId(null)
                         .designation(null)
                         .build()));

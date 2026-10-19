@@ -2,11 +2,16 @@ package com.cou.bustracker.service;
 
 import com.cou.bustracker.dto.request.EmailVerificationInitRequest;
 import com.cou.bustracker.dto.response.AuthResponse;
+import com.cou.bustracker.entity.AcademicSession;
+import com.cou.bustracker.entity.AcademicUnit;
 import com.cou.bustracker.entity.EmailVerificationOtp.UserRole;
 import com.cou.bustracker.entity.Student;
 import com.cou.bustracker.entity.Teacher;
 import com.cou.bustracker.exception.ApiException;
 import com.cou.bustracker.exception.ErrorCode;
+import com.cou.bustracker.exception.ResourceNotFoundException;
+import com.cou.bustracker.repository.AcademicSessionRepository;
+import com.cou.bustracker.repository.AcademicUnitRepository;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
 import com.cou.bustracker.security.JwtService;
@@ -21,6 +26,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Placeholder service while the real email verification flow is being built.
  * The password is validated, a dummy OTP is accepted, and then the user is created.
+ *
+ * <p>Department and session are submitted as row ids (fetched from the public
+ * academic reference endpoints) and resolved to entities here.
  */
 @Service
 @RequiredArgsConstructor
@@ -29,6 +37,8 @@ public class EmailVerificationService {
 
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
+    private final AcademicUnitRepository academicUnitRepository;
+    private final AcademicSessionRepository academicSessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
@@ -39,8 +49,8 @@ public class EmailVerificationService {
         validateRequest(request);
         String key = key(request.getEmail(), request.getRole());
         pendingRegistrations.put(key, request);
-        log.info("[DUMMY EMAIL VERIFICATION] initRegistration role={} email={} name={} department={}",
-                request.getRole(), request.getEmail(), request.getName(), request.getDepartment());
+        log.info("[DUMMY EMAIL VERIFICATION] initRegistration role={} email={} name={} departmentId={}",
+                request.getRole(), request.getEmail(), request.getName(), request.getDepartmentId());
         // TODO: persist OTP row and send email.
     }
 
@@ -81,20 +91,24 @@ public class EmailVerificationService {
         if (!isAllowedEmailDomain) {
             throw new ApiException(ErrorCode.EMAIL_DOMAIN_NOT_ALLOWED);
         }
-        if (request.getDepartment() == null || request.getDepartment().isBlank()) {
+        if (request.getDepartmentId() == null) {
             throw new ApiException(ErrorCode.DEPARTMENT_REQUIRED);
         }
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new ApiException(ErrorCode.PASSWORD_REQUIRED);
         }
 
+        // The referenced unit must exist and be active.
+        resolveActiveUnit(request.getDepartmentId());
+
         if (request.getRole() == UserRole.STUDENT) {
             if (request.getRollNumber() == null || request.getRollNumber().isBlank()) {
                 throw new ApiException(ErrorCode.ROLL_NUMBER_REQUIRED);
             }
-            if (request.getSession() == null || request.getSession().isBlank()) {
+            if (request.getSessionId() == null) {
                 throw new ApiException(ErrorCode.SESSION_REQUIRED);
             }
+            resolveActiveSession(request.getSessionId());
             if (studentRepository.existsByEmail(normalizedEmail)) {
                 throw new ApiException(ErrorCode.STUDENT_EMAIL_EXISTS);
             }
@@ -114,17 +128,34 @@ public class EmailVerificationService {
         }
     }
 
+    private AcademicUnit resolveActiveUnit(Long departmentId) {
+        AcademicUnit unit = academicUnitRepository.findById(departmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+        if (!Boolean.TRUE.equals(unit.getIsActive())) {
+            throw new ApiException(ErrorCode.DEPARTMENT_REQUIRED);
+        }
+        return unit;
+    }
+
+    private AcademicSession resolveActiveSession(Long sessionId) {
+        AcademicSession session = academicSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+        if (!Boolean.TRUE.equals(session.getIsActive())) {
+            throw new ApiException(ErrorCode.SESSION_REQUIRED);
+        }
+        return session;
+    }
+
     private AuthResponse createStudent(EmailVerificationInitRequest request) {
         Student student = Student.builder()
                 .name(request.getName())
                 .email(request.getEmail().toLowerCase())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .rollNumber(request.getRollNumber())
-                .department(request.getDepartment())
-                .session(request.getSession())
+                .department(resolveActiveUnit(request.getDepartmentId()))
+                .session(resolveActiveSession(request.getSessionId()))
                 .isVerified(true)
                 .isEmailVerified(true)
-                .isPhoneVerified(false)
                 .isActive(true)
                 .build();
 
@@ -137,7 +168,6 @@ public class EmailVerificationService {
                 .name(student.getName())
                 .email(student.getEmail())
                 .isVerified(true)
-                .isPhoneVerified(false)
                 .build();
     }
 
@@ -148,10 +178,9 @@ public class EmailVerificationService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .teacherId(request.getEmployeeId())
                 .designation(request.getDesignation())
-                .department(request.getDepartment())
+                .department(resolveActiveUnit(request.getDepartmentId()))
                 .isVerified(true)
                 .isEmailVerified(true)
-                .isPhoneVerified(false)
                 .isActive(true)
                 .build();
 
@@ -164,7 +193,6 @@ public class EmailVerificationService {
                 .name(teacher.getName())
                 .email(teacher.getEmail())
                 .isVerified(true)
-                .isPhoneVerified(false)
                 .build();
     }
 

@@ -37,9 +37,8 @@ public class EmailVerificationInitRequest {
             message = "Roll number must be 2-50 characters")
     private String rollNumber;
 
-    @Pattern(regexp = "^([0-9]{1,2}|[0-9]{4}(-[0-9]{2,4})?)$",
-            message = "Enter a valid session (e.g. 16, 2020, 2021-22, or 2020-2024)")
-    private String session;
+    /** FK into academic_sessions. */
+    private Long sessionId;
 
     // ---- Employee-only fields ----
     /** Accepted as employeeId in the API, mapped to existing teachers.teacher_id. */
@@ -50,7 +49,6 @@ public class EmailVerificationInitRequest {
     @Size(max = 100, message = "Designation must be at most 100 characters")
     private String designation;
 
-    @NotBlank(message = "Department is required")
-    @Size(min = 2, max = 100, message = "Department must be 2 to 100 characters")
-    private String department;
+    /** FK into academic_units (DEPARTMENT for students, either kind for teachers). */
+    private Long departmentId;
 }

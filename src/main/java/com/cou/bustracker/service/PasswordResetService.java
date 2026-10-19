@@ -1,16 +1,13 @@
 package com.cou.bustracker.service;
 
-import com.cou.bustracker.entity.PhoneVerificationOtp.UserRole;
 import com.cou.bustracker.entity.EmailVerificationOtp;
 import com.cou.bustracker.entity.Student;
 import com.cou.bustracker.entity.Teacher;
 import com.cou.bustracker.exception.ApiException;
 import com.cou.bustracker.exception.ErrorCode;
-import com.cou.bustracker.repository.PhoneVerificationOtpRepository;
 import com.cou.bustracker.repository.EmailVerificationOtpRepository;
 import com.cou.bustracker.repository.StudentRepository;
 import com.cou.bustracker.repository.TeacherRepository;
-import com.cou.bustracker.util.PhoneUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,130 +18,29 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 
+/**
+ * Forgot-password flow, e-mail only.
+ *
+ * <p>The earlier phone/SMS variant was removed along with the rest of the
+ * phone vertical: SMS registration is dead (the app is Google-only, and
+ * e-mail registration never collected a phone), so no account can hold a
+ * phone number to reset against.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class PasswordResetService {
 
     private static final int MAX_FAILED_ATTEMPTS = 5;
+
+    private final EmailVerificationOtpRepository emailOtpRepository;
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
-    private final PhoneVerificationOtpRepository otpRepository;
-    private final EmailVerificationOtpRepository emailOtpRepository;
-    private final SmsService smsService;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    @Value("${app.phone-verification.otp-expiry-minutes:2}")
+    @Value("${app.email-verification.otp-expiry-minutes:10}")
     private long expiryMinutes;
-
-    @Value("${app.sms.allow-soft-fail:true}")
-    private boolean allowSoftFail;
-
-    /**
-     * Step 1: Send OTP for password reset.
-     * Validates that the phone exists in the appropriate table.
-     */
-    public void sendResetOtp(String rawPhone, String role) {
-        String phone = PhoneUtils.normalizeBd(rawPhone);
-        UserRole userRole = parseRole(role);
-
-        // Check if user exists
-        if (userRole == UserRole.STUDENT) {
-            if (!studentRepository.existsByPhone(phone)) {
-                throw new ApiException(ErrorCode.NO_STUDENT_WITH_PHONE);
-            }
-        } else {
-            if (!teacherRepository.existsByPhone(phone)) {
-                throw new ApiException(ErrorCode.NO_TEACHER_WITH_PHONE);
-            }
-        }
-
-        // Generate and send OTP (reuse the phone_verification_otps table)
-        String otp = "%06d".formatted(secureRandom.nextInt(1_000_000));
-        var existing = otpRepository.findByPhoneAndUserRole(phone, userRole).orElse(null);
-
-        var record = existing == null
-                ? com.cou.bustracker.entity.PhoneVerificationOtp.builder()
-                        .phone(phone)
-                        .userRole(userRole)
-                        .createdAt(LocalDateTime.now())
-                        .build()
-                : existing;
-
-        record.setOtpHash(passwordEncoder.encode(otp));
-        record.setExpiresAt(LocalDateTime.now().plusMinutes(expiryMinutes));
-        record.setLastSentAt(LocalDateTime.now());
-        record.setFailedAttempts(0);
-        // Clear any pending registration data since this is a password reset
-        record.setPendingRegistrationJson(null);
-        record.setPendingIdCardUrl(null);
-        otpRepository.save(record);
-
-        log.info("Password reset OTP for phone={} role={} -> [DEV] OTP: {}", phone, userRole, otp);
-
-        boolean sent = smsService.sendOtpSms(phone, otp);
-        if (!sent && !allowSoftFail) {
-            throw new IllegalStateException("Failed to send OTP SMS. Please try again.");
-        }
-
-        log.info("Password reset OTP sent to {} (expires in {} min)", phone, expiryMinutes);
-    }
-
-    /**
-     * Step 2: Verify OTP and reset password.
-     */
-    @Transactional
-    public void verifyAndResetPassword(String rawPhone, String role, String otp, String newPassword) {
-        String phone = PhoneUtils.normalizeBd(rawPhone);
-        UserRole userRole = parseRole(role);
-
-        var record = otpRepository.findByPhoneAndUserRole(phone, userRole)
-                .orElseThrow(() -> new ApiException(ErrorCode.OTP_NOT_FOUND));
-
-        if (record.getExpiresAt().isBefore(LocalDateTime.now())) {
-            otpRepository.delete(record);
-            throw new ApiException(ErrorCode.OTP_EXPIRED);
-        }
-
-        if (record.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
-            otpRepository.delete(record);
-            throw new ApiException(ErrorCode.OTP_TOO_MANY_ATTEMPTS);
-        }
-
-        if (!passwordEncoder.matches(otp, record.getOtpHash())) {
-            record.setFailedAttempts(record.getFailedAttempts() + 1);
-            otpRepository.save(record);
-            throw new ApiException(ErrorCode.OTP_INVALID);
-        }
-
-        // OTP verified — reset password
-        if (newPassword == null || newPassword.isBlank()) {
-            throw new ApiException(ErrorCode.NEW_PASSWORD_REQUIRED);
-        }
-        if (newPassword.length() < 6) {
-            throw new ApiException(ErrorCode.PASSWORD_TOO_SHORT);
-        }
-
-        String encodedPassword = passwordEncoder.encode(newPassword);
-
-        if (userRole == UserRole.STUDENT) {
-            Student student = studentRepository.findByPhone(phone)
-                    .orElseThrow(() -> new ApiException(ErrorCode.STUDENT_NOT_FOUND));
-            student.setPassword(encodedPassword);
-            studentRepository.save(student);
-        } else {
-            Teacher teacher = teacherRepository.findByPhone(phone)
-                    .orElseThrow(() -> new ApiException(ErrorCode.TEACHER_NOT_FOUND));
-            teacher.setPassword(encodedPassword);
-            teacherRepository.save(teacher);
-        }
-
-        // Delete OTP record after successful reset
-        otpRepository.delete(record);
-
-        log.info("Password reset successful for phone={} role={}", phone, userRole);
-    }
 
     public void sendResetEmailOtp(String rawEmail, String role) {
         String email = rawEmail.trim().toLowerCase();
@@ -239,17 +135,6 @@ public class PasswordResetService {
             return EmailVerificationOtp.UserRole.valueOf(role.toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new ApiException(ErrorCode.INVALID_ROLE, "Invalid role. Must be STUDENT or EMPLOYEE");
-        }
-    }
-
-    private UserRole parseRole(String role) {
-        if (role == null || role.isBlank()) {
-            throw new ApiException(ErrorCode.ROLE_REQUIRED);
-        }
-        try {
-            return UserRole.valueOf(role.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new ApiException(ErrorCode.INVALID_ROLE, "Invalid role. Must be STUDENT or TEACHER");
         }
     }
 }

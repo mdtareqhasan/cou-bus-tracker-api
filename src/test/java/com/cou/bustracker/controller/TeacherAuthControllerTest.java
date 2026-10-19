@@ -37,9 +37,9 @@ public class TeacherAuthControllerTest {
                         .principal(new UsernamePasswordAuthenticationToken("teacher@cou.ac.bd", null))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
-                        .content("{\"department\":\"গণিত\",\"employeeId\":\"T-1024\",\"designation\":\"অধ্যাপক\"}"))
+                        .content("{\"departmentId\":3,\"employeeId\":\"T-1024\",\"designation\":\"অধ্যাপক\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.department").value("গণিত"))
+                .andExpect(jsonPath("$.departmentId").value(3))
                 .andExpect(jsonPath("$.teacherId").value("T-1024"))
                 .andExpect(jsonPath("$.designation").value("অধ্যাপক"));
     }
@@ -49,7 +49,7 @@ public class TeacherAuthControllerTest {
         mockMvc.perform(put("/api/auth/teacher/academic")
                         .principal(new UsernamePasswordAuthenticationToken("teacher@cou.ac.bd", null))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"department\":\"গণিত\",\"employeeId\":\"T-1024\"}"))
+                        .content("{\"departmentId\":3,\"employeeId\":\"T-1024\"}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -58,7 +58,7 @@ public class TeacherAuthControllerTest {
         mockMvc.perform(put("/api/auth/teacher/academic")
                         .principal(new UsernamePasswordAuthenticationToken("teacher@cou.ac.bd", null))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"department\":\"গণিত\",\"designation\":\"অধ্যাপক\"}"))
+                        .content("{\"departmentId\":3,\"designation\":\"অধ্যাপক\"}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -67,14 +67,23 @@ public class TeacherAuthControllerTest {
         mockMvc.perform(put("/api/auth/teacher/academic")
                         .principal(new UsernamePasswordAuthenticationToken("teacher@cou.ac.bd", null))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"department\":\"গণিত\",\"employeeId\":\"T 10!\",\"designation\":\"অধ্যাপক\"}"))
+                        .content("{\"departmentId\":3,\"employeeId\":\"T 10!\",\"designation\":\"অধ্যাপক\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateAcademicDetails_missingDepartment_shouldReturnBadRequest() throws Exception {
+        mockMvc.perform(put("/api/auth/teacher/academic")
+                        .principal(new UsernamePasswordAuthenticationToken("teacher@cou.ac.bd", null))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"employeeId\":\"T-1024\",\"designation\":\"অধ্যাপক\"}"))
                 .andExpect(status().isBadRequest());
     }
 
     /** Echoes the submitted details back, exactly as the real service does. */
     static class StubTeacherService extends TeacherService {
         StubTeacherService() {
-            super(null, null, null, null, null, null);
+            super(null, null, null, null, null, null, null);
         }
 
         @Override
@@ -83,7 +92,7 @@ public class TeacherAuthControllerTest {
                     .id(1L)
                     .name("Teacher")
                     .email(principal)
-                    .department(request.getDepartment())
+                    .departmentId(request.getDepartmentId())
                     .teacherId(request.getEmployeeId())
                     .designation(request.getDesignation())
                     .isVerified(false)

@@ -49,7 +49,8 @@ public class StudentServiceGoogleLoginTest {
                 return "jwt-token";
             }
         };
-        return new StudentService(studentRepository, teacherRepository, jwtService, null, googleTokenService, null);
+        return new StudentService(studentRepository, teacherRepository, null, null,
+                jwtService, null, googleTokenService, null);
     }
 
     @Test

@@ -74,7 +74,7 @@ public class GoogleAuthControllerTest {
 
     static class StubStudentService extends StudentService {
         StubStudentService() {
-            super(null, null, null, null, null, null);
+            super(null, null, null, null, null, null, null, null);
         }
 
         @Override
@@ -92,7 +92,7 @@ public class GoogleAuthControllerTest {
 
     static class StubTeacherService extends TeacherService {
         StubTeacherService() {
-            super(null, null, null, null, null, null);
+            super(null, null, null, null, null, null, null);
         }
 
         @Override

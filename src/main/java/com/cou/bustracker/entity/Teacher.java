@@ -24,10 +24,7 @@ public class Teacher {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(unique = true, length = 20)
-    private String phone;
-
-    /** Null for Google-only accounts; set for OTP-registered accounts. */
+    /** Null for Google-only accounts; set for e-mail-registered accounts. */
     @Column
     private String password;
 
@@ -50,16 +47,18 @@ public class Teacher {
     @Column(name = "designation", length = 100)
     private String designation;
 
-    @Column(name = "department", length = 100)
-    private String department;
+    /**
+     * Where the teacher works — either a {@code DEPARTMENT} unit (teaching
+     * staff) or an {@code OFFICE} unit (administrative staff). Null until
+     * academic details are completed — Google Sign-In creates the row first.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private AcademicUnit department;
 
     @Column(name = "is_verified")
     @Builder.Default
     private Boolean isVerified = false;
-
-    @Column(name = "is_phone_verified")
-    @Builder.Default
-    private Boolean isPhoneVerified = false;
 
     @Column(name = "is_active")
     @Builder.Default

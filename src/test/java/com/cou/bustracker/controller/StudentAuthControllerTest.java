@@ -18,6 +18,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * {@code PUT /api/auth/student/academic} — the endpoint the app uses after
  * Google Sign-In, when the student row was created without academic details.
+ *
+ * <p>Department and session are submitted as row ids (fetched from the public
+ * academic reference endpoints).
  */
 public class StudentAuthControllerTest {
 
@@ -37,11 +40,11 @@ public class StudentAuthControllerTest {
                         .principal(new UsernamePasswordAuthenticationToken("student@stud.cou.ac.bd", null))
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
-                        .content("{\"department\":\"গণিত\",\"rollNumber\":\"190345\",\"session\":\"2019-2020\"}"))
+                        .content("{\"departmentId\":3,\"rollNumber\":\"190345\",\"sessionId\":9}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.department").value("গণিত"))
+                .andExpect(jsonPath("$.departmentId").value(3))
                 .andExpect(jsonPath("$.rollNumber").value("190345"))
-                .andExpect(jsonPath("$.session").value("2019-2020"));
+                .andExpect(jsonPath("$.sessionId").value(9));
     }
 
     @Test
@@ -49,7 +52,7 @@ public class StudentAuthControllerTest {
         mockMvc.perform(put("/api/auth/student/academic")
                         .principal(new UsernamePasswordAuthenticationToken("student@stud.cou.ac.bd", null))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"rollNumber\":\"190345\",\"session\":\"2019-2020\"}"))
+                        .content("{\"rollNumber\":\"190345\",\"sessionId\":9}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -58,23 +61,23 @@ public class StudentAuthControllerTest {
         mockMvc.perform(put("/api/auth/student/academic")
                         .principal(new UsernamePasswordAuthenticationToken("student@stud.cou.ac.bd", null))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"department\":\"গণিত\",\"rollNumber\":\"roll 19!\",\"session\":\"2019-2020\"}"))
+                        .content("{\"departmentId\":3,\"rollNumber\":\"roll 19!\",\"sessionId\":9}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void updateAcademicDetails_invalidSession_shouldReturnBadRequest() throws Exception {
+    void updateAcademicDetails_missingSession_shouldReturnBadRequest() throws Exception {
         mockMvc.perform(put("/api/auth/student/academic")
                         .principal(new UsernamePasswordAuthenticationToken("student@stud.cou.ac.bd", null))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"department\":\"গণিত\",\"rollNumber\":\"190345\",\"session\":\"২০১৯\"}"))
+                        .content("{\"departmentId\":3,\"rollNumber\":\"190345\"}"))
                 .andExpect(status().isBadRequest());
     }
 
     /** Echoes the submitted details back, exactly as the real service does. */
     static class StubStudentService extends StudentService {
         StubStudentService() {
-            super(null, null, null, null, null, null);
+            super(null, null, null, null, null, null, null, null);
         }
 
         @Override
@@ -83,9 +86,9 @@ public class StudentAuthControllerTest {
                     .id(1L)
                     .name("Student")
                     .email(principal)
-                    .department(request.getDepartment())
+                    .departmentId(request.getDepartmentId())
                     .rollNumber(request.getRollNumber())
-                    .session(request.getSession())
+                    .sessionId(request.getSessionId())
                     .isVerified(false)
                     .build();
         }

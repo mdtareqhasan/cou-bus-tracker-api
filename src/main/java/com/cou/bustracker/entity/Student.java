@@ -24,10 +24,7 @@ public class Student {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(unique = true, length = 20)
-    private String phone;
-
-    /** Null for Google-only accounts; set for OTP-registered accounts. */
+    /** Null for Google-only accounts; set for e-mail-registered accounts. */
     @Column
     private String password;
 
@@ -38,11 +35,18 @@ public class Student {
     @Column(name = "roll_number", length = 50)
     private String rollNumber;
 
-    @Column(length = 100)
-    private String department;
+    /**
+     * The student's department (always a {@code DEPARTMENT} unit). Null until
+     * academic details are completed — Google Sign-In creates the row first.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private AcademicUnit department;
 
-    @Column(name = "session", length = 20)
-    private String session;
+    /** Null until academic details are completed. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id")
+    private AcademicSession session;
 
     @Column(length = 150)
     private String email;
@@ -57,10 +61,6 @@ public class Student {
     @Column(name = "is_verified")
     @Builder.Default
     private Boolean isVerified = false;
-
-    @Column(name = "is_phone_verified")
-    @Builder.Default
-    private Boolean isPhoneVerified = false;
 
     @Column(name = "is_active")
     @Builder.Default

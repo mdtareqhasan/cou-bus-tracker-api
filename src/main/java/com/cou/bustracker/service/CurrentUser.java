@@ -6,9 +6,7 @@ package com.cou.bustracker.service;
  * @param userId the database id of the resolved student/teacher/admin
  * @param role   the JWT role claim, e.g. {@code STUDENT}, {@code TEACHER},
  *               {@code ADMIN}, {@code SUPER_ADMIN}
- * @param email  the authenticated principal (email). Students/teachers may
- *               authenticate with a phone instead, in which case this holds
- *               the phone value.
+ * @param email  the authenticated principal (email)
  */
 public record CurrentUser(Long userId, String role, String email) {
 }
