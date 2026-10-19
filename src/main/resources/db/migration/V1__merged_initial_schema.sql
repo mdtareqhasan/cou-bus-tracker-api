@@ -1,10 +1,12 @@
--- CoU Bus Tracker - consolidated bootstrap schema
+-- CoU Bus Tracker - consolidated bootstrap schema (V1)
 --
--- Use this file only for a fresh PostgreSQL database. It represents the
--- final schema after V1..V26; it is not intended to be run against a database
--- that has already been migrated by Flyway.
-
-BEGIN;
+-- This is the project's single Flyway migration. It replaces the former
+-- V1..V26 chain and represents the final schema those migrations produced
+-- (tables, indexes, constraints) plus all seed data. It only applies to a
+-- fresh, empty PostgreSQL database — a database already migrated by the old
+-- chain must be wiped (including flyway_schema_history) before this runs.
+--
+-- No BEGIN/COMMIT here: Flyway runs each migration in its own transaction.
 
 -- --------------------------------------------------------------------------
 -- Core transport tables
@@ -124,7 +126,6 @@ CREATE TABLE teachers (
 );
 
 COMMENT ON COLUMN students.roll_number IS 'University roll number from ID card (e.g., 12208055)';
-COMMENT ON COLUMN students.session IS 'Academic session from ID card (e.g., 2021-22)';
 
 CREATE UNIQUE INDEX uk_students_email ON students(email) WHERE email IS NOT NULL;
 CREATE UNIQUE INDEX uk_teachers_email ON teachers(email) WHERE email IS NOT NULL;
@@ -279,5 +280,3 @@ INSERT INTO app_config (config_key, config_value, description) VALUES
 ('play_store_url', 'https://play.google.com/store/apps/details?id=com.cou.bustracker', 'Play Store URL'),
 ('maintenance_mode', 'false', 'Whether the app is in maintenance mode'),
 ('maintenance_message', 'অ্যাপটি রক্ষণাবেক্ষণে আছে। শীঘ্রই ফিরে আসছি।', 'Bengali maintenance message');
-
-COMMIT;
