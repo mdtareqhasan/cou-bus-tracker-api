@@ -143,7 +143,7 @@ public class NotificationDispatcher {
                 log.info("Pushing schedule {} ({}) to {} {} device(s) in {}: {}",
                         event.scheduleId(), event.action(), batch.size(), audience, locale, title);
 
-                sendInBatches(batch, title, body);
+                sendInBatches(batch, title, body, scheduleRoute(event));
             }
         } catch (Exception e) {
             // Deliberately swallowed: the schedule write already succeeded and
@@ -194,7 +194,7 @@ public class NotificationDispatcher {
 
                 log.info("Pushing notice {} to {} {} device(s): {}",
                         event.noticeId(), tokens.size(), audience, title);
-                sendInBatches(tokens, title, body);
+                sendInBatches(tokens, title, body, "/notices");
             }
         } catch (Exception e) {
             // Deliberately swallowed: the notice write already succeeded and
@@ -221,12 +221,26 @@ public class NotificationDispatcher {
     }
 
     /** Splits tokens into FCM-sized batches and fires one async send per batch. */
-    private void sendInBatches(List<String> tokens, String title, String body) {
+    private void sendInBatches(List<String> tokens, String title, String body, String route) {
         for (int from = 0; from < tokens.size(); from += FcmService.MAX_BATCH_SIZE) {
             int to = Math.min(from + FcmService.MAX_BATCH_SIZE, tokens.size());
-            fcmService.sendEachAsync(List.copyOf(tokens.subList(from, to)), title, body,
+            fcmService.sendEachAsync(List.copyOf(tokens.subList(from, to)), title, body, route,
                     fcmTokenService::pruneUnregisteredTokens);
         }
+    }
+
+    /**
+     * In-app destination for a schedule push: the bus detail page with the
+     * changed trip highlighted. The {@code scheduleId} is a query hint, not a
+     * hard requirement — if the trip was deleted the bus page still renders and
+     * simply ignores the id.
+     */
+    private static String scheduleRoute(ScheduleChangedEvent event) {
+        if (event.busId() == null) {
+            return null;
+        }
+        String route = "/bus/" + event.busId();
+        return event.scheduleId() != null ? route + "?scheduleId=" + event.scheduleId() : route;
     }
 
     /**

@@ -52,10 +52,14 @@ public class FcmService {
      * to {@code onUnregistered} so the caller can prune them.
      *
      * @param tokens         1..{@link #MAX_BATCH_SIZE} registration tokens
+     * @param route          optional in-app deep-link path (e.g.
+     *                       {@code /bus/3?scheduleId=9}) carried as the FCM
+     *                       {@code data["route"]} value; {@code null}/blank
+     *                       sends a notification with no navigation payload
      * @param onUnregistered receives tokens that no longer exist on FCM's side
      *                       (may be called with an empty list — check first)
      */
-    public void sendEachAsync(List<String> tokens, String title, String body,
+    public void sendEachAsync(List<String> tokens, String title, String body, String route,
                               Consumer<List<String>> onUnregistered) {
         if (tokens == null || tokens.isEmpty()) {
             return;
@@ -67,13 +71,20 @@ public class FcmService {
 
         List<Message> messages = new ArrayList<>(tokens.size());
         for (String token : tokens) {
-            messages.add(Message.builder()
+            Message.Builder builder = Message.builder()
                     .setToken(token)
                     .setNotification(Notification.builder()
                             .setTitle(title)
                             .setBody(body)
-                            .build())
-                    .build());
+                            .build());
+            // The `data` map rides alongside the tray notification so the app
+            // can deep-link on tap (onMessageOpenedApp / getInitialMessage).
+            // Without a route there is nothing to navigate to, so the map is
+            // only attached when a destination exists.
+            if (route != null && !route.isBlank()) {
+                builder.putData("route", route);
+            }
+            messages.add(builder.build());
         }
 
         ApiFuture<BatchResponse> future = firebaseMessaging.sendEachAsync(messages);

@@ -36,8 +36,14 @@ import static org.mockito.Mockito.when;
  */
 class NotificationDispatcherTest {
 
-    /** One send as the dispatcher issued it: tokens + rendered text. */
-    private record Send(List<String> tokens, String title, String body) {
+    /**
+     * The {@code event()} fixture below uses busId=1 and scheduleId=1, so every
+     * schedule push must deep-link to that bus page with the trip highlighted.
+     */
+    private static final String SCHEDULE_ROUTE = "/bus/1?scheduleId=1";
+
+    /** One send as the dispatcher issued it: tokens + rendered text + route. */
+    private record Send(List<String> tokens, String title, String body, String route) {
     }
 
     /** Captures {@code sendEachAsync} calls instead of talking to FCM. */
@@ -49,9 +55,9 @@ class NotificationDispatcherTest {
         }
 
         @Override
-        public void sendEachAsync(List<String> tokens, String title, String body,
+        public void sendEachAsync(List<String> tokens, String title, String body, String route,
                                   Consumer<List<String>> onUnregistered) {
-            sends.add(new Send(tokens, title, body));
+            sends.add(new Send(tokens, title, body, route));
         }
     }
 
@@ -81,10 +87,12 @@ class NotificationDispatcherTest {
         assertEquals(List.of(
                 new Send(List.of("bn-token-1", "bn-token-2"),
                         "নতুন সময়সূচি: BUS 03",
-                        "BUS 03 · সিওই ব্লু · BLUE · কান্দিরপাড় → ক্যাম্পাস · নতুন ফেরি 7:00 AM থেকে ছাড়ছে (SUN-THU)।"),
+                        "BUS 03 · সিওই ব্লু · BLUE · কান্দিরপাড় → ক্যাম্পাস · নতুন ফেরি 7:00 AM থেকে ছাড়ছে (SUN-THU)।",
+                        SCHEDULE_ROUTE),
                 new Send(List.of("en-token-1"),
                         "New schedule: BUS 03",
-                        "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · New trip departs 7:00 AM (SUN-THU).")),
+                        "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · New trip departs 7:00 AM (SUN-THU).",
+                        SCHEDULE_ROUTE)),
                 fcmService.sends);
     }
 
@@ -102,11 +110,13 @@ class NotificationDispatcherTest {
                 new Send(List.of("bn-token"),
                         "সময়সূচি হালনাগাদ: BUS 03",
                         "BUS 03 · সিওই ব্লু · BLUE · কান্দিরপাড় → ক্যাম্পাস · "
-                                + "এখন 7:15 AM এ ছাড়ছে (আগে 7:00 AM)। বাসের নাম এখন “COU Blue”।"),
+                                + "এখন 7:15 AM এ ছাড়ছে (আগে 7:00 AM)। বাসের নাম এখন “COU Blue”।",
+                        SCHEDULE_ROUTE),
                 new Send(List.of("en-token"),
                         "Schedule updated: BUS 03",
                         "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · "
-                                + "Now departs at 7:15 AM (was 7:00 AM). Bus name is now “COU Blue”.")),
+                                + "Now departs at 7:15 AM (was 7:00 AM). Bus name is now “COU Blue”.",
+                        SCHEDULE_ROUTE)),
                 fcmService.sends);
     }
 
@@ -121,7 +131,8 @@ class NotificationDispatcherTest {
         assertEquals(List.of(new Send(
                 List.of("legacy-token"),
                 "Service paused: BUS 03",
-                "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · Paused (was departing 7:00 AM (SUN-THU)).")),
+                "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · Paused (was departing 7:00 AM (SUN-THU)).",
+                SCHEDULE_ROUTE)),
                 fcmService.sends);
     }
 
@@ -135,7 +146,8 @@ class NotificationDispatcherTest {
         assertEquals(List.of(new Send(
                 List.of("en-token"),
                 "Schedule removed: BUS 03",
-                "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · No longer runs (was departing 7:00 AM (SUN-THU)).")),
+                "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · No longer runs (was departing 7:00 AM (SUN-THU)).",
+                SCHEDULE_ROUTE)),
                 fcmService.sends);
     }
 
@@ -178,9 +190,9 @@ class NotificationDispatcherTest {
 
         assertEquals(List.of(
                 new Send(List.of("student-token"),
-                        "Semester break notice", "Campus closed Friday."),
+                        "Semester break notice", "Campus closed Friday.", "/notices"),
                 new Send(List.of("teacher-token"),
-                        "Semester break notice", "Campus closed Friday.")),
+                        "Semester break notice", "Campus closed Friday.", "/notices")),
                 fcmService.sends);
     }
 
@@ -192,7 +204,7 @@ class NotificationDispatcherTest {
         dispatcher.dispatch(noticeEvent("STUDENT", "Exam seating", "Room 204 tomorrow."));
 
         assertEquals(List.of(new Send(
-                List.of("student-token"), "Exam seating", "Room 204 tomorrow.")),
+                List.of("student-token"), "Exam seating", "Room 204 tomorrow.", "/notices")),
                 fcmService.sends);
     }
 
@@ -207,7 +219,7 @@ class NotificationDispatcherTest {
 
         assertEquals(List.of(
                 new Send(List.of("bn-token", "en-token"),
-                        "রুট পরিবর্তন", "শুক্রবার বাস চলবে না।")),
+                        "রুট পরিবর্তন", "শুক্রবার বাস চলবে না।", "/notices")),
                 fcmService.sends);
     }
 
