@@ -113,7 +113,6 @@ public class ScheduleService {
         final String previousBusNameBn = bus.getBusNameBn();
         final String previousBusNameEn = bus.getBusNameEn();
         final LocalTime previousDeparture = schedule.getDepartureTime();
-        final LocalTime previousArrival = schedule.getArrivalTime();
         final String previousDirection = schedule.getDirection();
         final String previousRouteNameBn = schedule.getRoute() != null ? schedule.getRoute().getNameBn() : null;
         final String previousRouteNameEn = schedule.getRoute() != null ? schedule.getRoute().getNameEn() : null;
@@ -136,7 +135,7 @@ public class ScheduleService {
 
         List<FieldChange> changes = describeChanges(bus, previousBusId, previousBusNumber,
                 previousBusNameBn, previousBusNameEn,
-                previousDeparture, previousArrival, previousDirection,
+                previousDeparture, previousDirection,
                 previousRouteNameBn, previousRouteNameEn, previousDays, schedule);
 
         if (changes.isEmpty()) {
@@ -161,7 +160,7 @@ public class ScheduleService {
     private List<FieldChange> describeChanges(Bus bus,
                                               Long previousBusId, String previousBusNumber,
                                               String previousBusNameBn, String previousBusNameEn,
-                                              LocalTime previousDeparture, LocalTime previousArrival,
+                                              LocalTime previousDeparture,
                                               String previousDirection, String previousRouteNameBn,
                                               String previousRouteNameEn, String previousDays,
                                               Schedule schedule) {
@@ -179,9 +178,9 @@ public class ScheduleService {
         if (!Objects.equals(previousDeparture, schedule.getDepartureTime())) {
             changes.add(new FieldChange(Field.DEPARTURE, time(previousDeparture), time(schedule.getDepartureTime())));
         }
-        if (!Objects.equals(previousArrival, schedule.getArrivalTime())) {
-            changes.add(new FieldChange(Field.ARRIVAL, time(previousArrival), time(schedule.getArrivalTime())));
-        }
+        // Arrival time is deliberately NOT diffed: it never appears in a push,
+        // so an arrival-only edit produces an empty change list and no
+        // notification at all (see updateSchedule's isEmpty() guard).
         if (!Objects.equals(previousDirection, schedule.getDirection())) {
             changes.add(new FieldChange(Field.DIRECTION, text(previousDirection), text(schedule.getDirection())));
         }

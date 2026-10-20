@@ -326,24 +326,18 @@ public class NotificationDispatcher {
         return notBlank(primary) ? primary : fallback;
     }
 
-    /** "departs 7:00 AM–8:00 AM (SUN-THU)" */
+    /** "departs 7:00 AM (SUN-THU)" — arrival time is never announced. */
     private String when(ScheduleChangedEvent event, Locale locale) {
-        StringBuilder when = event.arrivalTime() != null
-                ? new StringBuilder(msg(locale, "push.when.range",
-                format(event.departureTime()), format(event.arrivalTime())))
-                : new StringBuilder(msg(locale, "push.when.single", format(event.departureTime())));
+        StringBuilder when = new StringBuilder(msg(locale, "push.when.single", format(event.departureTime())));
         if (notBlank(event.days())) {
             when.append(" (").append(event.days()).append(")");
         }
         return when.toString();
     }
 
-    /** "was 7:00 AM–8:00 AM (SUN-THU)" — for delete/deactivate, where only the past tense applies. */
+    /** "was departing 7:00 AM (SUN-THU)" — for delete/deactivate, past tense. */
     private String was(ScheduleChangedEvent event, Locale locale) {
-        StringBuilder was = event.arrivalTime() != null
-                ? new StringBuilder(msg(locale, "push.when.was.range",
-                format(event.departureTime()), format(event.arrivalTime())))
-                : new StringBuilder(msg(locale, "push.when.was.single", format(event.departureTime())));
+        StringBuilder was = new StringBuilder(msg(locale, "push.when.was.single", format(event.departureTime())));
         if (notBlank(event.days())) {
             was.append(" (").append(event.days()).append(")");
         }
@@ -365,9 +359,9 @@ public class NotificationDispatcher {
         if (present.contains(Field.DEPARTURE)) {
             out.add(timeSentence(Field.DEPARTURE, "push.change.departureFrom", "push.change.departureTo", changes, locale));
         }
-        if (present.contains(Field.ARRIVAL)) {
-            out.add(timeSentence(Field.ARRIVAL, "push.change.arrivalFrom", "push.change.arrivalTo", changes, locale));
-        }
+        // Arrival time is never announced, and an arrival-only edit produces no
+        // change list at all (ScheduleService doesn't diff it), so there is no
+        // ARRIVAL sentence here by design.
         String route = routeSentence(changes, locale);
         if (route != null) {
             out.add(route);

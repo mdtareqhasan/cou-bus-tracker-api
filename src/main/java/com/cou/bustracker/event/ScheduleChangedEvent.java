@@ -79,9 +79,13 @@ public record ScheduleChangedEvent(
     public record FieldChange(Field field, String from, String to) {
     }
 
-    /** Schedule fields a rider can see move in an update. */
+    /**
+     * Schedule fields a rider can see move in an update. Arrival time is
+     * deliberately absent: it never appears in a push, and an arrival-only edit
+     * is not worth a notification at all.
+     */
     public enum Field {
-        BUS_NUMBER, BUS_NAME_BN, BUS_NAME_EN, DEPARTURE, ARRIVAL, DIRECTION,
+        BUS_NUMBER, BUS_NAME_BN, BUS_NAME_EN, DEPARTURE, DIRECTION,
         ROUTE_NAME_BN, ROUTE_NAME_EN, DAYS
     }
 
