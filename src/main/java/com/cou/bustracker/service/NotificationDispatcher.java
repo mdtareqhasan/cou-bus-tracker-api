@@ -269,16 +269,15 @@ public class NotificationDispatcher {
         String header = header(event, locale);
 
         String detail = switch (event.action()) {
-            // when() already says exactly when it runs, e.g.
-            // "departs 07:00–08:00 (SUN-THU)"
+            // when() says exactly when it runs, e.g. "departs 7:00 AM (SUN-THU)";
+            // the body lead-in turns it into a full sentence.
             case CREATED -> msg(locale, "push.body.created", when(event, locale));
-            // changes() says exactly which fields moved, e.g.
-            // "departure: 07:00 → 07:15" — each label localized per field.
-            case UPDATED -> String.join(", ", event.changes().stream()
-                    .map(change -> describe(change, locale)).toList());
-            case DELETED -> msg(locale, "push.body.deleted", when(event, locale));
+            // One plain-language sentence per changed field, in the order a
+            // rider cares most about (times, then route/days, then names).
+            case UPDATED -> sentences(event, locale);
+            case DELETED -> msg(locale, "push.body.deleted", was(event, locale));
             case ACTIVATED -> msg(locale, "push.body.activated", when(event, locale));
-            case DEACTIVATED -> msg(locale, "push.body.deactivated", when(event, locale));
+            case DEACTIVATED -> msg(locale, "push.body.deactivated", was(event, locale));
         };
 
         return header + " · " + detail;
@@ -327,7 +326,7 @@ public class NotificationDispatcher {
         return notBlank(primary) ? primary : fallback;
     }
 
-    /** "departs 07:00–08:00 (SUN-THU)" */
+    /** "departs 7:00 AM–8:00 AM (SUN-THU)" */
     private String when(ScheduleChangedEvent event, Locale locale) {
         StringBuilder when = event.arrivalTime() != null
                 ? new StringBuilder(msg(locale, "push.when.range",
@@ -339,12 +338,110 @@ public class NotificationDispatcher {
         return when.toString();
     }
 
-    /** "departure: 07:00 → 07:15" — label localized, values are raw data. */
-    private String describe(FieldChange change, Locale locale) {
-        return msg(locale, "push.change",
-                msg(locale, "push.field." + fieldKey(change.field())),
-                display(change.from(), locale),
-                display(change.to(), locale));
+    /** "was 7:00 AM–8:00 AM (SUN-THU)" — for delete/deactivate, where only the past tense applies. */
+    private String was(ScheduleChangedEvent event, Locale locale) {
+        StringBuilder was = event.arrivalTime() != null
+                ? new StringBuilder(msg(locale, "push.when.was.range",
+                format(event.departureTime()), format(event.arrivalTime())))
+                : new StringBuilder(msg(locale, "push.when.was.single", format(event.departureTime())));
+        if (notBlank(event.days())) {
+            was.append(" (").append(event.days()).append(")");
+        }
+        return was.toString();
+    }
+
+    /**
+     * Renders an update as one plain-language sentence per changed field, joined
+     * by " · " in the order a rider cares most about (times → route → days →
+     * bus → direction). The bilingual route/bus name fields collapse into a
+     * single human sentence each, since a rider never thinks of the route as a
+     * "Bangla" vs "English" change — only that the route text moved.
+     */
+    private String sentences(ScheduleChangedEvent event, Locale locale) {
+        List<FieldChange> changes = event.changes();
+        List<Field> present = changes.stream().map(FieldChange::field).toList();
+
+        List<String> out = new ArrayList<>();
+        if (present.contains(Field.DEPARTURE)) {
+            out.add(timeSentence(Field.DEPARTURE, "push.change.departureFrom", "push.change.departureTo", changes, locale));
+        }
+        if (present.contains(Field.ARRIVAL)) {
+            out.add(timeSentence(Field.ARRIVAL, "push.change.arrivalFrom", "push.change.arrivalTo", changes, locale));
+        }
+        String route = routeSentence(changes, locale);
+        if (route != null) {
+            out.add(route);
+        }
+        if (present.contains(Field.DAYS)) {
+            out.add(msg(locale, "push.change.days", valueOf(Field.DAYS, changes, locale)));
+        }
+        String busName = busNameSentence(changes, locale);
+        if (busName != null) {
+            out.add(busName);
+        }
+        if (present.contains(Field.BUS_NUMBER)) {
+            out.add(msg(locale, "push.change.busNumber", valueOf(Field.BUS_NUMBER, changes, locale)));
+        }
+        if (present.contains(Field.DIRECTION)) {
+            out.add(msg(locale, "push.change.direction", valueOf(Field.DIRECTION, changes, locale)));
+        }
+        return String.join(" ", out);
+    }
+
+    /**
+     * A time change sentence that names the previous value only when there was
+     * one — "Now departs at 7:15 AM (was 7:00 AM)" vs a clean "Now departs at
+     * 7:15 AM" for a freshly added time. Times are raw "HH:mm" from the diff and
+     * are re-rendered to 12-hour here so the sentence matches the rest of the
+     * message.
+     */
+    private String timeSentence(Field field, String fromKey, String toKey, List<FieldChange> changes, Locale locale) {
+        FieldChange change = changeOf(changes, field);
+        String to = clock(change.to());
+        if (!notBlank(change.from())) {
+            return msg(locale, toKey, to);
+        }
+        return msg(locale, fromKey, to, clock(change.from()));
+    }
+
+    /**
+     * The route sentence uses whichever language the change carried; a bilingual
+     * edit that moved both resolves to the device's preferred language.
+     */
+    private String routeSentence(List<FieldChange> changes, Locale locale) {
+        FieldChange bn = changeOf(changes, Field.ROUTE_NAME_BN);
+        FieldChange en = changeOf(changes, Field.ROUTE_NAME_EN);
+        if (bn == null && en == null) {
+            return null;
+        }
+        boolean bangla = "bn".equals(locale.getLanguage());
+        FieldChange primary = bangla ? (bn != null ? bn : en) : (en != null ? en : bn);
+        return msg(locale, "push.change.route", display(primary.to(), locale));
+    }
+
+    /**
+     * Bus-name edits also collapse the Bangla/English fields into one sentence
+     * naming the device's preferred language.
+     */
+    private String busNameSentence(List<FieldChange> changes, Locale locale) {
+        FieldChange bn = changeOf(changes, Field.BUS_NAME_BN);
+        FieldChange en = changeOf(changes, Field.BUS_NAME_EN);
+        if (bn == null && en == null) {
+            return null;
+        }
+        boolean bangla = "bn".equals(locale.getLanguage());
+        FieldChange primary = bangla ? (bn != null ? bn : en) : (en != null ? en : bn);
+        return msg(locale, "push.change.busName", display(primary.to(), locale));
+    }
+
+    private static FieldChange changeOf(List<FieldChange> changes, Field field) {
+        return changes.stream().filter(c -> c.field() == field).findFirst().orElse(null);
+    }
+
+    /** The "to" value of the first change touching {@code field}, or a placeholder. */
+    private String valueOf(Field field, List<FieldChange> changes, Locale locale) {
+        FieldChange change = changeOf(changes, field);
+        return change == null ? msg(locale, "push.value.none") : display(change.to(), locale);
     }
 
     /** Renders a diff value, replacing "no value" with a localized placeholder. */
@@ -352,22 +449,33 @@ public class NotificationDispatcher {
         return notBlank(value) ? value : msg(locale, "push.value.none");
     }
 
-    private static String fieldKey(Field field) {
-        return switch (field) {
-            case BUS_NUMBER -> "busNumber";
-            case BUS_NAME_BN -> "busNameBn";
-            case BUS_NAME_EN -> "busNameEn";
-            case DEPARTURE -> "departure";
-            case ARRIVAL -> "arrival";
-            case DIRECTION -> "direction";
-            case ROUTE_NAME_BN -> "routeNameBn";
-            case ROUTE_NAME_EN -> "routeNameEn";
-            case DAYS -> "days";
-        };
+    /** Re-renders a raw "HH:mm" diff time as 12-hour AM/PM ("7:15 AM"). */
+    private static String clock(String hhmm) {
+        if (!notBlank(hhmm)) {
+            return "?";
+        }
+        String[] parts = hhmm.trim().split(":");
+        int hour = Integer.parseInt(parts[0]);
+        int minute = Integer.parseInt(parts[1]);
+        String meridiem = hour < 12 ? "AM" : "PM";
+        int h12 = hour % 12;
+        if (h12 == 0) {
+            h12 = 12;
+        }
+        return String.format("%d:%02d %s", h12, minute, meridiem);
     }
 
     private static String format(LocalTime time) {
-        return time == null ? "?" : String.format("%02d:%02d", time.getHour(), time.getMinute());
+        if (time == null) {
+            return "?";
+        }
+        int hour = time.getHour();
+        String meridiem = hour < 12 ? "AM" : "PM";
+        int h12 = hour % 12;
+        if (h12 == 0) {
+            h12 = 12;
+        }
+        return String.format("%d:%02d %s", h12, time.getMinute(), meridiem);
     }
 
     /**

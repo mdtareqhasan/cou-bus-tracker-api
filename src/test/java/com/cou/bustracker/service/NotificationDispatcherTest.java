@@ -81,15 +81,15 @@ class NotificationDispatcherTest {
         assertEquals(List.of(
                 new Send(List.of("bn-token-1", "bn-token-2"),
                         "নতুন সময়সূচি: BUS 03",
-                        "BUS 03 · সিওই ব্লু · BLUE · কান্দিরপাড় → ক্যাম্পাস · 07:00 থেকে ছাড়ছে (SUN-THU) যোগ করা হয়েছে"),
+                        "BUS 03 · সিওই ব্লু · BLUE · কান্দিরপাড় → ক্যাম্পাস · নতুন ফেরি 7:00 AM থেকে ছাড়ছে (SUN-THU)।"),
                 new Send(List.of("en-token-1"),
                         "New schedule: BUS 03",
-                        "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · departs 07:00 (SUN-THU) added")),
+                        "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · New trip departs 7:00 AM (SUN-THU).")),
                 fcmService.sends);
     }
 
     @Test
-    void rendersUpdateDiffsWithLocalizedFieldLabels() {
+    void rendersUpdateAsPlainLanguageSentencesPerField() {
         audienceTokens(token("bn-token", "bn"), token("en-token", "en"));
 
         List<FieldChange> changes = List.of(
@@ -102,11 +102,11 @@ class NotificationDispatcherTest {
                 new Send(List.of("bn-token"),
                         "সময়সূচি হালনাগাদ: BUS 03",
                         "BUS 03 · সিওই ব্লু · BLUE · কান্দিরপাড় → ক্যাম্পাস · "
-                                + "ছাড়ার সময়: 07:00 → 07:15, বাসের নাম (ইংরেজি): নেই → COU Blue"),
+                                + "এখন 7:15 AM এ ছাড়ছে (আগে 7:00 AM)। বাসের নাম এখন “COU Blue”।"),
                 new Send(List.of("en-token"),
                         "Schedule updated: BUS 03",
                         "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · "
-                                + "departure: 07:00 → 07:15, bus name (English): none → COU Blue")),
+                                + "Now departs at 7:15 AM (was 7:00 AM). Bus name is now “COU Blue”.")),
                 fcmService.sends);
     }
 
@@ -121,7 +121,21 @@ class NotificationDispatcherTest {
         assertEquals(List.of(new Send(
                 List.of("legacy-token"),
                 "Service paused: BUS 03",
-                "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · departs 07:00 (SUN-THU) is paused for now")),
+                "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · Paused (was departing 7:00 AM (SUN-THU)).")),
+                fcmService.sends);
+    }
+
+    @Test
+    void deletedBodyReadsCleanlyWithPastTenseWhen() {
+        audienceTokens(token("en-token", "en"));
+
+        dispatcher.dispatch(event(Action.DELETED, List.of()));
+
+        // Regression: used to render "...no longer runs was departing 7:00 AM".
+        assertEquals(List.of(new Send(
+                List.of("en-token"),
+                "Schedule removed: BUS 03",
+                "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · No longer runs (was departing 7:00 AM (SUN-THU)).")),
                 fcmService.sends);
     }
 
