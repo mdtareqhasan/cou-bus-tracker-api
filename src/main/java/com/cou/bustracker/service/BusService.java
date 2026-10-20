@@ -157,6 +157,11 @@ public class BusService {
                 .departureTime(schedule.getDepartureTime().toString())
                 .arrivalTime(schedule.getArrivalTime() != null ? schedule.getArrivalTime().toString() : null)
                 .direction(schedule.getDirection())
+                // Surfaced so the app can grey out paused trips (a rider who
+                // taps the "service paused" push must see that the trip is off
+                // on the bus page). Non-null column; Boolean.equals guards
+                // against a null slipped in through a hand-built entity.
+                .isActive(Boolean.TRUE.equals(schedule.getIsActive()))
                 .routeId(route != null ? route.getId() : null)
                 .routeNameBn(route != null ? route.getNameBn() : null)
                 .routeNameEn(route != null ? route.getNameEn() : null)
