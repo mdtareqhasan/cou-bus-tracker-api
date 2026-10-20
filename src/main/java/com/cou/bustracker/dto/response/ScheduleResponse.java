@@ -14,13 +14,15 @@ public class ScheduleResponse {
     private Long id;
     private Long busId;
     private String busNumber;
-    private String busName;
+    private String busNameBn;
+    private String busNameEn;
     private String category;
     private String departureTime;
     private String arrivalTime;
     private String direction;
-    private String startPoint;
-    private String endPoint;
+    private Long routeId;
+    private String routeNameBn;
+    private String routeNameEn;
     private String days;
     private Boolean isActive;
 }

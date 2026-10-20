@@ -15,9 +15,9 @@ public class BusDetailResponse {
 
     private Long id;
     private String busNumber;
-    private String busName;
+    private String busNameBn;
+    private String busNameEn;
     private String category;
-    private String route;
     private String driverName;
     private String driverPhone;
     private String busImageUrl;

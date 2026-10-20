@@ -1,6 +1,7 @@
 package com.cou.bustracker.event;
 
 import com.cou.bustracker.entity.Bus;
+import com.cou.bustracker.entity.Route;
 import com.cou.bustracker.entity.Schedule;
 
 import java.time.LocalTime;
@@ -12,8 +13,8 @@ import java.util.List;
  * <p>Everything a push message needs is copied out of the entity <em>while the
  * transaction is still open</em>. That matters twice over:
  * <ul>
- *   <li>{@code Schedule.bus} is lazy — reading it after commit would throw
- *       {@code LazyInitializationException}.</li>
+ *   <li>{@code Schedule.bus} and {@code Schedule.route} are lazy — reading them
+ *       after commit would throw {@code LazyInitializationException}.</li>
  *   <li>The listener fires AFTER_COMMIT, so for a DELETE the row (and any
  *       entity state) may already be gone.</li>
  * </ul>
@@ -25,12 +26,16 @@ import java.util.List;
  * @param scheduleId     id of the schedule
  * @param busId          id of the bus it belongs to
  * @param busNumber      e.g. "BUS 03"
- * @param busName        optional display name, may be null
+ * @param busNameBn      optional Bangla display name, may be null
+ * @param busNameEn      optional English display name, may be null
  * @param category       bus category — BLUE / TEACHER / STAFF; decides the
  *                       notification audience
  * @param direction      UP / DOWN
- * @param startPoint     optional
- * @param endPoint       optional
+ * @param routeId        id of the route this trip runs (routes belong to the
+ *                       schedule — a bus serves different routes at different
+ *                       times of day)
+ * @param routeNameBn    Bangla route name, may be null
+ * @param routeNameEn    English route name, may be null
  * @param departureTime  required by the schema
  * @param arrivalTime    optional
  * @param days           e.g. "SUN-THU"
@@ -45,11 +50,13 @@ public record ScheduleChangedEvent(
         Long scheduleId,
         Long busId,
         String busNumber,
-        String busName,
+        String busNameBn,
+        String busNameEn,
         String category,
         String direction,
-        String startPoint,
-        String endPoint,
+        Long routeId,
+        String routeNameBn,
+        String routeNameEn,
         LocalTime departureTime,
         LocalTime arrivalTime,
         String days,
@@ -74,7 +81,8 @@ public record ScheduleChangedEvent(
 
     /** Schedule fields a rider can see move in an update. */
     public enum Field {
-        BUS_NUMBER, BUS_NAME, DEPARTURE, ARRIVAL, DIRECTION, START_POINT, END_POINT, DAYS
+        BUS_NUMBER, BUS_NAME_BN, BUS_NAME_EN, DEPARTURE, ARRIVAL, DIRECTION,
+        ROUTE_NAME_BN, ROUTE_NAME_EN, DAYS
     }
 
     public ScheduleChangedEvent {
@@ -87,16 +95,19 @@ public record ScheduleChangedEvent(
      */
     public static ScheduleChangedEvent from(Action action, Schedule schedule, List<FieldChange> changes) {
         Bus bus = schedule.getBus();
+        Route route = schedule.getRoute();
         return new ScheduleChangedEvent(
                 action,
                 schedule.getId(),
                 bus.getId(),
                 bus.getBusNumber(),
-                bus.getBusName(),
+                bus.getBusNameBn(),
+                bus.getBusNameEn(),
                 bus.getCategory(),
                 schedule.getDirection(),
-                schedule.getStartPoint(),
-                schedule.getEndPoint(),
+                route != null ? route.getId() : null,
+                route != null ? route.getNameBn() : null,
+                route != null ? route.getNameEn() : null,
                 schedule.getDepartureTime(),
                 schedule.getArrivalTime(),
                 schedule.getDays(),

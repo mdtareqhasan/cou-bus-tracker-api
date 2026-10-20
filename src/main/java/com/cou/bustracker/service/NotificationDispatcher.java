@@ -288,17 +288,43 @@ public class NotificationDispatcher {
     private String header(ScheduleChangedEvent event, Locale locale) {
         StringBuilder header = new StringBuilder(
                 event.busNumber() != null ? event.busNumber() : msg(locale, "push.bus.fallback"));
-        if (notBlank(event.busName())) {
-            header.append(" · ").append(event.busName());
+        String busName = localizedBusName(event, locale);
+        if (notBlank(busName)) {
+            header.append(" · ").append(busName);
         }
         if (notBlank(event.category())) {
             header.append(" · ").append(event.category());
         }
-        String route = route(event);
+        String route = localizedRouteName(event, locale);
+        if (!notBlank(route)) {
+            route = notBlank(event.direction()) ? event.direction() : "";
+        }
         if (!route.isEmpty()) {
             header.append(" · ").append(route);
         }
         return header.toString();
+    }
+
+    /**
+     * Bus display name in the device's language, falling back to the other
+     * language when only one is set.
+     */
+    private String localizedBusName(ScheduleChangedEvent event, Locale locale) {
+        boolean bangla = "bn".equals(locale.getLanguage());
+        String primary = bangla ? event.busNameBn() : event.busNameEn();
+        String fallback = bangla ? event.busNameEn() : event.busNameBn();
+        return notBlank(primary) ? primary : fallback;
+    }
+
+    /**
+     * Route name in the device's language, falling back to the other language
+     * when only one is set.
+     */
+    private String localizedRouteName(ScheduleChangedEvent event, Locale locale) {
+        boolean bangla = "bn".equals(locale.getLanguage());
+        String primary = bangla ? event.routeNameBn() : event.routeNameEn();
+        String fallback = bangla ? event.routeNameEn() : event.routeNameBn();
+        return notBlank(primary) ? primary : fallback;
     }
 
     /** "departs 07:00–08:00 (SUN-THU)" */
@@ -326,22 +352,16 @@ public class NotificationDispatcher {
         return notBlank(value) ? value : msg(locale, "push.value.none");
     }
 
-    private String route(ScheduleChangedEvent event) {
-        if (notBlank(event.startPoint()) && notBlank(event.endPoint())) {
-            return event.startPoint() + " → " + event.endPoint();
-        }
-        return notBlank(event.direction()) ? event.direction() : "";
-    }
-
     private static String fieldKey(Field field) {
         return switch (field) {
             case BUS_NUMBER -> "busNumber";
-            case BUS_NAME -> "busName";
+            case BUS_NAME_BN -> "busNameBn";
+            case BUS_NAME_EN -> "busNameEn";
             case DEPARTURE -> "departure";
             case ARRIVAL -> "arrival";
             case DIRECTION -> "direction";
-            case START_POINT -> "start";
-            case END_POINT -> "end";
+            case ROUTE_NAME_BN -> "routeNameBn";
+            case ROUTE_NAME_EN -> "routeNameEn";
             case DAYS -> "days";
         };
     }

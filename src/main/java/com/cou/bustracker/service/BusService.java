@@ -6,8 +6,8 @@ import com.cou.bustracker.dto.response.BusDetailResponse;
 import com.cou.bustracker.dto.response.BusResponse;
 import com.cou.bustracker.dto.response.ScheduleResponse;
 import com.cou.bustracker.entity.Bus;
+import com.cou.bustracker.entity.Route;
 import com.cou.bustracker.entity.Schedule;
-import com.cou.bustracker.entity.TrackerLink;
 import com.cou.bustracker.repository.BusRepository;
 import com.cou.bustracker.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -61,9 +61,9 @@ public class BusService {
     public BusResponse createBus(CreateBusRequest request) {
         Bus bus = Bus.builder()
                 .busNumber(request.getBusNumber())
-                .busName(request.getBusName())
+                .busNameBn(request.getBusNameBn())
+                .busNameEn(request.getBusNameEn())
                 .category(request.getCategory())
-                .route(request.getRoute())
                 .driverName(request.getDriverName())
                 .driverPhone(request.getDriverPhone())
                 .busImageUrl(request.getBusImageUrl())
@@ -80,9 +80,9 @@ public class BusService {
                 .orElseThrow(() -> new ResourceNotFoundException("Bus not found with id: " + id));
 
         if (request.getBusNumber() != null) bus.setBusNumber(request.getBusNumber());
-        if (request.getBusName() != null) bus.setBusName(request.getBusName());
+        if (request.getBusNameBn() != null) bus.setBusNameBn(request.getBusNameBn());
+        if (request.getBusNameEn() != null) bus.setBusNameEn(request.getBusNameEn());
         if (request.getCategory() != null) bus.setCategory(request.getCategory());
-        if (request.getRoute() != null) bus.setRoute(request.getRoute());
         if (request.getDriverName() != null) bus.setDriverName(request.getDriverName());
         if (request.getDriverPhone() != null) bus.setDriverPhone(request.getDriverPhone());
         if (request.getBusImageUrl() != null) bus.setBusImageUrl(request.getBusImageUrl());
@@ -107,9 +107,9 @@ public class BusService {
         return BusResponse.builder()
                 .id(bus.getId())
                 .busNumber(bus.getBusNumber())
-                .busName(bus.getBusName())
+                .busNameBn(bus.getBusNameBn())
+                .busNameEn(bus.getBusNameEn())
                 .category(bus.getCategory())
-                .route(bus.getRoute())
                 .driverName(bus.getDriverName())
                 .driverPhone(bus.getDriverPhone())
                 .busImageUrl(bus.getBusImageUrl())
@@ -133,9 +133,9 @@ public class BusService {
         return BusDetailResponse.builder()
                 .id(bus.getId())
                 .busNumber(bus.getBusNumber())
-                .busName(bus.getBusName())
+                .busNameBn(bus.getBusNameBn())
+                .busNameEn(bus.getBusNameEn())
                 .category(bus.getCategory())
-                .route(bus.getRoute())
                 .driverName(bus.getDriverName())
                 .driverPhone(bus.getDriverPhone())
                 .busImageUrl(bus.getBusImageUrl())
@@ -146,17 +146,20 @@ public class BusService {
     }
 
     private ScheduleResponse mapToScheduleResponse(Schedule schedule) {
+        Route route = schedule.getRoute();
         return ScheduleResponse.builder()
                 .id(schedule.getId())
                 .busId(schedule.getBus().getId())
                 .busNumber(schedule.getBus().getBusNumber())
-                .busName(schedule.getBus().getBusName())
+                .busNameBn(schedule.getBus().getBusNameBn())
+                .busNameEn(schedule.getBus().getBusNameEn())
                 .category(schedule.getBus().getCategory())
                 .departureTime(schedule.getDepartureTime().toString())
                 .arrivalTime(schedule.getArrivalTime() != null ? schedule.getArrivalTime().toString() : null)
                 .direction(schedule.getDirection())
-                .startPoint(schedule.getStartPoint())
-                .endPoint(schedule.getEndPoint())
+                .routeId(route != null ? route.getId() : null)
+                .routeNameBn(route != null ? route.getNameBn() : null)
+                .routeNameEn(route != null ? route.getNameEn() : null)
                 .days(schedule.getDays())
                 .build();
     }

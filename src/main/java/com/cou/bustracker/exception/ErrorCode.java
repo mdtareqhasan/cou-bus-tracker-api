@@ -115,7 +115,13 @@ public enum ErrorCode {
     ACADEMIC_UNIT_IN_USE(HttpStatus.CONFLICT,
             "This option is assigned to existing accounts. Deactivate it instead of deleting"),
     ACADEMIC_SESSION_IN_USE(HttpStatus.CONFLICT,
-            "This session is assigned to existing students. Deactivate it instead of deleting");
+            "This session is assigned to existing students. Deactivate it instead of deleting"),
+
+    // ---- Route reference data (admin management) ----------------------------
+    ROUTE_NOT_FOUND(HttpStatus.NOT_FOUND, "Route not found"),
+    ROUTE_NAME_EXISTS(HttpStatus.CONFLICT, "A route with this name already exists"),
+    ROUTE_IN_USE(HttpStatus.CONFLICT,
+            "This route is used by existing schedules. Deactivate it instead of deleting");
 
     private final HttpStatus status;
     private final String defaultMessage;

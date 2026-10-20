@@ -26,6 +26,12 @@ public class Schedule {
     @JoinColumn(name = "bus_id", nullable = false)
     private Bus bus;
 
+    // A bus travels different routes at different times of day, so the route
+    // belongs to the trip: each schedule row points at its own route.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "route_id", nullable = false)
+    private Route route;
+
     @Column(name = "departure_time", nullable = false)
     private LocalTime departureTime;
 
@@ -34,12 +40,6 @@ public class Schedule {
 
     @Column(nullable = false, length = 10)
     private String direction;
-
-    @Column(name = "start_point", length = 100)
-    private String startPoint;
-
-    @Column(name = "end_point", length = 100)
-    private String endPoint;
 
     @Column(length = 50)
     @Builder.Default

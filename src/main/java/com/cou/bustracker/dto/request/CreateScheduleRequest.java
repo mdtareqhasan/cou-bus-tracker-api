@@ -14,7 +14,9 @@ public class CreateScheduleRequest {
     @NotNull(message = "Bus ID is required")
     private Long busId;
 
-    private String busName;
+    private String busNameBn;
+
+    private String busNameEn;
 
     @NotBlank(message = "Departure time is required")
     private String departureTime;
@@ -24,9 +26,8 @@ public class CreateScheduleRequest {
     @NotBlank(message = "Direction is required")
     private String direction;
 
-    private String startPoint;
-
-    private String endPoint;
+    @NotNull(message = "Route ID is required")
+    private Long routeId;
 
     private String days;
 }

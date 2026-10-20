@@ -11,10 +11,12 @@ import java.util.Optional;
 @Repository
 public interface BusRepository extends JpaRepository<Bus, Long> {
 
+    @Query("SELECT b FROM Bus b WHERE b.isActive = true")
     List<Bus> findByIsActiveTrue();
 
     long countByIsActiveTrue();
 
+    @Query("SELECT b FROM Bus b WHERE b.category = :category AND b.isActive = true")
     List<Bus> findByCategoryAndIsActiveTrue(String category);
 
     Optional<Bus> findByBusNumber(String busNumber);
@@ -22,11 +24,12 @@ public interface BusRepository extends JpaRepository<Bus, Long> {
     @Query("SELECT b FROM Bus b LEFT JOIN FETCH b.trackerLink WHERE b.id = :id")
     Optional<Bus> findByIdWithTrackerLink(Long id);
 
-    @Query("SELECT b FROM Bus b LEFT JOIN FETCH b.schedules WHERE b.id = :id")
+    @Query("SELECT b FROM Bus b LEFT JOIN FETCH b.schedules s LEFT JOIN FETCH s.route WHERE b.id = :id")
     Optional<Bus> findByIdWithSchedules(Long id);
 
-    @Query("SELECT b FROM Bus b LEFT JOIN FETCH b.trackerLink LEFT JOIN FETCH b.schedules WHERE b.id = :id")
+    @Query("SELECT b FROM Bus b LEFT JOIN FETCH b.trackerLink LEFT JOIN FETCH b.schedules s LEFT JOIN FETCH s.route WHERE b.id = :id")
     Optional<Bus> findByIdWithTrackerLinkAndSchedules(Long id);
 
+    @Query("SELECT b FROM Bus b ORDER BY b.createdAt DESC")
     List<Bus> findAllByOrderByCreatedAtDesc();
 }

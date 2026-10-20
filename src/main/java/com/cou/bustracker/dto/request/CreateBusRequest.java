@@ -13,12 +13,12 @@ public class CreateBusRequest {
     @NotBlank(message = "Bus number is required")
     private String busNumber;
 
-    private String busName;
+    private String busNameBn;
+
+    private String busNameEn;
 
     @NotBlank(message = "Department/category is required")
     private String category;
-
-    private String route;
 
     private String driverName;
 

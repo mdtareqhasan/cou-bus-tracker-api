@@ -11,12 +11,22 @@
 -- --------------------------------------------------------------------------
 -- Core transport tables
 -- --------------------------------------------------------------------------
+CREATE TABLE routes (
+    id BIGSERIAL PRIMARY KEY,
+    name_bn VARCHAR(255) NOT NULL UNIQUE,
+    name_en VARCHAR(255) NOT NULL UNIQUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_routes_active ON routes(is_active);
+
 CREATE TABLE buses (
     id BIGSERIAL PRIMARY KEY,
     bus_number VARCHAR(20) NOT NULL UNIQUE,
-    bus_name VARCHAR(100),
+    bus_name_bn VARCHAR(100),
+    bus_name_en VARCHAR(100),
     category VARCHAR(20) NOT NULL,
-    route TEXT,
     driver_name VARCHAR(100),
     driver_phone VARCHAR(20),
     bus_image_url TEXT,
@@ -24,18 +34,23 @@ CREATE TABLE buses (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Schedules point at routes, not buses: a bus travels different routes at
+-- different times of the day, so the route belongs to the trip, not the
+-- vehicle.
 CREATE TABLE schedules (
     id BIGSERIAL PRIMARY KEY,
     bus_id BIGINT NOT NULL REFERENCES buses(id) ON DELETE CASCADE,
+    route_id BIGINT NOT NULL REFERENCES routes(id) ON DELETE RESTRICT,
     departure_time TIME NOT NULL,
     arrival_time TIME,
     direction VARCHAR(10) NOT NULL,
-    start_point VARCHAR(100),
-    end_point VARCHAR(100),
     days VARCHAR(50) NOT NULL DEFAULT 'SUN-THU',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_schedules_bus_id ON schedules(bus_id);
+CREATE INDEX idx_schedules_route_id ON schedules(route_id);
 
 CREATE TABLE tracker_links (
     id BIGSERIAL PRIMARY KEY,
@@ -239,26 +254,44 @@ INSERT INTO academic_sessions (name_bn, name_en, sort_order) VALUES
 -- --------------------------------------------------------------------------
 -- Initial transport data
 -- --------------------------------------------------------------------------
-INSERT INTO buses (bus_number, category, route) VALUES
-('BUS 03', 'BLUE', 'Kandirpar → Campus via Policeline'),
-('BUS 04', 'BLUE', 'Kandirpar → Campus via Policeline'),
-('BUS 05', 'BLUE', 'Kandirpar → Campus via Policeline'),
-('BUS 11', 'BLUE', 'Dhormopur → Campus'),
-('BUS 25', 'BLUE', 'Campus → Policeline → Eidgah'),
-('BUS 31', 'BLUE', 'Kandirpar → Campus'),
-('BUS 32', 'BLUE', 'Kandirpar → Campus via Tomsombridge'),
-('BUS 33', 'BLUE', 'Kandirpar → Campus via Tomsombridge'),
-('BUS 06', 'TEACHER', 'Policeline → Campus via Tomsombridge'),
-('BUS 08', 'TEACHER', 'Kandirpar → Campus'),
-('BUS 14', 'STAFF', 'Kandirpar → Campus');
+INSERT INTO routes (name_bn, name_en) VALUES
+('কান্দিরপাড় → পুলিশ লাইন → ক্যাম্পাস',   'Kandirpar → Policeline → Campus'),
+('ধর্মপুর → ক্যাম্পাস',                     'Dhormopur → Campus'),
+('ক্যাম্পাস → পুলিশ লাইন → ঈদগাহ',          'Campus → Policeline → Eidgah'),
+('কান্দিরপাড় → ক্যাম্পাস',                  'Kandirpar → Campus'),
+('কান্দিরপাড় → টমছমব্রিজ → ক্যাম্পাস',      'Kandirpar → Tomsombridge → Campus'),
+('পুলিশ লাইন → টমছমব্রিজ → ক্যাম্পাস',      'Policeline → Tomsombridge → Campus');
 
-INSERT INTO schedules (bus_id, departure_time, arrival_time, direction, start_point, end_point) VALUES
-((SELECT id FROM buses WHERE bus_number = 'BUS 03'), '07:00', '08:00', 'UP', 'Kandirpar', 'Campus'),
-((SELECT id FROM buses WHERE bus_number = 'BUS 03'), '16:00', '17:00', 'DOWN', 'Campus', 'Kandirpar'),
-((SELECT id FROM buses WHERE bus_number = 'BUS 04'), '07:15', '08:15', 'UP', 'Kandirpar', 'Campus'),
-((SELECT id FROM buses WHERE bus_number = 'BUS 04'), '16:15', '17:15', 'DOWN', 'Campus', 'Kandirpar'),
-((SELECT id FROM buses WHERE bus_number = 'BUS 11'), '07:30', '08:30', 'UP', 'Dhormopur', 'Campus'),
-((SELECT id FROM buses WHERE bus_number = 'BUS 11'), '16:30', '17:30', 'DOWN', 'Campus', 'Dhormopur');
+INSERT INTO buses (bus_number, category) VALUES
+('BUS 03', 'BLUE'),
+('BUS 04', 'BLUE'),
+('BUS 05', 'BLUE'),
+('BUS 11', 'BLUE'),
+('BUS 25', 'BLUE'),
+('BUS 31', 'BLUE'),
+('BUS 32', 'BLUE'),
+('BUS 33', 'BLUE'),
+('BUS 06', 'TEACHER'),
+('BUS 08', 'TEACHER'),
+('BUS 14', 'STAFF');
+
+-- LEFT JOIN on purpose: if a route name below is mistyped, the sub-select
+-- returns NULL and the NOT NULL constraint aborts the migration instead of
+-- silently dropping the schedule. The same holds for mistyped bus numbers.
+INSERT INTO schedules (bus_id, route_id, departure_time, arrival_time, direction)
+SELECT
+    (SELECT id FROM buses  WHERE bus_number = seed.bus_number),
+    (SELECT id FROM routes WHERE name_en     = seed.route_name_en),
+    seed.departure_time::time, seed.arrival_time::time, seed.direction
+FROM (
+    VALUES
+        ('BUS 03', 'Kandirpar → Policeline → Campus', '07:00', '08:00', 'UP'),
+        ('BUS 03', 'Kandirpar → Policeline → Campus', '16:00', '17:00', 'DOWN'),
+        ('BUS 04', 'Kandirpar → Policeline → Campus', '07:15', '08:15', 'UP'),
+        ('BUS 04', 'Kandirpar → Policeline → Campus', '16:15', '17:15', 'DOWN'),
+        ('BUS 11', 'Dhormopur → Campus', '07:30', '08:30', 'UP'),
+        ('BUS 11', 'Dhormopur → Campus', '16:30', '17:30', 'DOWN')
+) AS seed(bus_number, route_name_en, departure_time, arrival_time, direction);
 
 INSERT INTO notices (title, body, expiry_hours) VALUES
 ('Welcome to CoU Bus Tracker', 'This system provides real-time bus tracking for Comilla University.', 168);

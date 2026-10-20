@@ -66,6 +66,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/super-admin/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/buses/**").permitAll()
+                        .requestMatchers("/api/routes/**").permitAll()
                         .requestMatchers("/api/schedules/**").permitAll()
                         // Notices are authenticated: the audience filter needs
                         // the caller's role (students see ALL+STUDENT, teachers

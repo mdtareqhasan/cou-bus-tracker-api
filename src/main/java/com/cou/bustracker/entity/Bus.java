@@ -26,14 +26,14 @@ public class Bus {
     @Column(name = "bus_number", unique = true, nullable = false, length = 20)
     private String busNumber;
 
-    @Column(name = "bus_name", length = 100)
-    private String busName;
+    @Column(name = "bus_name_bn", length = 100)
+    private String busNameBn;
+
+    @Column(name = "bus_name_en", length = 100)
+    private String busNameEn;
 
     @Column(nullable = false, length = 20)
     private String category;
-
-    @Column(columnDefinition = "TEXT")
-    private String route;
 
     @Column(name = "driver_name", length = 100)
     private String driverName;

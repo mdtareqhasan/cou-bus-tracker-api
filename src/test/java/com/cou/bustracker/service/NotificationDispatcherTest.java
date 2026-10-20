@@ -81,7 +81,7 @@ class NotificationDispatcherTest {
         assertEquals(List.of(
                 new Send(List.of("bn-token-1", "bn-token-2"),
                         "নতুন সময়সূচি: BUS 03",
-                        "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · 07:00 থেকে ছাড়ছে (SUN-THU) যোগ করা হয়েছে"),
+                        "BUS 03 · সিওই ব্লু · BLUE · কান্দিরপাড় → ক্যাম্পাস · 07:00 থেকে ছাড়ছে (SUN-THU) যোগ করা হয়েছে"),
                 new Send(List.of("en-token-1"),
                         "New schedule: BUS 03",
                         "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · departs 07:00 (SUN-THU) added")),
@@ -94,19 +94,19 @@ class NotificationDispatcherTest {
 
         List<FieldChange> changes = List.of(
                 new FieldChange(Field.DEPARTURE, "07:00", "07:15"),
-                new FieldChange(Field.BUS_NAME, null, "COU Blue"));
+                new FieldChange(Field.BUS_NAME_EN, null, "COU Blue"));
 
         dispatcher.dispatch(event(Action.UPDATED, changes));
 
         assertEquals(List.of(
                 new Send(List.of("bn-token"),
                         "সময়সূচি হালনাগাদ: BUS 03",
-                        "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · "
-                                + "ছাড়ার সময়: 07:00 → 07:15, বাসের নাম: নেই → COU Blue"),
+                        "BUS 03 · সিওই ব্লু · BLUE · কান্দিরপাড় → ক্যাম্পাস · "
+                                + "ছাড়ার সময়: 07:00 → 07:15, বাসের নাম (ইংরেজি): নেই → COU Blue"),
                 new Send(List.of("en-token"),
                         "Schedule updated: BUS 03",
                         "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · "
-                                + "departure: 07:00 → 07:15, bus name: none → COU Blue")),
+                                + "departure: 07:00 → 07:15, bus name (English): none → COU Blue")),
                 fcmService.sends);
     }
 
@@ -131,8 +131,9 @@ class NotificationDispatcherTest {
 
         // Inactive CREATED: admin bookkeeping, not news.
         dispatcher.dispatch(new ScheduleChangedEvent(
-                Action.CREATED, 1L, 1L, "BUS 03", "COU Blue", "BLUE", "UP",
-                "Kandirpar", "Campus", LocalTime.of(7, 0), null, "SUN-THU",
+                Action.CREATED, 1L, 1L, "BUS 03", "সিওই ব্লু", "COU Blue", "BLUE", "UP",
+                4L, "কান্দিরপাড় → ক্যাম্পাস", "Kandirpar → Campus",
+                LocalTime.of(7, 0), null, "SUN-THU",
                 false, List.of()));
 
         assertTrue(fcmService.sends.isEmpty());
@@ -143,8 +144,8 @@ class NotificationDispatcherTest {
         audienceTokens(token("en-token", "en"));
 
         dispatcher.dispatch(new ScheduleChangedEvent(
-                Action.CREATED, 2L, 1L, "BUS 03", null, "VIP", "UP",
-                null, null, LocalTime.of(7, 0), null, null,
+                Action.CREATED, 2L, 1L, "BUS 03", null, null, "VIP", "UP",
+                null, null, null, LocalTime.of(7, 0), null, null,
                 true, List.of()));
 
         assertTrue(fcmService.sends.isEmpty());
@@ -254,8 +255,9 @@ class NotificationDispatcherTest {
     /** An active BLUE-bus schedule — the audience resolves to STUDENT. */
     private static ScheduleChangedEvent event(Action action, List<FieldChange> changes) {
         return new ScheduleChangedEvent(
-                action, 1L, 1L, "BUS 03", "COU Blue", "BLUE", "UP",
-                "Kandirpar", "Campus", LocalTime.of(7, 0), null, "SUN-THU",
+                action, 1L, 1L, "BUS 03", "সিওই ব্লু", "COU Blue", "BLUE", "UP",
+                4L, "কান্দিরপাড় → ক্যাম্পাস", "Kandirpar → Campus",
+                LocalTime.of(7, 0), null, "SUN-THU",
                 true, changes);
     }
 }

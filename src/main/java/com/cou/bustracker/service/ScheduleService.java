@@ -3,6 +3,7 @@ package com.cou.bustracker.service;
 import com.cou.bustracker.dto.request.CreateScheduleRequest;
 import com.cou.bustracker.dto.response.ScheduleResponse;
 import com.cou.bustracker.entity.Bus;
+import com.cou.bustracker.entity.Route;
 import com.cou.bustracker.entity.Schedule;
 import com.cou.bustracker.event.ScheduleChangedEvent;
 import com.cou.bustracker.event.ScheduleChangedEvent.Action;
@@ -10,6 +11,7 @@ import com.cou.bustracker.event.ScheduleChangedEvent.Field;
 import com.cou.bustracker.event.ScheduleChangedEvent.FieldChange;
 import com.cou.bustracker.exception.ResourceNotFoundException;
 import com.cou.bustracker.repository.BusRepository;
+import com.cou.bustracker.repository.RouteRepository;
 import com.cou.bustracker.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ public class ScheduleService {
 
     private final ScheduleRepository scheduleRepository;
     private final BusRepository busRepository;
+    private final RouteRepository routeRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public List<ScheduleResponse> getAllActiveSchedules() {
@@ -74,17 +77,19 @@ public class ScheduleService {
     public void addSchedule(CreateScheduleRequest request) {
         Bus bus = busRepository.findById(request.getBusId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bus not found with id: " + request.getBusId()));
-        if (request.getBusName() != null && !request.getBusName().isBlank()) {
-            bus.setBusName(request.getBusName());
+        if (request.getBusNameBn() != null && !request.getBusNameBn().isBlank()) {
+            bus.setBusNameBn(request.getBusNameBn());
+        }
+        if (request.getBusNameEn() != null && !request.getBusNameEn().isBlank()) {
+            bus.setBusNameEn(request.getBusNameEn());
         }
 
         Schedule schedule = Schedule.builder()
                 .bus(bus)
+                .route(findRoute(request.getRouteId()))
                 .departureTime(LocalTime.parse(request.getDepartureTime()))
                 .arrivalTime(request.getArrivalTime() != null ? LocalTime.parse(request.getArrivalTime()) : null)
                 .direction(request.getDirection())
-                .startPoint(request.getStartPoint())
-                .endPoint(request.getEndPoint())
                 .days(request.getDays() != null ? request.getDays() : "SUN-THU")
                 .isActive(true)
                 .build();
@@ -100,35 +105,39 @@ public class ScheduleService {
         Bus bus = busRepository.findById(request.getBusId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bus not found with id: " + request.getBusId()));
 
-        // Snapshot everything first: busName is mutated below, and when the
-        // request points at the same bus, `bus` IS schedule.getBus() (same
+        // Snapshot everything first: the bus names are mutated below, and when
+        // the request points at the same bus, `bus` IS schedule.getBus() (same
         // persistence-context instance), so reading afterwards would hide it.
         final Long previousBusId = schedule.getBus().getId();
         final String previousBusNumber = schedule.getBus().getBusNumber();
-        final String previousBusName = bus.getBusName();
+        final String previousBusNameBn = bus.getBusNameBn();
+        final String previousBusNameEn = bus.getBusNameEn();
         final LocalTime previousDeparture = schedule.getDepartureTime();
         final LocalTime previousArrival = schedule.getArrivalTime();
         final String previousDirection = schedule.getDirection();
-        final String previousStartPoint = schedule.getStartPoint();
-        final String previousEndPoint = schedule.getEndPoint();
+        final String previousRouteNameBn = schedule.getRoute() != null ? schedule.getRoute().getNameBn() : null;
+        final String previousRouteNameEn = schedule.getRoute() != null ? schedule.getRoute().getNameEn() : null;
         final String previousDays = schedule.getDays();
 
-        if (request.getBusName() != null && !request.getBusName().isBlank()) {
-            bus.setBusName(request.getBusName());
+        if (request.getBusNameBn() != null && !request.getBusNameBn().isBlank()) {
+            bus.setBusNameBn(request.getBusNameBn());
+        }
+        if (request.getBusNameEn() != null && !request.getBusNameEn().isBlank()) {
+            bus.setBusNameEn(request.getBusNameEn());
         }
 
         schedule.setBus(bus);
+        schedule.setRoute(findRoute(request.getRouteId()));
         schedule.setDepartureTime(LocalTime.parse(request.getDepartureTime()));
         schedule.setArrivalTime(request.getArrivalTime() != null && !request.getArrivalTime().isBlank()
                 ? LocalTime.parse(request.getArrivalTime()) : null);
         schedule.setDirection(request.getDirection());
-        schedule.setStartPoint(request.getStartPoint());
-        schedule.setEndPoint(request.getEndPoint());
         schedule.setDays(request.getDays() != null ? request.getDays() : "SUN-THU");
 
-        List<FieldChange> changes = describeChanges(bus, previousBusId, previousBusNumber, previousBusName,
+        List<FieldChange> changes = describeChanges(bus, previousBusId, previousBusNumber,
+                previousBusNameBn, previousBusNameEn,
                 previousDeparture, previousArrival, previousDirection,
-                previousStartPoint, previousEndPoint, previousDays, schedule);
+                previousRouteNameBn, previousRouteNameEn, previousDays, schedule);
 
         if (changes.isEmpty()) {
             log.info("Schedule {} saved with no effective change — riders not notified", id);
@@ -150,18 +159,22 @@ public class ScheduleService {
      * values as null (rendered as a localized placeholder).
      */
     private List<FieldChange> describeChanges(Bus bus,
-                                              Long previousBusId, String previousBusNumber, String previousBusName,
+                                              Long previousBusId, String previousBusNumber,
+                                              String previousBusNameBn, String previousBusNameEn,
                                               LocalTime previousDeparture, LocalTime previousArrival,
-                                              String previousDirection, String previousStartPoint,
-                                              String previousEndPoint, String previousDays,
+                                              String previousDirection, String previousRouteNameBn,
+                                              String previousRouteNameEn, String previousDays,
                                               Schedule schedule) {
         List<FieldChange> changes = new ArrayList<>();
 
         if (!Objects.equals(previousBusId, bus.getId())) {
             changes.add(new FieldChange(Field.BUS_NUMBER, previousBusNumber, bus.getBusNumber()));
         }
-        if (!Objects.equals(previousBusName, bus.getBusName())) {
-            changes.add(new FieldChange(Field.BUS_NAME, text(previousBusName), text(bus.getBusName())));
+        if (!Objects.equals(previousBusNameBn, bus.getBusNameBn())) {
+            changes.add(new FieldChange(Field.BUS_NAME_BN, text(previousBusNameBn), text(bus.getBusNameBn())));
+        }
+        if (!Objects.equals(previousBusNameEn, bus.getBusNameEn())) {
+            changes.add(new FieldChange(Field.BUS_NAME_EN, text(previousBusNameEn), text(bus.getBusNameEn())));
         }
         if (!Objects.equals(previousDeparture, schedule.getDepartureTime())) {
             changes.add(new FieldChange(Field.DEPARTURE, time(previousDeparture), time(schedule.getDepartureTime())));
@@ -172,11 +185,14 @@ public class ScheduleService {
         if (!Objects.equals(previousDirection, schedule.getDirection())) {
             changes.add(new FieldChange(Field.DIRECTION, text(previousDirection), text(schedule.getDirection())));
         }
-        if (!Objects.equals(previousStartPoint, schedule.getStartPoint())) {
-            changes.add(new FieldChange(Field.START_POINT, text(previousStartPoint), text(schedule.getStartPoint())));
+        Route route = schedule.getRoute();
+        if (!Objects.equals(previousRouteNameBn, route != null ? route.getNameBn() : null)) {
+            changes.add(new FieldChange(Field.ROUTE_NAME_BN, text(previousRouteNameBn),
+                    text(route != null ? route.getNameBn() : null)));
         }
-        if (!Objects.equals(previousEndPoint, schedule.getEndPoint())) {
-            changes.add(new FieldChange(Field.END_POINT, text(previousEndPoint), text(schedule.getEndPoint())));
+        if (!Objects.equals(previousRouteNameEn, route != null ? route.getNameEn() : null)) {
+            changes.add(new FieldChange(Field.ROUTE_NAME_EN, text(previousRouteNameEn),
+                    text(route != null ? route.getNameEn() : null)));
         }
         if (!Objects.equals(previousDays, schedule.getDays())) {
             changes.add(new FieldChange(Field.DAYS, text(previousDays), text(schedule.getDays())));
@@ -193,6 +209,11 @@ public class ScheduleService {
         return value == null ? null : String.format("%02d:%02d", value.getHour(), value.getMinute());
     }
 
+    private Route findRoute(Long routeId) {
+        return routeRepository.findById(routeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Route not found with id: " + routeId));
+    }
+
     @Transactional
     public void deleteSchedule(Long id) {
         Schedule schedule = scheduleRepository.findById(id)
@@ -204,17 +225,20 @@ public class ScheduleService {
     }
 
     private ScheduleResponse mapToScheduleResponse(Schedule schedule) {
+        Route route = schedule.getRoute();
         return ScheduleResponse.builder()
                 .id(schedule.getId())
                 .busId(schedule.getBus().getId())
                 .busNumber(schedule.getBus().getBusNumber())
-                .busName(schedule.getBus().getBusName())
+                .busNameBn(schedule.getBus().getBusNameBn())
+                .busNameEn(schedule.getBus().getBusNameEn())
                 .category(schedule.getBus().getCategory())
                 .departureTime(schedule.getDepartureTime().toString())
                 .arrivalTime(schedule.getArrivalTime() != null ? schedule.getArrivalTime().toString() : null)
                 .direction(schedule.getDirection())
-                .startPoint(schedule.getStartPoint())
-                .endPoint(schedule.getEndPoint())
+                .routeId(route != null ? route.getId() : null)
+                .routeNameBn(route != null ? route.getNameBn() : null)
+                .routeNameEn(route != null ? route.getNameEn() : null)
                 .days(schedule.getDays())
                 .isActive(schedule.getIsActive())
                 .build();

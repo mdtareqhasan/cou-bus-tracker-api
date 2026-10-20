@@ -14,12 +14,14 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     List<Schedule> findByBusIdAndIsActiveTrue(Long busId);
 
-    @Query("SELECT s FROM Schedule s JOIN FETCH s.bus WHERE s.isActive = true AND s.bus.isActive = true")
+    long countByRouteId(Long routeId);
+
+    @Query("SELECT s FROM Schedule s JOIN FETCH s.bus JOIN FETCH s.route WHERE s.isActive = true AND s.bus.isActive = true")
     List<Schedule> findAllWithBus();
 
-    @Query("SELECT s FROM Schedule s JOIN FETCH s.bus WHERE s.bus.id = :busId AND s.isActive = true AND s.bus.isActive = true")
+    @Query("SELECT s FROM Schedule s JOIN FETCH s.bus JOIN FETCH s.route WHERE s.bus.id = :busId AND s.isActive = true AND s.bus.isActive = true")
     List<Schedule> findByBusIdWithBus(Long busId);
 
-    @Query("SELECT s FROM Schedule s JOIN FETCH s.bus ORDER BY s.departureTime ASC")
+    @Query("SELECT s FROM Schedule s JOIN FETCH s.bus JOIN FETCH s.route ORDER BY s.departureTime ASC")
     List<Schedule> findAllWithBusForAdmin();
 }
