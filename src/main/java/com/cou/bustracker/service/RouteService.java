@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -41,16 +42,12 @@ public class RouteService {
 
     /** Active routes only — what the public buses endpoints and app consume. */
     public List<RouteResponse> getActiveRoutes() {
-        return routeRepository.findByIsActiveTrue().stream()
-                .map(RouteService::toResponse)
-                .collect(Collectors.toList());
+        return withScheduleCounts(routeRepository.findByIsActiveTrue());
     }
 
     /** Every route, active and retired — the admin listing. */
     public List<RouteResponse> getAllRoutes() {
-        return routeRepository.findAllByOrderByIdAsc().stream()
-                .map(RouteService::toResponse)
-                .collect(Collectors.toList());
+        return withScheduleCounts(routeRepository.findAllByOrderByIdAsc());
     }
 
     public RouteResponse createRoute(RouteRequest request) {
@@ -64,7 +61,7 @@ public class RouteService {
                 .nameEn(nameEn)
                 .isActive(true)
                 .build();
-        return toResponse(routeRepository.save(route));
+        return withScheduleCounts(List.of(routeRepository.save(route))).get(0);
     }
 
     public RouteResponse updateRoute(Long id, RouteRequest request) {
@@ -77,7 +74,7 @@ public class RouteService {
         }
         route.setNameBn(nameBn);
         route.setNameEn(nameEn);
-        return toResponse(routeRepository.save(route));
+        return withScheduleCounts(List.of(routeRepository.save(route))).get(0);
     }
 
     public void deleteRoute(Long id) {
@@ -99,17 +96,101 @@ public class RouteService {
         return Boolean.TRUE.equals(route.getIsActive());
     }
 
+    /**
+     * Pairs two routes as the two physical directions of one corridor.
+     *
+     * <p>Reciprocity is the whole point: after this call both rows point at
+     * each other, so the client can render the pair from either side. If
+     * either route was already paired with someone else the old partner is
+     * unpaired first (one route has at most one opposite — the DB enforces it
+     * with a UNIQUE index) — the admin UI asks for confirmation before
+     * replacing an existing link.
+     */
+    public RouteResponse linkOpposite(Long routeId, Long oppositeRouteId) {
+        if (routeId.equals(oppositeRouteId)) {
+            throw new ApiException(ErrorCode.ROUTE_OPPOSITE_SELF);
+        }
+        Route route = findRoute(routeId);
+        Route opposite = findRoute(oppositeRouteId);
+
+        // Free both sides first: an existing partner (or a stale one-sided
+        // link, where a third route still points at one of these) would trip
+        // the DB's UNIQUE(opposite_route_id). One route has at most one
+        // opposite — the admin UI asks for confirmation before replacing.
+        unlinkPartner(route);
+        unlinkPartner(opposite);
+        clearStaleInboundLinks(routeId);
+        clearStaleInboundLinks(oppositeRouteId);
+
+        route.setOppositeRouteId(oppositeRouteId);
+        opposite.setOppositeRouteId(routeId);
+        routeRepository.save(route);
+        routeRepository.save(opposite);
+        return withScheduleCounts(List.of(route)).get(0);
+    }
+
+    /** Breaks a pairing, clearing both sides. Unpaired routes are the norm, so this is not an error. */
+    public RouteResponse unlinkOpposite(Long routeId) {
+        Route route = findRoute(routeId);
+        unlinkPartner(route);
+        clearStaleInboundLinks(routeId);
+        route.setOppositeRouteId(null);
+        routeRepository.save(route);
+        return withScheduleCounts(List.of(route)).get(0);
+    }
+
+    /**
+     * Clears the partner's back-pointer to {@code route} when it has one. A
+     * partner that points elsewhere (or nowhere) is left alone — its link is
+     * its own business.
+     */
+    private void unlinkPartner(Route route) {
+        Long partnerId = route.getOppositeRouteId();
+        if (partnerId == null) {
+            return;
+        }
+        routeRepository.findById(partnerId).ifPresent(partner -> {
+            if (route.getId().equals(partner.getOppositeRouteId())) {
+                partner.setOppositeRouteId(null);
+                routeRepository.save(partner);
+            }
+        });
+    }
+
+    /**
+     * Clears any route whose {@code opposite_route_id} points at
+     * {@code routeId} while {@code routeId} doesn't point back — a stale
+     * one-sided link left by a crash between the two writes. Without this,
+     * relinking would raise a constraint violation instead of healing.
+     */
+    private void clearStaleInboundLinks(Long routeId) {
+        routeRepository.findByOppositeRouteId(routeId).ifPresent(inbound -> {
+            inbound.setOppositeRouteId(null);
+            routeRepository.save(inbound);
+        });
+    }
+
+    /** Stamps the active-schedule count onto each response in one extra query. */
+    private List<RouteResponse> withScheduleCounts(List<Route> routes) {
+        Map<Long, Long> counts = scheduleRepository.countActiveSchedulesByRoute();
+        return routes.stream()
+                .map(route -> toResponse(route, counts.getOrDefault(route.getId(), 0L)))
+                .collect(Collectors.toList());
+    }
+
     private Route findRoute(Long id) {
         return routeRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ErrorCode.ROUTE_NOT_FOUND));
     }
 
-    private static RouteResponse toResponse(Route route) {
+    private static RouteResponse toResponse(Route route, Long activeScheduleCount) {
         return RouteResponse.builder()
                 .id(route.getId())
                 .nameBn(route.getNameBn())
                 .nameEn(route.getNameEn())
                 .isActive(route.getIsActive())
+                .oppositeRouteId(route.getOppositeRouteId())
+                .activeScheduleCount(activeScheduleCount)
                 .build();
     }
 }

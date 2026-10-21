@@ -1,12 +1,15 @@
 package com.cou.bustracker.service;
 
 import com.cou.bustracker.entity.UserFcmToken;
+import com.cou.bustracker.entity.UserRoutePreference;
 import com.cou.bustracker.event.NoticeCreatedEvent;
 import com.cou.bustracker.event.ScheduleChangedEvent;
 import com.cou.bustracker.event.ScheduleChangedEvent.Action;
 import com.cou.bustracker.event.ScheduleChangedEvent.Field;
 import com.cou.bustracker.event.ScheduleChangedEvent.FieldChange;
+import com.cou.bustracker.repository.RouteRepository;
 import com.cou.bustracker.repository.UserFcmTokenRepository;
+import com.cou.bustracker.repository.UserRoutePreferenceRepository;
 import com.google.firebase.messaging.FirebaseMessaging;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,18 +33,22 @@ import static org.mockito.Mockito.when;
  * where a {@link ScheduleChangedEvent} becomes human text, so this is where
  * the en/bn contract is pinned down.
  *
- * <p>Uses a real {@link FcmTokenService} (backed by a mocked repository) and a
- * recording {@link FcmService} subclass instead of Mockito mocks: only
+ * <p>Also pins the audience contract: a schedule change reaches only riders
+ * who opted in to that route's alerts (never an entire user type), and a
+ * reassignment fans out to both routes with each side's own wording.
+ *
+ * <p>Uses real services (backed by mocked repositories) and a recording
+ * {@link FcmService} subclass instead of Mockito mocks of the services: only
  * interfaces can be mocked on this JVM, matching the house style of the other
  * service tests.
  */
 class NotificationDispatcherTest {
 
     /**
-     * The {@code event()} fixture below uses busId=1 and scheduleId=1, so every
-     * schedule push must deep-link to that bus page with the trip highlighted.
+     * The {@code event()} fixture below runs on route 4, so every non-
+     * reassignment schedule push must deep-link to that route's detail page.
      */
-    private static final String SCHEDULE_ROUTE = "/bus/1?scheduleId=1";
+    private static final String SCHEDULE_ROUTE = "/route/4";
 
     /** One send as the dispatcher issued it: tokens + rendered text + route. */
     private record Send(List<String> tokens, String title, String body, String route) {
@@ -62,12 +70,14 @@ class NotificationDispatcherTest {
     }
 
     private UserFcmTokenRepository repository;
+    private UserRoutePreferenceRepository preferenceRepository;
     private RecordingFcmService fcmService;
     private NotificationDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
         repository = mock(UserFcmTokenRepository.class);
+        preferenceRepository = mock(UserRoutePreferenceRepository.class);
         fcmService = new RecordingFcmService();
 
         ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
@@ -75,7 +85,9 @@ class NotificationDispatcherTest {
         messageSource.setDefaultEncoding("UTF-8");
 
         dispatcher = new NotificationDispatcher(
-                new FcmTokenService(repository), fcmService, messageSource);
+                new FcmTokenService(repository), fcmService,
+                new UserRoutePreferenceService(preferenceRepository, mock(RouteRepository.class)),
+                messageSource);
     }
 
     @Test
@@ -159,6 +171,7 @@ class NotificationDispatcherTest {
         dispatcher.dispatch(new ScheduleChangedEvent(
                 Action.CREATED, 1L, 1L, "BUS 03", "সিওই ব্লু", "COU Blue", "BLUE", "UP",
                 4L, "কান্দিরপাড় → ক্যাম্পাস", "Kandirpar → Campus",
+                null, null, null,
                 LocalTime.of(7, 0), null, "SUN-THU",
                 false, List.of()));
 
@@ -166,15 +179,67 @@ class NotificationDispatcherTest {
     }
 
     @Test
-    void skipsUnmappedCategoryInsteadOfBroadcasting() {
-        audienceTokens(token("en-token", "en"));
+    void scheduleWithNoRouteSubscribersSendsNothing() {
+        // A change to a route nobody follows is not news — and must never
+        // widen to a broadcast of every student/teacher token.
+        when(preferenceRepository.findByRouteIdAndScheduleAlertsEnabledTrue(4L))
+                .thenReturn(List.of());
 
-        dispatcher.dispatch(new ScheduleChangedEvent(
-                Action.CREATED, 2L, 1L, "BUS 03", null, null, "VIP", "UP",
-                null, null, null, LocalTime.of(7, 0), null, null,
-                true, List.of()));
+        dispatcher.dispatch(event(Action.UPDATED, List.of(
+                new FieldChange(Field.DEPARTURE, "07:00", "07:15"))));
 
         assertTrue(fcmService.sends.isEmpty());
+    }
+
+    // --- Route reassignment fan-out --------------------------------------
+
+    @Test
+    void reassignmentNotifiesEachRouteWithItsOwnWording() {
+        // The trip moved from route 3 (4:00 PM) to route 4 (7:00 AM).
+        routeSubscribers(3L, subscriber("STUDENT", 10L));
+        routeSubscribers(4L, subscriber("STUDENT", 11L));
+        when(repository.findByUserTypeAndUserIdInAndIsActiveTrue("STUDENT", Set.of(10L)))
+                .thenReturn(List.of(token("old-token", "en")));
+        when(repository.findByUserTypeAndUserIdInAndIsActiveTrue("STUDENT", Set.of(11L)))
+                .thenReturn(List.of(token("new-token", "en")));
+
+        dispatcher.dispatch(reassignmentEvent());
+
+        assertEquals(List.of(
+                // Old-route riders: it's gone from *their* route, quoted at the
+                // pre-move time and linked to the route they follow.
+                new Send(List.of("old-token"),
+                        "Schedule removed: BUS 03",
+                        "BUS 03 · COU Blue · BLUE · Campus → Kandirpar · "
+                                + "No longer runs (was departing 4:00 PM (SUN-THU)).",
+                        "/route/3"),
+                // New-route riders: it's a new trip on *their* route.
+                new Send(List.of("new-token"),
+                        "New schedule: BUS 03",
+                        "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · "
+                                + "New trip departs 7:00 AM (SUN-THU).",
+                        SCHEDULE_ROUTE)),
+                fcmService.sends);
+    }
+
+    @Test
+    void riderOnBothRoutesHearsOnlyTheJoinMessage() {
+        // Following both halves of the corridor: the trip left one of their
+        // routes and joined the other — one push, not two.
+        routeSubscribers(3L, subscriber("STUDENT", 10L));
+        routeSubscribers(4L, subscriber("STUDENT", 10L));
+        when(repository.findByUserTypeAndUserIdInAndIsActiveTrue("STUDENT", Set.of(10L)))
+                .thenReturn(List.of(token("both-token", "en")));
+
+        dispatcher.dispatch(reassignmentEvent());
+
+        assertEquals(List.of(new Send(
+                List.of("both-token"),
+                "New schedule: BUS 03",
+                "BUS 03 · COU Blue · BLUE · Kandirpar → Campus · "
+                        + "New trip departs 7:00 AM (SUN-THU).",
+                SCHEDULE_ROUTE)),
+                fcmService.sends);
     }
 
     // --- Notice pushes -------------------------------------------------
@@ -255,8 +320,28 @@ class NotificationDispatcherTest {
         assertTrue(sent.endsWith("…"));
     }
 
+    // --- Fixtures -------------------------------------------------------
+
+    /** The event fixture's route: one STUDENT (id 10) with alerts on. */
     private void audienceTokens(UserFcmToken... tokens) {
-        when(repository.findByUserTypeAndIsActiveTrue("STUDENT")).thenReturn(List.of(tokens));
+        routeSubscribers(4L, subscriber("STUDENT", 10L));
+        when(repository.findByUserTypeAndUserIdInAndIsActiveTrue("STUDENT", Set.of(10L)))
+                .thenReturn(List.of(tokens));
+    }
+
+    private void routeSubscribers(Long routeId, UserRoutePreference... preferences) {
+        when(preferenceRepository.findByRouteIdAndScheduleAlertsEnabledTrue(routeId))
+                .thenReturn(List.of(preferences));
+    }
+
+    private static UserRoutePreference subscriber(String userType, Long userId) {
+        return UserRoutePreference.builder()
+                .userType(userType)
+                .userId(userId)
+                .routeId(4L)
+                .isPinned(true)
+                .scheduleAlertsEnabled(true)
+                .build();
     }
 
     private static NoticeCreatedEvent noticeEvent(String audience, String title) {
@@ -278,12 +363,31 @@ class NotificationDispatcherTest {
                 .build();
     }
 
-    /** An active BLUE-bus schedule — the audience resolves to STUDENT. */
+    /** An active BLUE-bus schedule on route 4. */
     private static ScheduleChangedEvent event(Action action, List<FieldChange> changes) {
         return new ScheduleChangedEvent(
                 action, 1L, 1L, "BUS 03", "সিওই ব্লু", "COU Blue", "BLUE", "UP",
                 4L, "কান্দিরপাড় → ক্যাম্পাস", "Kandirpar → Campus",
+                null, null, null,
                 LocalTime.of(7, 0), null, "SUN-THU",
                 true, changes);
+    }
+
+    /**
+     * The trip moved from route 3 ("Campus → Kandirpar", 4:00 PM) to route 4
+     * ("Kandirpar → Campus", 7:00 AM) — the diff carries the pre-move time so
+     * old-route riders hear what they're losing, not the new schedule.
+     */
+    private static ScheduleChangedEvent reassignmentEvent() {
+        return new ScheduleChangedEvent(
+                Action.UPDATED, 1L, 1L, "BUS 03", "সিওই ব্লু", "COU Blue", "BLUE", "UP",
+                4L, "কান্দিরপাড় → ক্যাম্পাস", "Kandirpar → Campus",
+                3L, "ক্যাম্পাস → কান্দিরপাড়", "Campus → Kandirpar",
+                LocalTime.of(7, 0), null, "SUN-THU",
+                true,
+                List.of(
+                        new FieldChange(Field.DEPARTURE, "16:00", "07:00"),
+                        new FieldChange(Field.ROUTE_NAME_BN, "ক্যাম্পাস → কান্দিরপাড়", "কান্দিরপাড় → ক্যাম্পাস"),
+                        new FieldChange(Field.ROUTE_NAME_EN, "Campus → Kandirpar", "Kandirpar → Campus")));
     }
 }

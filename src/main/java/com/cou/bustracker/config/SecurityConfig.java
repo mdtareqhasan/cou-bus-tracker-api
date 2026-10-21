@@ -63,6 +63,8 @@ public class SecurityConfig {
                                 "/api/auth/teacher/academic").authenticated()
                         // FCM push-token registration - any authenticated student/teacher
                         .requestMatchers("/api/notifications/**").authenticated()
+                        // Per-user route pins + schedule-alert opt-in
+                        .requestMatchers("/api/me/**").authenticated()
                         .requestMatchers("/api/super-admin/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/buses/**").permitAll()

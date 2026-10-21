@@ -36,6 +36,10 @@ import java.util.List;
  *                       times of day)
  * @param routeNameBn    Bangla route name, may be null
  * @param routeNameEn    English route name, may be null
+ * @param previousRouteId       the route this trip ran before the update, or
+ *                              null when it didn't move (create/delete/toggle)
+ * @param previousRouteNameBn   Bangla name of the previous route, may be null
+ * @param previousRouteNameEn   English name of the previous route, may be null
  * @param departureTime  required by the schema
  * @param arrivalTime    optional
  * @param days           e.g. "SUN-THU"
@@ -57,6 +61,9 @@ public record ScheduleChangedEvent(
         Long routeId,
         String routeNameBn,
         String routeNameEn,
+        Long previousRouteId,
+        String previousRouteNameBn,
+        String previousRouteNameEn,
         LocalTime departureTime,
         LocalTime arrivalTime,
         String days,
@@ -98,6 +105,19 @@ public record ScheduleChangedEvent(
      * that owns {@code schedule} — never from an after-commit listener.
      */
     public static ScheduleChangedEvent from(Action action, Schedule schedule, List<FieldChange> changes) {
+        return from(action, schedule, changes, null, null, null);
+    }
+
+    /**
+     * As {@link #from(Action, Schedule, List)}, but carrying the route the trip
+     * ran <em>before</em> this update. {@code ScheduleService} captures those
+     * before the mutation and passes them here, so the dispatcher can fan a
+     * reassignment out to both routes' subscribers with each side's own wording
+     * — an after-commit listener could no longer read the old route.
+     */
+    public static ScheduleChangedEvent from(Action action, Schedule schedule, List<FieldChange> changes,
+                                            Long previousRouteId,
+                                            String previousRouteNameBn, String previousRouteNameEn) {
         Bus bus = schedule.getBus();
         Route route = schedule.getRoute();
         return new ScheduleChangedEvent(
@@ -112,6 +132,9 @@ public record ScheduleChangedEvent(
                 route != null ? route.getId() : null,
                 route != null ? route.getNameBn() : null,
                 route != null ? route.getNameEn() : null,
+                previousRouteId,
+                previousRouteNameBn,
+                previousRouteNameEn,
                 schedule.getDepartureTime(),
                 schedule.getArrivalTime(),
                 schedule.getDays(),

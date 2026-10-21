@@ -30,6 +30,12 @@ public interface UserFcmTokenRepository extends JpaRepository<UserFcmToken, Long
      */
     List<UserFcmToken> findByUserTypeAndIsActiveTrue(String userType);
 
+    /**
+     * Active tokens for a <em>subset</em> of one user type — the audience when
+     * only riders who follow a particular route care about a change.
+     */
+    List<UserFcmToken> findByUserTypeAndUserIdInAndIsActiveTrue(String userType, Collection<Long> userIds);
+
     /** Bulk delete by token — used to prune tokens FCM reports as unregistered. */
     long deleteByTokenIn(Collection<String> tokens);
 

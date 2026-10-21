@@ -121,7 +121,8 @@ public enum ErrorCode {
     ROUTE_NOT_FOUND(HttpStatus.NOT_FOUND, "Route not found"),
     ROUTE_NAME_EXISTS(HttpStatus.CONFLICT, "A route with this name already exists"),
     ROUTE_IN_USE(HttpStatus.CONFLICT,
-            "This route is used by existing schedules. Deactivate it instead of deleting");
+            "This route is used by existing schedules. Deactivate it instead of deleting"),
+    ROUTE_OPPOSITE_SELF(HttpStatus.BAD_REQUEST, "A route cannot be its own opposite");
 
     private final HttpStatus status;
     private final String defaultMessage;

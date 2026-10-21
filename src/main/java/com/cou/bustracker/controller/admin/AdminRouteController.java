@@ -66,4 +66,18 @@ public class AdminRouteController {
                 .message("Route deleted successfully")
                 .build());
     }
+
+    @PutMapping("/{id}/opposite/{oppositeId}")
+    @Operation(summary = "Link two routes as opposite directions",
+            description = "Pairs the routes both ways; replacing an existing pairing is allowed (the old partner is unlinked)")
+    public ResponseEntity<RouteResponse> linkOpposite(@PathVariable Long id,
+                                                      @PathVariable Long oppositeId) {
+        return ResponseEntity.ok(routeService.linkOpposite(id, oppositeId));
+    }
+
+    @DeleteMapping("/{id}/opposite")
+    @Operation(summary = "Unlink a route's opposite", description = "Clears the pairing on both sides; idempotent")
+    public ResponseEntity<RouteResponse> unlinkOpposite(@PathVariable Long id) {
+        return ResponseEntity.ok(routeService.unlinkOpposite(id));
+    }
 }

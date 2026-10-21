@@ -29,4 +29,11 @@ public class ScheduleController {
     public ResponseEntity<List<ScheduleResponse>> getSchedulesByBusId(@PathVariable Long busId) {
         return ResponseEntity.ok(scheduleService.getSchedulesByBusId(busId));
     }
+
+    @GetMapping("/route/{routeId}")
+    @Operation(summary = "Get schedules by route ID",
+            description = "Active trips on one direction of a route; for a linked pair, call once per side")
+    public ResponseEntity<List<ScheduleResponse>> getSchedulesByRouteId(@PathVariable Long routeId) {
+        return ResponseEntity.ok(scheduleService.getSchedulesByRouteId(routeId));
+    }
 }

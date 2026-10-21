@@ -49,6 +49,13 @@ public class ScheduleService {
                 .collect(Collectors.toList());
     }
 
+    /** Active trips on one route — what a Route tab pair-card row renders. */
+    public List<ScheduleResponse> getSchedulesByRouteId(Long routeId) {
+        return scheduleRepository.findByRouteIdWithBus(routeId).stream()
+                .map(this::mapToScheduleResponse)
+                .collect(Collectors.toList());
+    }
+
     public List<ScheduleResponse> getAllSchedulesForAdmin() {
         List<Schedule> schedules = scheduleRepository.findAllWithBusForAdmin();
         return schedules.stream()
@@ -116,6 +123,7 @@ public class ScheduleService {
         final String previousDirection = schedule.getDirection();
         final String previousRouteNameBn = schedule.getRoute() != null ? schedule.getRoute().getNameBn() : null;
         final String previousRouteNameEn = schedule.getRoute() != null ? schedule.getRoute().getNameEn() : null;
+        final Long previousRouteId = schedule.getRoute() != null ? schedule.getRoute().getId() : null;
         final String previousDays = schedule.getDays();
 
         if (request.getBusNameBn() != null && !request.getBusNameBn().isBlank()) {
@@ -144,7 +152,8 @@ public class ScheduleService {
         }
 
         log.info("Schedule {} changed: {}", id, changes);
-        eventPublisher.publishEvent(ScheduleChangedEvent.from(Action.UPDATED, schedule, changes));
+        eventPublisher.publishEvent(ScheduleChangedEvent.from(Action.UPDATED, schedule, changes,
+                previousRouteId, previousRouteNameBn, previousRouteNameEn));
     }
 
     /**

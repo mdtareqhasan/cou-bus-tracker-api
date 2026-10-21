@@ -13,9 +13,12 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Turns a schedule mutation or a new notice into push notifications, off the
@@ -46,9 +49,19 @@ import java.util.Map;
  *   <li><b>Never throws.</b> A push failure must not be able to fail — or
  *       retry — an admin's write.</li>
  *   <li><b>No session.</b> Everything needed is in the immutable event, so
- *       there is no lazy-loading or after-commit surprise.</li>
- *   <li><b>Audience comes from the data</b>, not from the caller: from the
- *       bus category for schedules, from the notice audience for notices.</li>
+ *       there is no lazy-loading or after-commit surprise. Route <em>names</em>
+ *       ride the event; only the audience (who follows which route) is read
+ *       here, from the preference table.</li>
+ *   <li><b>Audience comes from the data</b>, not from the caller: for
+ *       schedules, the riders who opted in to that route's alerts via
+ *       {@code user_route_preferences}; for notices, the notice's audience.
+ *       A schedule change is only news to people who follow that route, so it
+ *       never fans out to an entire user type.</li>
+ *   <li><b>Reassignments fan out twice.</b> When an update moves a trip from
+ *       one route to another, riders of the old route hear "no longer runs on
+ *       your route" and riders of the new route hear "new trip" — each side
+ *       gets the wording that is true <em>for them</em>. Someone following
+ *       both routes hears only the "new trip" half.</li>
  *   <li><b>Localized per device.</b> FCM renders the notification payload in
  *       the tray without the app running, so the text must already be in the
  *       rider's language when we send it. Devices are grouped by the
@@ -63,19 +76,6 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class NotificationDispatcher {
-
-    /**
-     * Bus category → FCM {@code user_type} audience.
-     *
-     * <p>COU runs BLUE and STAFF buses interchangeably for the same riders,
-     * so both fan out to students; TEACHER buses fan out to teachers. Any
-     * category missing here is logged and skipped rather than broadcast to
-     * everyone.
-     */
-    private static final Map<String, String> AUDIENCE_BY_CATEGORY = Map.of(
-            "BLUE", "STUDENT",
-            "STAFF", "STUDENT",
-            "TEACHER", "TEACHER");
 
     /**
      * Audiences a notice can target, in fan-out order. Kept as the stored
@@ -94,6 +94,7 @@ public class NotificationDispatcher {
 
     private final FcmTokenService fcmTokenService;
     private final FcmService fcmService;
+    private final UserRoutePreferenceService preferenceService;
 
     /**
      * Message bundles on the classpath ({@code messages.properties} is the
@@ -118,39 +119,109 @@ public class NotificationDispatcher {
                         event.scheduleId(), event.action());
                 return;
             }
-
-            String audience = AUDIENCE_BY_CATEGORY.get(event.category());
-            if (audience == null) {
-                log.warn("No push audience mapped for bus category '{}' — skipping notification for schedule {}",
-                        event.category(), event.scheduleId());
+            if (event.routeId() == null) {
+                log.warn("Schedule {} ({}) has no route — no audience to notify",
+                        event.scheduleId(), event.action());
                 return;
             }
 
-            Map<String, List<String>> tokensByLanguage = fcmTokenService.getActiveTokensGroupedByLanguage(audience);
-            int deviceCount = tokensByLanguage.values().stream().mapToInt(List::size).sum();
-            if (deviceCount == 0) {
-                log.info("No active {} devices to notify about schedule {} ({})",
-                        audience, event.scheduleId(), event.action());
+            Long newRouteId = event.routeId();
+            Long oldRouteId = event.previousRouteId();
+            boolean reassigned = oldRouteId != null && !oldRouteId.equals(newRouteId);
+
+            if (!reassigned) {
+                // One route, one audience: everyone who asked for alerts on it.
+                pushToRouteSubscribers(event, newRouteId, Flavor.of(event.action()), null);
                 return;
             }
 
-            // One rendered message per language, one FCM fan-out per group.
-            for (Map.Entry<String, List<String>> group : tokensByLanguage.entrySet()) {
-                Locale locale = localeOf(group.getKey());
-                List<String> batch = group.getValue();
-                String title = title(event, locale);
-                String body = body(event, locale);
-                log.info("Pushing schedule {} ({}) to {} {} device(s) in {}: {}",
-                        event.scheduleId(), event.action(), batch.size(), audience, locale, title);
+            // A reassignment is news on both sides of the move. Riders of the
+            // old route hear that the trip is gone from their route; riders of
+            // the new route hear the trip joined theirs. Someone following both
+            // gets only the second message — one push per change per device.
+            Map<String, Set<Long>> newAudience = preferenceService.alertSubscribersByType(newRouteId);
+            Map<String, Set<Long>> oldOnly = minus(preferenceService.alertSubscribersByType(oldRouteId),
+                    newAudience);
 
-                sendInBatches(batch, title, body, scheduleRoute(event));
-            }
+            pushToRouteSubscribers(event, oldRouteId, Flavor.LEFT, oldOnly);
+            pushToRouteSubscribers(event, newRouteId, Flavor.JOINED, newAudience);
         } catch (Exception e) {
             // Deliberately swallowed: the schedule write already succeeded and
             // the admin already got their 200. Log loudly instead of failing.
             log.error("Failed to dispatch schedule notification {} ({})",
                     event == null ? "?" : event.scheduleId(),
                     event == null ? "?" : event.action(), e);
+        }
+    }
+
+    /**
+     * Renders and pushes one message to a route's alert subscribers.
+     *
+     * @param audience pre-resolved (user_type → user ids); pass null to look
+     *                 up subscribers of {@code routeId} yourself
+     */
+    private void pushToRouteSubscribers(ScheduleChangedEvent event, Long routeId, Flavor flavor,
+                                        Map<String, Set<Long>> audience) {
+        Map<String, Set<Long>> subscribers =
+                audience != null ? audience : preferenceService.alertSubscribersByType(routeId);
+
+        int deviceCount = 0;
+        for (Map.Entry<String, Set<Long>> group : subscribers.entrySet()) {
+            Map<String, List<String>> tokensByLanguage =
+                    fcmTokenService.getActiveTokensGroupedByLanguage(group.getKey(), group.getValue());
+            for (Map.Entry<String, List<String>> devices : tokensByLanguage.entrySet()) {
+                Locale locale = localeOf(devices.getKey());
+                List<String> batch = devices.getValue();
+                String title = title(event, locale, flavor);
+                String body = body(event, locale, flavor);
+                log.info("Pushing schedule {} ({}, route {}) to {} {} device(s) in {}: {}",
+                        event.scheduleId(), event.action(), routeId, batch.size(), group.getKey(),
+                        locale, title);
+                sendInBatches(batch, title, body, routeLink(routeId));
+                deviceCount += batch.size();
+            }
+        }
+        if (deviceCount == 0) {
+            log.info("No subscribed devices to notify about schedule {} ({}) on route {}",
+                    event.scheduleId(), event.action(), routeId);
+        }
+    }
+
+    /**
+     * {@code from} minus {@code remove}, per user type — the old-route-only
+     * audience of a reassignment. A rider following both routes already hears
+     * the "joined" message, so the "left" message would be noise.
+     */
+    private static Map<String, Set<Long>> minus(Map<String, Set<Long>> from, Map<String, Set<Long>> remove) {
+        Map<String, Set<Long>> out = new LinkedHashMap<>();
+        from.forEach((type, ids) -> {
+            Set<Long> kept = new LinkedHashSet<>(ids);
+            remove.getOrDefault(type, Set.of()).forEach(kept::remove);
+            if (!kept.isEmpty()) {
+                out.put(type, kept);
+            }
+        });
+        return out;
+    }
+
+    /**
+     * Which wording a schedule push uses. Ordinals match the action enum for
+     * the common case, so {@link Flavor#of} falls through to the action itself
+     * except for the two reassignment halves.
+     */
+    private enum Flavor {
+        /** Normal send — title/body follow the event's own action. */
+        STANDARD,
+        /** Trip moved off the rider's route: "no longer runs (was departing …)". */
+        LEFT,
+        /** Trip moved onto the rider's route: "new trip departs …". */
+        JOINED;
+
+        static Flavor of(ScheduleChangedEvent.Action action) {
+            return switch (action) {
+                case CREATED -> JOINED;   // a new trip arriving on a route reads the same
+                default -> STANDARD;
+            };
         }
     }
 
@@ -230,17 +301,15 @@ public class NotificationDispatcher {
     }
 
     /**
-     * In-app destination for a schedule push: the bus detail page with the
-     * changed trip highlighted. The {@code scheduleId} is a query hint, not a
-     * hard requirement — if the trip was deleted the bus page still renders and
-     * simply ignores the id.
+     * In-app destination for a schedule push: the Route tab's detail page for
+     * the direction the message is about. For a "left your route" message that
+     * is the <em>old</em> route — the one the rider follows — so tapping the
+     * push lands them where the news applies. The Flutter side registers
+     * {@code /route/:id}; an unknown id still opens the Route tab, so a stale
+     * link degrades instead of breaking.
      */
-    private static String scheduleRoute(ScheduleChangedEvent event) {
-        if (event.busId() == null) {
-            return null;
-        }
-        String route = "/bus/" + event.busId();
-        return event.scheduleId() != null ? route + "?scheduleId=" + event.scheduleId() : route;
+    private static String routeLink(Long routeId) {
+        return routeId == null ? null : "/route/" + routeId;
     }
 
     /**
@@ -268,37 +337,48 @@ public class NotificationDispatcher {
         };
     }
 
-    private String title(ScheduleChangedEvent event, Locale locale) {
+    private String title(ScheduleChangedEvent event, Locale locale, Flavor flavor) {
         String bus = event.busNumber() != null ? event.busNumber() : msg(locale, "push.bus.fallback");
-        return switch (event.action()) {
-            case CREATED -> msg(locale, "push.schedule.created.title", bus);
-            case UPDATED -> msg(locale, "push.schedule.updated.title", bus);
-            case DELETED -> msg(locale, "push.schedule.deleted.title", bus);
-            case ACTIVATED -> msg(locale, "push.schedule.activated.title", bus);
-            case DEACTIVATED -> msg(locale, "push.schedule.deactivated.title", bus);
+        // The two halves of a reassignment reuse the delete/create titles: to a
+        // rider of the old route the trip really is gone, and to a rider of the
+        // new route it really is new.
+        return switch (flavor) {
+            case LEFT -> msg(locale, "push.schedule.deleted.title", bus);
+            case JOINED -> msg(locale, "push.schedule.created.title", bus);
+            case STANDARD -> switch (event.action()) {
+                case CREATED -> msg(locale, "push.schedule.created.title", bus);
+                case UPDATED -> msg(locale, "push.schedule.updated.title", bus);
+                case DELETED -> msg(locale, "push.schedule.deleted.title", bus);
+                case ACTIVATED -> msg(locale, "push.schedule.activated.title", bus);
+                case DEACTIVATED -> msg(locale, "push.schedule.deactivated.title", bus);
+            };
         };
     }
 
-    private String body(ScheduleChangedEvent event, Locale locale) {
-        String header = header(event, locale);
-
-        String detail = switch (event.action()) {
-            // when() says exactly when it runs, e.g. "departs 7:00 AM (SUN-THU)";
-            // the body lead-in turns it into a full sentence.
-            case CREATED -> msg(locale, "push.body.created", when(event, locale));
-            // One plain-language sentence per changed field, in the order a
-            // rider cares most about (times, then route/days, then names).
-            case UPDATED -> sentences(event, locale);
-            case DELETED -> msg(locale, "push.body.deleted", was(event, locale));
-            case ACTIVATED -> msg(locale, "push.body.activated", when(event, locale));
-            case DEACTIVATED -> msg(locale, "push.body.deactivated", was(event, locale));
+    private String body(ScheduleChangedEvent event, Locale locale, Flavor flavor) {
+        String detail = switch (flavor) {
+            // Header names the route the rider follows — the one the trip
+            // left — so the news reads as being about *their* route.
+            case LEFT -> msg(locale, "push.body.deleted", wasBefore(event, locale));
+            case JOINED -> msg(locale, "push.body.created", when(event, locale));
+            case STANDARD -> switch (event.action()) {
+                // when() says exactly when it runs, e.g. "departs 7:00 AM (SUN-THU)";
+                // the body lead-in turns it into a full sentence.
+                case CREATED -> msg(locale, "push.body.created", when(event, locale));
+                // One plain-language sentence per changed field, in the order a
+                // rider cares most about (times, then route/days, then names).
+                case UPDATED -> sentences(event, locale);
+                case DELETED -> msg(locale, "push.body.deleted", was(event, locale));
+                case ACTIVATED -> msg(locale, "push.body.activated", when(event, locale));
+                case DEACTIVATED -> msg(locale, "push.body.deactivated", was(event, locale));
+            };
         };
 
-        return header + " · " + detail;
+        return header(event, locale, flavor == Flavor.LEFT) + " · " + detail;
     }
 
     /** "BUS 03 · COU Blue · BLUE · Kandirpar → Campus" */
-    private String header(ScheduleChangedEvent event, Locale locale) {
+    private String header(ScheduleChangedEvent event, Locale locale, boolean previousRoute) {
         StringBuilder header = new StringBuilder(
                 event.busNumber() != null ? event.busNumber() : msg(locale, "push.bus.fallback"));
         String busName = localizedBusName(event, locale);
@@ -308,7 +388,9 @@ public class NotificationDispatcher {
         if (notBlank(event.category())) {
             header.append(" · ").append(event.category());
         }
-        String route = localizedRouteName(event, locale);
+        String route = previousRoute
+                ? localizedRouteName(event.previousRouteNameBn(), event.previousRouteNameEn(), locale)
+                : localizedRouteName(event.routeNameBn(), event.routeNameEn(), locale);
         if (!notBlank(route)) {
             route = notBlank(event.direction()) ? event.direction() : "";
         }
@@ -333,10 +415,10 @@ public class NotificationDispatcher {
      * Route name in the device's language, falling back to the other language
      * when only one is set.
      */
-    private String localizedRouteName(ScheduleChangedEvent event, Locale locale) {
+    private static String localizedRouteName(String nameBn, String nameEn, Locale locale) {
         boolean bangla = "bn".equals(locale.getLanguage());
-        String primary = bangla ? event.routeNameBn() : event.routeNameEn();
-        String fallback = bangla ? event.routeNameEn() : event.routeNameBn();
+        String primary = bangla ? nameBn : nameEn;
+        String fallback = bangla ? nameEn : nameBn;
         return notBlank(primary) ? primary : fallback;
     }
 
@@ -354,6 +436,30 @@ public class NotificationDispatcher {
         StringBuilder was = new StringBuilder(msg(locale, "push.when.was.single", format(event.departureTime())));
         if (notBlank(event.days())) {
             was.append(" (").append(event.days()).append(")");
+        }
+        return was.toString();
+    }
+
+    /**
+     * Past tense for a "left your route" message: the departure and days the
+     * trip had <em>before</em> this change. The event carries the schedule's
+     * current state, but a reassignment may have moved the time too — quoting
+     * the new time as what the rider "was" getting would be wrong, so the old
+     * value is read back out of the diff. When a field didn't move, its old
+     * value is simply the current one.
+     */
+    private String wasBefore(ScheduleChangedEvent event, Locale locale) {
+        FieldChange departure = changeOf(event.changes(), Field.DEPARTURE);
+        // Diff times are raw "HH:mm" — re-render to 12-hour like the rest.
+        String oldDeparture = departure != null && notBlank(departure.from())
+                ? clock(departure.from())
+                : format(event.departureTime());
+        FieldChange days = changeOf(event.changes(), Field.DAYS);
+        String oldDays = days != null && notBlank(days.from()) ? days.from() : event.days();
+
+        StringBuilder was = new StringBuilder(msg(locale, "push.when.was.single", oldDeparture));
+        if (notBlank(oldDays)) {
+            was.append(" (").append(oldDays).append(")");
         }
         return was.toString();
     }

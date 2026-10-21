@@ -31,6 +31,21 @@ public class Route {
     @Builder.Default
     private Boolean isActive = true;
 
+    /**
+     * The other physical direction of this corridor, e.g. {@code "Kandirpar →
+     * Campus"} ↔ {@code "Campus → Kandirpar"}. One row = one direction, so a
+     * rider's round trip is two rows paired here.
+     *
+     * <p>Stored as a bare id rather than a {@code @ManyToOne} because the only
+     * consumer (the public route listing) already has both rows in hand and
+     * just needs the id to draw the pair — an association would buy a lazy
+     * proxy nobody reads. Reciprocity (A.opposite = B ⇒ B.opposite = A) is
+     * enforced in {@code RouteService} plus DB guardrails (no self-opposite
+     * CHECK, UNIQUE index so a route can be the opposite of at most one other).
+     */
+    @Column(name = "opposite_route_id")
+    private Long oppositeRouteId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

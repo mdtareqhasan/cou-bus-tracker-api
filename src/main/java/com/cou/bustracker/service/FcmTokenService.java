@@ -146,8 +146,31 @@ public class FcmTokenService {
         if (!SUPPORTED_ROLES.contains(userType)) {
             throw new IllegalArgumentException("Unsupported FCM audience: " + userType);
         }
+        return groupByLanguage(userFcmTokenRepository.findByUserTypeAndIsActiveTrue(userType));
+    }
+
+    /**
+     * As {@link #getActiveTokensGroupedByLanguage(String)}, but restricted to
+     * specific users of one type — the audience when only riders who follow a
+     * route (per their saved route preferences) care about a change.
+     *
+     * <p>Empty {@code userIds} short-circuits to an empty map: a route nobody
+     * follows has an empty audience, not a broadcast.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, List<String>> getActiveTokensGroupedByLanguage(String userType, Collection<Long> userIds) {
+        if (!SUPPORTED_ROLES.contains(userType)) {
+            throw new IllegalArgumentException("Unsupported FCM audience: " + userType);
+        }
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        return groupByLanguage(userFcmTokenRepository.findByUserTypeAndUserIdInAndIsActiveTrue(userType, userIds));
+    }
+
+    private static Map<String, List<String>> groupByLanguage(List<UserFcmToken> tokens) {
         Map<String, List<String>> byLanguage = new LinkedHashMap<>();
-        for (UserFcmToken token : userFcmTokenRepository.findByUserTypeAndIsActiveTrue(userType)) {
+        for (UserFcmToken token : tokens) {
             byLanguage.computeIfAbsent(
                     resolveLanguage(token.getAppLanguage(), null), k -> new ArrayList<>())
                     .add(token.getToken());
