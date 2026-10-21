@@ -24,6 +24,10 @@ RUN apk add --no-cache curl
 # Copy the built JAR from the build stage
 COPY --from=build /build/target/*.jar app.jar
 
+# One-off account creation helper (docker exec ... account-cli --create-admin)
+COPY docker/account-cli.sh /usr/local/bin/account-cli
+RUN chmod 755 /usr/local/bin/account-cli
+
 RUN chown -R appuser:appgroup /app
 
 USER appuser

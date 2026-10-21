@@ -217,6 +217,8 @@ docker compose up -d --build
 
 The API is available at `http://localhost:8081`; the local database is exposed at `localhost:5433`. Flyway applies migrations at startup.
 
+To create the first administrator, use `docker compose exec app account-cli ...` (see [Create admin and super admin accounts](#create-admin-and-super-admin-accounts)).
+
 ```bash
 docker compose logs -f app
 docker compose ps
@@ -260,6 +262,56 @@ docker logs --tail 100 -f cou-bus-tracker-app
 ```
 
 The VPS previously stored the checkout under `/opt/cou-bus-tracker/Backend`. Before deploying this root-level repository layout, move the production `.env.production` file to `/opt/cou-bus-tracker/.env.production` and preserve any local `uploads/` data. Keep the existing PostgreSQL Compose project name/volume when operating the database so an update does not create a new empty volume.
+
+### Create admin and super admin accounts
+
+No administrator account is seeded. Create one from the VPS with the
+`account-cli` helper baked into the API image. It reuses the container's
+environment and Spring profile, so it writes to the same database as the
+running API.
+
+```bash
+# Admin panel account (admin.kubijatra.com)
+docker exec cou-bus-tracker-app account-cli \
+  --create-admin \
+  --email=admin@cou.ac.bd \
+  --password='ChangeMe-123' \
+  --name='COU Admin'
+
+# Super admin account (super.kubijatra.com)
+docker exec cou-bus-tracker-app account-cli \
+  --create-super-admin \
+  --email=superadmin@cou.ac.bd \
+  --password='ChangeMe-123' \
+  --name='COU Super Admin'
+```
+
+- Emails are trimmed and lowercased.
+- `--name` is optional; it defaults to `Administrator` or `Super Administrator`.
+- Passwords must be 8–72 characters (BCrypt ignores bytes beyond 72).
+- A duplicate email is rejected with exit code `1` and leaves the existing account untouched.
+- The command starts a short-lived JVM with the web server disabled, then exits. The running API keeps serving traffic.
+- The helper is part of the image: rebuild once after pulling a release that adds it (`docker compose -f docker-compose.prod.yml up -d --build`).
+
+Local Docker stack:
+
+```bash
+docker compose exec app account-cli \
+  --create-admin --email=admin@example.com --password='ChangeMe-123' --name='Local Admin'
+```
+
+The password appears in shell history. To avoid that:
+
+```bash
+read -rsp 'Password: ' ACCOUNT_PASSWORD; echo
+docker exec cou-bus-tracker-app account-cli \
+  --create-admin --email=admin@cou.ac.bd \
+  --password="$ACCOUNT_PASSWORD" --name='COU Admin'
+unset ACCOUNT_PASSWORD
+```
+
+Verify by signing in at the corresponding panel (`admin.kubijatra.com` or
+`super.kubijatra.com`).
 
 ### Database backup
 
