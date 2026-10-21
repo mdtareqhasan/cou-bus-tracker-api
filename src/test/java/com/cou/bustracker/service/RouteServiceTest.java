@@ -10,7 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -135,7 +134,8 @@ class RouteServiceTest {
     void listingStampsTheActiveScheduleCountOntoEachRoute() {
         Route route = route(1L, "Kandirpar → Campus");
         when(routeRepository.findByIsActiveTrue()).thenReturn(List.of(route));
-        when(scheduleRepository.countActiveSchedulesByRoute()).thenReturn(Map.of(1L, 3L));
+        when(scheduleRepository.countActiveSchedulesByRoute())
+                .thenReturn(List.<Object[]>of(new Object[]{1L, 3L}));
 
         assertEquals(Long.valueOf(3L),
                 service.getActiveRoutes().get(0).getActiveScheduleCount(),

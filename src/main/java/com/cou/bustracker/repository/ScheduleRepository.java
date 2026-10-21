@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Map;
 
 @Repository
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
@@ -32,9 +31,16 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
      * Buses count too: a schedule on a retired bus is invisible to riders
      * (see {@link #findAllWithBus}), so it must not inflate the badge.
      */
+    /*
+     * Rows are [routeId, count] pairs. Deliberately List<Object[]> rather than
+     * Map<Long, Long>: Spring Data only maps Map returns for native queries, so
+     * a JPQL Map return is executed as a single-result query and throws
+     * NonUniqueResultException as soon as a second route has schedules (this
+     * broke the admin routes listing in production). The service unpacks rows.
+     */
     @Query("SELECT s.route.id, count(s) FROM Schedule s JOIN s.bus b "
             + "WHERE s.isActive = true AND b.isActive = true GROUP BY s.route.id")
-    Map<Long, Long> countActiveSchedulesByRoute();
+    List<Object[]> countActiveSchedulesByRoute();
 
     @Query("SELECT s FROM Schedule s JOIN FETCH s.bus JOIN FETCH s.route ORDER BY s.departureTime ASC")
     List<Schedule> findAllWithBusForAdmin();

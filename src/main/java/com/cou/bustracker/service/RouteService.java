@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -172,7 +173,15 @@ public class RouteService {
 
     /** Stamps the active-schedule count onto each response in one extra query. */
     private List<RouteResponse> withScheduleCounts(List<Route> routes) {
-        Map<Long, Long> counts = scheduleRepository.countActiveSchedulesByRoute();
+        // [routeId, count] rows, unpacked here (see countActiveSchedulesByRoute
+        // for why the repository cannot return a Map). The null-route guard
+        // covers schedules seeded before route assignment existed.
+        Map<Long, Long> counts = new HashMap<>();
+        for (Object[] row : scheduleRepository.countActiveSchedulesByRoute()) {
+            if (row[0] != null) {
+                counts.put((Long) row[0], (Long) row[1]);
+            }
+        }
         return routes.stream()
                 .map(route -> toResponse(route, counts.getOrDefault(route.getId(), 0L)))
                 .collect(Collectors.toList());
