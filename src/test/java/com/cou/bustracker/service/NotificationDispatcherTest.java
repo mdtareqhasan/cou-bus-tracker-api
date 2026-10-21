@@ -87,7 +87,7 @@ class NotificationDispatcherTest {
         assertEquals(List.of(
                 new Send(List.of("bn-token-1", "bn-token-2"),
                         "নতুন সময়সূচি: BUS 03",
-                        "BUS 03 · সিওই ব্লু · BLUE · কান্দিরপাড় → ক্যাম্পাস · নতুন ফেরি 7:00 AM থেকে ছাড়ছে (SUN-THU)।",
+                        "BUS 03 · সিওই ব্লু · BLUE · কান্দিরপাড় → ক্যাম্পাস · নতুন ট্রিপ 7:00 AM থেকে ছাড়ছে (SUN-THU)।",
                         SCHEDULE_ROUTE),
                 new Send(List.of("en-token-1"),
                         "New schedule: BUS 03",
