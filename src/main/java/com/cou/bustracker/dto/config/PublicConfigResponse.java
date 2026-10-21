@@ -19,7 +19,10 @@ public class PublicConfigResponse {
     private String latestAppVersion;
     private String minimumAppVersion;
     private Boolean forceUpdate;
+    /** Legacy single-language message; kept for clients that predate l10n. */
     private String updateMessage;
+    private String updateMessageBn;
+    private String updateMessageEn;
     private String playStoreUrl;
     private Boolean maintenanceMode;
     private String maintenanceMessage;

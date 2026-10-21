@@ -95,12 +95,16 @@ public class AppConfigService {
     }
 
     public PublicConfigResponse getPublicConfig() {
+        String legacyUpdateMessage = getOrDefault("update_available_message",
+                "A new version is available! Please update.");
         return PublicConfigResponse.builder()
                 .apiBaseUrl(getOrDefault("api_base_url", "http://localhost:8080/api"))
                 .latestAppVersion(getOrDefault("latest_app_version", "1.0.0"))
                 .minimumAppVersion(getOrDefault("minimum_app_version", "1.0.0"))
                 .forceUpdate(getBoolean("force_update"))
-                .updateMessage(getOrDefault("update_available_message", "A new version is available! Please update."))
+                .updateMessage(legacyUpdateMessage)
+                .updateMessageBn(getOrDefault("update_available_message_bn", legacyUpdateMessage))
+                .updateMessageEn(getOrDefault("update_available_message_en", legacyUpdateMessage))
                 .playStoreUrl(getOrDefault("play_store_url", "https://play.google.com/store/apps/details?id=com.cou.bustracker"))
                 .maintenanceMode(getBoolean("maintenance_mode"))
                 .maintenanceMessage(getOrDefault("maintenance_message", "The app is under maintenance. We'll be back soon."))
