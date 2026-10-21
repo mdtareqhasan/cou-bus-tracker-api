@@ -1,3 +1,9 @@
+-- Remove the admin account seeded by V1 (admin@cou.ac.bd / Admin@123). V1 is
+-- already applied, so the cleanup belongs here rather than as an edit to the
+-- bootstrap script (which would only change its checksum, leaving the row in
+-- place on every existing database).
+DELETE FROM admins WHERE email = 'admin@cou.ac.bd';
+
 -- Bilingual update prompt. The Flutter app picks the value that matches its
 -- active locale and falls back to the other language (then to its own
 -- translated default) when one is empty.
