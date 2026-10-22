@@ -16,11 +16,6 @@ server:
 app:
   email-verification:
     otp-expiry-minutes: 10
-  # Service links surfaced by GET /api/health so a status check also tells
-  # you where the two admin frontends live.
-  links:
-    admin-panel: https://admin.kubijatra.com
-    super-admin-panel: https://super.kubijatra.com
 
 # Actuator is on the classpath for its built-in health indicators (DataSource
 # DB check feeds /api/health). Only expose the standard health endpoint here;

@@ -14,7 +14,6 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.HttpCodeStatusMapper;
 import org.springframework.boot.actuate.health.StatusAggregator;
 import org.springframework.http.MediaType;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -25,12 +24,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Exercises the real Actuator wiring the controller depends on: a
- * {@link HealthEndpoint} backed by a registry where "db" is the DataSource
- * indicator. Deliberately avoids Mockito's class mocking — ByteBuddy (via
- * Boot 3.3.2's Mockito) cannot instrument HealthEndpoint on newer JDKs.
- */
 public class HealthControllerTest {
 
     /** Mutable stand-in for the DataSource indicator; tests set its status. */
@@ -53,8 +46,6 @@ public class HealthControllerTest {
         registry = new DefaultHealthContributorRegistry();
         registry.registerContributor("db", dbIndicator);
 
-        // Minimal permissive group: membership/details always on, default
-        // aggregators — everything a plain status probe needs.
         HealthEndpointGroup group = new HealthEndpointGroup() {
             @Override
             public boolean isMember(String name) {
@@ -90,50 +81,39 @@ public class HealthControllerTest {
         HealthEndpoint healthEndpoint = new HealthEndpoint(
                 registry, HealthEndpointGroups.of(group, Map.of()), Duration.ofSeconds(5));
 
-        HealthController controller = new HealthController(healthEndpoint);
-        // @Value fields are not injected in standalone setup.
-        ReflectionTestUtils.setField(controller, "adminPanelUrl", "https://admin.kubijatra.com");
-        ReflectionTestUtils.setField(controller, "superAdminPanelUrl", "https://super.kubijatra.com");
         mockMvc = MockMvcBuilders
-                .standaloneSetup(controller)
+                .standaloneSetup(new HealthController(healthEndpoint))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 
     @Test
-    void health_dbUp_returnsOkWithStatusAndPanelLinks() throws Exception {
+    void health_dbUp_returnsOk() throws Exception {
         dbIndicator.health = Health.up().build();
 
         mockMvc.perform(get("/api/health").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"))
-                .andExpect(jsonPath("$.api").value("UP"))
-                .andExpect(jsonPath("$.database").value("UP"))
-                .andExpect(jsonPath("$.timestamp").isNotEmpty())
-                .andExpect(jsonPath("$.adminPanel").value("https://admin.kubijatra.com"))
-                .andExpect(jsonPath("$.superAdminPanel").value("https://super.kubijatra.com"));
+                .andExpect(jsonPath("$.api").value("ok"))
+                .andExpect(jsonPath("$.db").value("ok"));
     }
 
     @Test
-    void health_dbDown_returnsServiceUnavailableWithDownBody() throws Exception {
+    void health_dbDown_returnsServiceUnavailable() throws Exception {
         dbIndicator.health = Health.down().build();
 
         mockMvc.perform(get("/api/health").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.status").value("DOWN"))
-                .andExpect(jsonPath("$.database").value("DOWN"))
-                // Links must survive a DB outage — they are static config.
-                .andExpect(jsonPath("$.adminPanel").value("https://admin.kubijatra.com"));
+                .andExpect(jsonPath("$.api").value("ok"))
+                .andExpect(jsonPath("$.db").value("down"));
     }
 
     @Test
-    void health_dbComponentMissing_returnsServiceUnavailableWithUnknown() throws Exception {
+    void health_dbComponentMissing_returnsServiceUnavailable() throws Exception {
         registry.unregisterContributor("db");
 
         mockMvc.perform(get("/api/health").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.status").value("DOWN"))
-                .andExpect(jsonPath("$.database").value("UNKNOWN"))
-                .andExpect(jsonPath("$.api").value("UP"));
+                .andExpect(jsonPath("$.api").value("ok"))
+                .andExpect(jsonPath("$.db").value("down"));
     }
 }
