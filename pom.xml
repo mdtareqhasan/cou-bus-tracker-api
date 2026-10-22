@@ -44,6 +44,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
+        <!-- Built-in health indicators (incl. DataSource/DB validation for
+             /api/health). Only the health endpoint is exposed over HTTP. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
         <!-- Cloudinary SDK for image upload/storage -->
         <dependency>
             <groupId>com.cloudinary</groupId>

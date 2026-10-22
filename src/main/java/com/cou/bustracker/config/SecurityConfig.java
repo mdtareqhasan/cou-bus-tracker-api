@@ -51,6 +51,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/admin/login").permitAll()
                         // Public Flutter runtime config
                         .requestMatchers("/api/config", "/api/config/**").permitAll()
+                        // Public service status (API + DB health, panel links)
+                        .requestMatchers("/api/health").permitAll()
                         // Public academic reference data for the registration pickers
                         .requestMatchers("/api/academic/**").permitAll()
                         // Public super-admin login only; everything else under /api/super-admin requires SUPER_ADMIN
