@@ -28,6 +28,10 @@ COPY --from=build /build/target/*.jar app.jar
 COPY docker/account-cli.sh /usr/local/bin/account-cli
 RUN chmod 755 /usr/local/bin/account-cli
 
+# One-off JWT minting helper (docker exec ... jwt-cli --gen-jwt)
+COPY docker/jwt-cli.sh /usr/local/bin/jwt-cli
+RUN chmod 755 /usr/local/bin/jwt-cli
+
 RUN chown -R appuser:appgroup /app
 
 USER appuser

@@ -313,6 +313,34 @@ unset ACCOUNT_PASSWORD
 Verify by signing in at the corresponding panel (`admin.kubijatra.com` or
 `super.kubijatra.com`).
 
+### Mint a JWT for a user
+
+The `jwt-cli` helper (also baked into the API image) creates an access token
+for any existing account without logging in — handy for curl/Postman testing
+or scripting against the API. It signs with the same secret and claims
+(`sub`, `role`, `iat`, `exp`, HS256) the API issues at login.
+
+```bash
+# VPS / any environment with the container running
+docker exec cou-bus-tracker-app jwt-cli \
+  --gen-jwt --email=student@cou.ac.bd --role=STUDENT
+```
+
+Local run without Docker (uses the dev secret from `application.yaml`):
+
+```bash
+java -jar target/cou-bus-tracker-1.0.0.jar \
+  --gen-jwt --email=student@cou.ac.bd --role=STUDENT
+```
+
+- Roles: `STUDENT`, `TEACHER`, `ADMIN`, `SUPER_ADMIN` (case-insensitive).
+- The token is printed as a bare line among the startup logs; capture it with
+  `... | grep '^eyJ'` (a JWT always starts with `eyJ`).
+- Default expiry is `jwt.expiration` (24 h).
+- The email must exist (and be active, for student/teacher/super-admin) in the
+  matching table — the API re-checks that on every request, so a well-formed
+  token for a deleted user still gets rejected.
+
 ### Database backup
 
 Create backups on the VPS and keep a protected copy off-server:
