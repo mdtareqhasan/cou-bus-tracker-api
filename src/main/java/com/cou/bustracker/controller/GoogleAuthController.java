@@ -23,9 +23,10 @@ import org.springframework.web.bind.annotation.RestController;
  * created and must be verified by an admin.
  *
  * <p>The chosen {@code role} restricts the accepted domain:
- * {@code TEACHER} only accepts {@code name@cou.ac.bd} — student addresses
+ * {@code TEACHER} only accepts {@code name@cou.ac.bd} (plus a small hard-coded
+ * exception list that may use either role) — other student addresses
  * ({@code name@stud.cou.ac.bd}) are rejected with 401 — while
- * {@code STUDENT} accepts both institutional domains.
+ * {@code STUDENT} accepts both institutional domains and the same exceptions.
  *
  * <p>An email already registered under the opposite role is rejected with 403
  * ({@code EMAIL_REGISTERED_AS_TEACHER} / {@code EMAIL_REGISTERED_AS_STUDENT}):

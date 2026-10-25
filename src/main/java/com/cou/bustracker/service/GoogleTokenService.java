@@ -37,6 +37,18 @@ public class GoogleTokenService {
      */
     public static final Set<String> ALLOWED_EMAIL_DOMAINS = Set.of(FACULTY_EMAIL_DOMAIN, STUDENT_EMAIL_DOMAIN);
 
+    /**
+     * Exception addresses that are accepted on top of the institutional
+     * domains, so individual accounts (personal Gmail used for development,
+     * and a student address that also needs the TEACHER role) can sign in
+     * with either role. Stored lower-cased and matched case-insensitively;
+     * everything else still has to be a university domain.
+     */
+    public static final Set<String> EXTRA_ALLOWED_EMAILS = Set.of(
+            "kawsar101amin@gmail.com",
+            "kawsar.amin@stud.cou.ac.bd",
+            "tareqcse@stud.cou.ac.bd");
+
     private final GoogleIdTokenVerifier verifier;
 
     public GoogleTokenService(@Value("${google.oauth2.client-id}") String clientId) {
@@ -47,7 +59,8 @@ public class GoogleTokenService {
 
     /**
      * Verifies the Google ID token's signature, audience and issuer, checks the
-     * email is verified, and enforces the institutional email domain.
+     * email is verified, and enforces the institutional email domain (plus the
+     * {@link #EXTRA_ALLOWED_EMAILS} exceptions).
      *
      * @throws BadCredentialsException when the token is invalid, the email is
      *         unverified, or the domain is not an allowed university domain
@@ -92,19 +105,40 @@ public class GoogleTokenService {
                 name instanceof String displayName ? displayName : null);
     }
 
-    /** @return true when {@code email} ends with one of the allowed university domains. */
+    /**
+     * @return true when {@code email} ends with one of the allowed university
+     *         domains, or is one of the {@link #EXTRA_ALLOWED_EMAILS}
+     *         exceptions. Used as the sign-in gate for both roles.
+     */
     public static boolean isAllowedInstitutionalEmail(String email) {
         String domain = domainOf(email);
-        return domain != null && ALLOWED_EMAIL_DOMAINS.contains(domain);
+        return isExtraAllowedEmail(email) || (domain != null && ALLOWED_EMAIL_DOMAINS.contains(domain));
     }
 
     /**
      * @return true when {@code email} belongs to the faculty/staff domain
      *         ({@code name@cou.ac.bd}); student addresses
-     *         ({@code name@stud.cou.ac.bd}) return false.
+     *         ({@code name@stud.cou.ac.bd}) return false. Pure domain check —
+     *         see {@link #isTeacherSignInEmail} for the TEACHER role policy.
      */
     public static boolean isFacultyEmail(String email) {
         return FACULTY_EMAIL_DOMAIN.equals(domainOf(email));
+    }
+
+    /**
+     * TEACHER role policy: the faculty/staff domain, plus any
+     * {@link #EXTRA_ALLOWED_EMAILS} exception (so those addresses can use both
+     * roles).
+     *
+     * @return true when {@code email} may sign in with role TEACHER
+     */
+    public static boolean isTeacherSignInEmail(String email) {
+        return isFacultyEmail(email) || isExtraAllowedEmail(email);
+    }
+
+    /** @return true when {@code email} is one of the hard-coded exceptions (case-insensitive). */
+    public static boolean isExtraAllowedEmail(String email) {
+        return email != null && EXTRA_ALLOWED_EMAILS.contains(email.trim().toLowerCase(Locale.ROOT));
     }
 
     /** @return the lower-cased domain after the last {@code @}, or null when malformed. */

@@ -70,9 +70,11 @@ public class TeacherService {
      * teacher row exists for the (verified) institutional email, a pending
      * profile is created — details and a password are filled in later.
      *
-     * <p>Only the faculty/staff domain ({@code name@cou.ac.bd}) is accepted
-     * here: student addresses ({@code name@stud.cou.ac.bd}) are rejected, as
-     * those belong to the {@code STUDENT} role.
+     * <p>The faculty/staff domain ({@code name@cou.ac.bd}) is accepted here,
+     * plus the {@link GoogleTokenService#EXTRA_ALLOWED_EMAILS} exceptions that
+     * may use either role: other student addresses
+     * ({@code name@stud.cou.ac.bd}) are rejected, as those belong to the
+     * {@code STUDENT} role.
      *
      * <p>An email already registered as a student is rejected as well: one
      * account, one role. The student flow mirrors this check.
@@ -82,7 +84,8 @@ public class TeacherService {
         GoogleTokenService.GoogleIdentity identity = googleTokenService.verify(idToken);
         String email = identity.email();
 
-        if (!GoogleTokenService.isFacultyEmail(email)) {
+        // Faculty domain, plus the hard-coded exceptions allowed for both roles.
+        if (!GoogleTokenService.isTeacherSignInEmail(email)) {
             throw new ApiException(ErrorCode.FACULTY_EMAIL_REQUIRED);
         }
 

@@ -72,4 +72,16 @@ public class StudentServiceGoogleLoginTest {
         assertEquals("student@stud.cou.ac.bd", response.getEmail());
         assertEquals("jwt-token", response.getAccessToken());
     }
+
+    @Test
+    void extraAllowedEmails_signInAsStudent() {
+        for (String email : new String[]{
+                "kawsar101amin@gmail.com", "kawsar.amin@stud.cou.ac.bd", "tareqcse@stud.cou.ac.bd"}) {
+            AuthResponse response = serviceFor(email, false).loginWithGoogle("google-token");
+
+            assertEquals("STUDENT", response.getRole(), email);
+            assertEquals(email, response.getEmail(), email);
+            assertEquals("jwt-token", response.getAccessToken(), email);
+        }
+    }
 }

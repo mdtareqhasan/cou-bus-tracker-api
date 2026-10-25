@@ -42,4 +42,30 @@ class GoogleTokenServiceTest {
         assertFalse(GoogleTokenService.isFacultyEmail("rajucou.ac.bd"));
         assertFalse(GoogleTokenService.isFacultyEmail("raju@"));
     }
+
+    @Test
+    void extraAllowedEmailsAreAcceptedForBothRoles() {
+        assertTrue(GoogleTokenService.isAllowedInstitutionalEmail("kawsar101amin@gmail.com"));
+        assertTrue(GoogleTokenService.isAllowedInstitutionalEmail("kawsar.amin@stud.cou.ac.bd"));
+        assertTrue(GoogleTokenService.isAllowedInstitutionalEmail("tareqcse@stud.cou.ac.bd"));
+        // Case-insensitive: the sign-in gate lower-cases before checking.
+        assertTrue(GoogleTokenService.isAllowedInstitutionalEmail("Kawsar.Amin@STUD.COU.AC.BD"));
+
+        assertTrue(GoogleTokenService.isTeacherSignInEmail("kawsar101amin@gmail.com"));
+        assertTrue(GoogleTokenService.isTeacherSignInEmail("kawsar.amin@stud.cou.ac.bd"));
+        assertTrue(GoogleTokenService.isTeacherSignInEmail("tareqcse@stud.cou.ac.bd"));
+        assertTrue(GoogleTokenService.isTeacherSignInEmail("teacher@cou.ac.bd"));
+    }
+
+    @Test
+    void extraAllowedEmailsDoNotOpenTheFloodgates() {
+        // Other addresses still follow the domain rules.
+        assertFalse(GoogleTokenService.isAllowedInstitutionalEmail("raju@gmail.com"));
+        assertFalse(GoogleTokenService.isAllowedInstitutionalEmail("kawsar.amin@gmail.com"));
+        assertFalse(GoogleTokenService.isTeacherSignInEmail("raju@gmail.com"));
+        assertFalse(GoogleTokenService.isTeacherSignInEmail("kawsar.amin@gmail.com"));
+        assertFalse(GoogleTokenService.isTeacherSignInEmail("someone@stud.cou.ac.bd"));
+        assertFalse(GoogleTokenService.isExtraAllowedEmail("kawsar101amin@gmail.com.evil.com"));
+        assertFalse(GoogleTokenService.isExtraAllowedEmail(null));
+    }
 }
