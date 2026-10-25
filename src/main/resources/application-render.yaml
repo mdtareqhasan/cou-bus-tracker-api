@@ -37,7 +37,8 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnough2024!}
-  expiration: ${JWT_EXPIRATION:86400000}
+  # 90 days (3 months) in milliseconds. Override with JWT_EXPIRATION (also ms).
+  expiration: ${JWT_EXPIRATION:7776000000}
 
 springdoc:
   api-docs:

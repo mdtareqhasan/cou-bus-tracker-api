@@ -336,7 +336,7 @@ java -jar target/cou-bus-tracker-1.0.0.jar \
 - Roles: `STUDENT`, `TEACHER`, `ADMIN`, `SUPER_ADMIN` (case-insensitive).
 - The token is printed as a bare line among the startup logs; capture it with
   `... | grep '^eyJ'` (a JWT always starts with `eyJ`).
-- Default expiry is `jwt.expiration` (24 h).
+- Default expiry is `jwt.expiration` (90 days / 3 months). Override with `JWT_EXPIRATION` (milliseconds).
 - The email must exist (and be active, for student/teacher/super-admin) in the
   matching table — the API re-checks that on every request, so a well-formed
   token for a deleted user still gets rejected.

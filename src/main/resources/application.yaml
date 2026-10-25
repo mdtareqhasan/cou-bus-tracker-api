@@ -33,7 +33,9 @@ management:
 
 jwt:
   secret: YourSuperSecretKeyForJWTTokenGenerationMustBeLongEnough2024!
-  expiration: 86400000
+  # 90 days (3 months) in milliseconds. This is the whole session lifetime for
+  # every role - there is no refresh-token flow.
+  expiration: 7776000000
 
 file:
   upload-dir: ./uploads

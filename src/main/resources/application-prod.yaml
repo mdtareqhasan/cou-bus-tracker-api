@@ -45,7 +45,8 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:}
-  expiration: ${JWT_EXPIRATION:86400000}
+  # 90 days (3 months) in milliseconds. Override with JWT_EXPIRATION (also ms).
+  expiration: ${JWT_EXPIRATION:7776000000}
 
 file:
   upload-dir: ./uploads
