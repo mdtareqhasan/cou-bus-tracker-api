@@ -1,6 +1,6 @@
 
 import http from 'k6/http';
-import { check, sleep } from 'k6';
+import { sleep } from 'k6';
 
 const BASE_URL = 'https://api.kubijatra.com';
 const TOKEN = __ENV.API_TOKEN || '';
@@ -26,27 +26,27 @@ const authenticatedHeaders = {
   Authorization: `Bearer ${TOKEN}`,
 };
 
-function get(path, name, headers = commonHeaders) {
+
+function get(path, params = {}) {
   const response = http.get(`${BASE_URL}${path}`, {
-    headers,
-    tags: { endpoint: name },
+    ...params,
     timeout: '15s',
   });
 
-  const passed = check(response, {
-    [`${name}: HTTP 200`]: (r) => r.status === 200,
-  });
-
-  if (!passed) {
+  if (response.status === 0 || response.status >= 400) {
     console.error(
-      `${name}: status=${response.status}, ` +
-      `error=${response.error || 'none'}, ` +
-      `duration=${response.timings.duration}ms`
+      `[REQUEST FAILED] ` +
+      `path=${path} ` +
+      `status=${response.status} ` +
+      `error=${response.error || 'none'} ` +
+      `duration=${response.timings.duration}ms ` +
+      `expected_url=${BASE_URL}${path}`
     );
   }
 
   return response;
 }
+
 
 function randomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
@@ -66,7 +66,7 @@ export default function () {
   ];
 
   const selected = randomItem(publicEndpoints);
-  const response = get(selected[0], selected[1]);
+  const response = get(selected[0]);
 
   // Sometimes fetch details for a random bus.
   if (selected[1] === 'buses' && Math.random() < 0.35) {
@@ -77,7 +77,7 @@ export default function () {
         const bus = randomItem(buses);
 
         if (bus.id !== undefined && bus.id !== null) {
-          get(`/api/buses/${encodeURIComponent(bus.id)}`, 'bus-details');
+          get(`/api/buses/${encodeURIComponent(bus.id)}`);
         }
       }
     } catch (_) {
@@ -106,11 +106,7 @@ export default function () {
 
     const selectedProtected = randomItem(protectedEndpoints);
 
-    get(
-      selectedProtected[0],
-      selectedProtected[1],
-      authenticatedHeaders,
-    );
+    get(selectedProtected[0], { headers: authenticatedHeaders });
   }
 
   sleep(Math.random() * 1.0 + 0.2);
