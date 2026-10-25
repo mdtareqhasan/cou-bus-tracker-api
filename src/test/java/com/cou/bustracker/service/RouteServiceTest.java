@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -134,12 +135,58 @@ class RouteServiceTest {
     void listingStampsTheActiveScheduleCountOntoEachRoute() {
         Route route = route(1L, "Kandirpar → Campus");
         when(routeRepository.findByIsActiveTrue()).thenReturn(List.of(route));
-        when(scheduleRepository.countActiveSchedulesByRoute())
-                .thenReturn(List.<Object[]>of(new Object[]{1L, 3L}));
+        when(scheduleRepository.countActiveSchedulesByRouteAndCategory())
+                .thenReturn(List.<Object[]>of(new Object[]{1L, "TEACHER", 3L}));
 
         assertEquals(Long.valueOf(3L),
                 service.getActiveRoutes().get(0).getActiveScheduleCount(),
                 "the Route tab badge must match what the schedules endpoint serves");
+    }
+
+    @Test
+    void listingCarriesThePerCategoryBreakdownSoTheClientCanGateByRole() {
+        Route route = route(1L, "Kandirpar → Campus");
+        when(routeRepository.findByIsActiveTrue()).thenReturn(List.of(route));
+        when(scheduleRepository.countActiveSchedulesByRouteAndCategory())
+                .thenReturn(List.<Object[]>of(
+                        new Object[]{1L, "TEACHER", 2L},
+                        new Object[]{1L, "BLUE", 1L}));
+
+        RouteResponse response = service.getActiveRoutes().get(0);
+
+        assertEquals(Long.valueOf(3L), response.getActiveScheduleCount(),
+                "the total is still every category's trips");
+        assertEquals(Map.of("TEACHER", 2L, "BLUE", 1L),
+                response.getActiveScheduleCountsByCategory(),
+                "the client cannot apply the role gate without knowing which "
+                        + "category each trip belongs to");
+    }
+
+    @Test
+    void routeWithoutSchedulesCarriesAnEmptyBreakdownRatherThanNull() {
+        Route route = route(2L, "Campus → Kandirpar");
+        when(routeRepository.findByIsActiveTrue()).thenReturn(List.of(route));
+        when(scheduleRepository.countActiveSchedulesByRouteAndCategory())
+                .thenReturn(List.<Object[]>of(new Object[]{1L, "BLUE", 4L}));
+
+        RouteResponse response = service.getActiveRoutes().get(0);
+
+        assertEquals(Long.valueOf(0L), response.getActiveScheduleCount());
+        assertEquals(Map.of(), response.getActiveScheduleCountsByCategory(),
+                "an empty map (not null) so the client can tell 'no trips' "
+                        + "from 'this server predates the breakdown'");
+    }
+
+    @Test
+    void listingKeepsARouteWithNoSchedules() {
+        Route route = route(9L, "Eidgah loop");
+        when(routeRepository.findByIsActiveTrue()).thenReturn(List.of(route));
+        when(scheduleRepository.countActiveSchedulesByRouteAndCategory())
+                .thenReturn(List.<Object[]>of());
+
+        RouteResponse response = service.getActiveRoutes().get(0);
+
+        assertEquals(Long.valueOf(0L), response.getActiveScheduleCount());
     }
 
     private void stubRoute(Long id, Route route) {

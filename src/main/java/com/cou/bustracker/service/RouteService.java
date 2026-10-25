@@ -171,19 +171,34 @@ public class RouteService {
         });
     }
 
-    /** Stamps the active-schedule count onto each response in one extra query. */
+    /**
+     * Stamps the active-schedule count and its per-category breakdown onto
+     * each response in one extra query.
+     *
+     * <p>The breakdown is what lets the client apply the role gate: the
+     * listing endpoint is public, so a rider's role never reaches the server
+     * and the server must not pick the categories for them.
+     */
     private List<RouteResponse> withScheduleCounts(List<Route> routes) {
-        // [routeId, count] rows, unpacked here (see countActiveSchedulesByRoute
-        // for why the repository cannot return a Map). The null-route guard
-        // covers schedules seeded before route assignment existed.
-        Map<Long, Long> counts = new HashMap<>();
-        for (Object[] row : scheduleRepository.countActiveSchedulesByRoute()) {
-            if (row[0] != null) {
-                counts.put((Long) row[0], (Long) row[1]);
+        // [routeId, category, count] rows, unpacked here (see
+        // countActiveSchedulesByRouteAndCategory for why the repository cannot
+        // return a Map). The null-route guard covers schedules seeded before
+        // route assignment existed; a null category would be unroutable and is
+        // skipped rather than handed to the client as an unnamed bucket.
+        Map<Long, Map<String, Long>> byCategory = new HashMap<>();
+        for (Object[] row : scheduleRepository.countActiveSchedulesByRouteAndCategory()) {
+            if (row[0] == null || row[1] == null) {
+                continue;
             }
+            byCategory.computeIfAbsent((Long) row[0], key -> new HashMap<>())
+                    .put((String) row[1], (Long) row[2]);
         }
         return routes.stream()
-                .map(route -> toResponse(route, counts.getOrDefault(route.getId(), 0L)))
+                .map(route -> {
+                    Map<String, Long> counts = byCategory.getOrDefault(route.getId(), Map.of());
+                    long total = counts.values().stream().mapToLong(Long::longValue).sum();
+                    return toResponse(route, total, counts);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -192,7 +207,8 @@ public class RouteService {
                 .orElseThrow(() -> new ApiException(ErrorCode.ROUTE_NOT_FOUND));
     }
 
-    private static RouteResponse toResponse(Route route, Long activeScheduleCount) {
+    private static RouteResponse toResponse(
+            Route route, long activeScheduleCount, Map<String, Long> countsByCategory) {
         return RouteResponse.builder()
                 .id(route.getId())
                 .nameBn(route.getNameBn())
@@ -200,6 +216,7 @@ public class RouteService {
                 .isActive(route.getIsActive())
                 .oppositeRouteId(route.getOppositeRouteId())
                 .activeScheduleCount(activeScheduleCount)
+                .activeScheduleCountsByCategory(countsByCategory)
                 .build();
     }
 }
