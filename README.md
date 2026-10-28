@@ -168,7 +168,6 @@ The current Nginx configuration proxies the listed public hosts to the API at `1
 
 ```text
 .
-├── admin-panel/                         # React + Vite administrator interface
 ├── kubi_jatra_images_api/                # App, admin, and architecture images for this README
 │   ├── splash_page.jpeg
 │   ├── home_page.jpeg
@@ -236,13 +235,18 @@ The source-run API listens at `http://localhost:8080` by default.
 
 ### Run the admin panel
 
+The admin panel and super-admin panel are maintained in separate repositories, not in this API repo:
+
+- Admin panel: `cou_bus_tracker_admin_panel` (React + Vite + Tailwind)
+- Super-admin panel: `cou-bus-tracker-super-admin`
+
 ```bash
-cd admin-panel
+cd ../cou_bus_tracker_admin_panel
 npm install
 npm run dev:local
 ```
 
-Build the admin panel with `npm run build` from `admin-panel/`.
+Build the admin panel with `npm run build` from that repository.
 
 ## 🌐 Production deployment
 

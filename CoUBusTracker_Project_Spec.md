@@ -1208,7 +1208,7 @@ Use a bottom navigation bar with:
 
 ### 9.2 Admin Panel Deployment
 
-1. Run production build from `admin-panel/`
+1. Run production build from the separate `cou_bus_tracker_admin_panel` repository
 2. Serve static files through a CDN, Nginx, or Vercel
 3. Proxy `/api` to the backend or set the production API base URL deliberately
 4. Restrict admin access using valid JWTs
